@@ -1,0 +1,49 @@
+{% extends "layout_dashboard.html" %}
+{% block title %}Обучение — Развивайся{% endblock %}
+{% block dashboard_body %}
+  <div class="dash-page-card">
+    <h1>Обучение</h1>
+    <p class="dash-card-note">Изучите билеты перед сдачей экзамена. Доступно билетов в каталоге: <strong>{{ tickets_count }}</strong></p>
+  </div>
+
+  <div class="dash-table-wrap">
+    {% if tests %}
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Тест</th>
+            <th>Автор</th>
+            <th>Билетов</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tests %}
+            <tr>
+              <td>{{ t.title }}</td>
+              <td>{{ t.author.username }}</td>
+              <td>{{ t.tickets|length }}</td>
+              <td>
+                {% if ready_flags.get(t.id) %}
+                  <span class="dash-pill-ok">Готов</span>
+                {% else %}
+                  <span class="dash-pill-draft">Черновик</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if ready_flags.get(t.id) %}
+                  <a href="/tests/{{ t.id }}/take">Пройти</a>
+                {% elif t.author_id == user.id %}
+                  <a href="/tests/{{ t.id }}/edit">Редактировать</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="dash-card-note" style="padding:1rem;">Пока нет доступных материалов. Создайте тест в личном кабинете.</p>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "layout_dashboard.html" %}
+{% block title %}Личный кабинет — Развивайся{% endblock %}
+{% block dashboard_body %}
+  <section class="dash-hero">
+    <div class="dash-hero-left">
+      <h1>Личный кабинет</h1>
+      <p class="dash-hero-sub">платформа для подготовки и сдачи экзамена по электробезопасности</p>
+      <div class="dash-hero-alert">
+        <span class="dash-info-icon">i</span>
+        Экзамен сдаётся в присутствии ответственного лица
+      </div>
+    </div>
+    <div class="dash-hero-helmet" aria-hidden="true">
+      <div class="dash-helmet-icon">
+        <span class="dash-helmet-ya">Я</span>
+      </div>
+    </div>
+    <div class="dash-hero-exam">
+      <a href="{{ exam_href }}" class="dash-exam-btn">Сдать экзамен</a>
+      <p class="dash-exam-hint">
+        <span class="dash-info-icon sm">i</span>
+        для успешной сдачи экзамена необходимо набрать не менее {{ min_pass_percent }}% правильных ответов
+      </p>
+    </div>
+  </section>
+
+  <section class="dash-grid">
+    <article class="dash-card dash-card-wide">
+      <h2 class="dash-card-label">Количество доступных билетов</h2>
+      <p class="dash-stat-big">{{ tickets_count }}</p>
+      <p class="dash-card-note">Изучите материалы по каждому билету перед сдачей экзамена</p>
+      {% if materials_updated %}
+        <p class="dash-card-meta">последняя редакция {{ materials_updated.strftime('%d.%m.%Y') }}</p>
+      {% endif %}
+      <a href="/training" class="dash-card-link">Перейти к обучению →</a>
+    </article>
+
+    <article class="dash-card">
+      <h2 class="dash-card-label">Протокол проверки знаний PDF</h2>
+      <div class="dash-pdf-icon" aria-hidden="true">PDF</div>
+      <p class="dash-card-note">Протоколы формируются автоматически после сдачи экзамена. Для подписи обратитесь в службу поддержки.</p>
+      <a href="/tests/catalog" class="dash-card-link">Каталог тестов</a>
+    </article>
+
+    <article class="dash-card dash-card-group">
+      <h2 class="dash-card-label">Текущая группа по ЭБ</h2>
+      <div class="dash-group-badge">{{ safety_group }}</div>
+      <p class="dash-group-desc">{{ safety_group_desc }}</p>
+    </article>
+
+    <article class="dash-card dash-card-calendar">
+      <h2 class="dash-card-label">Следующая проверка знаний</h2>
+      <div class="dash-calendar">
+        <span class="dash-cal-day">{{ next_check_date.day }}</span>
+        <span class="dash-cal-month">
+          {% set months = ['', 'Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'] %}
+          {{ months[next_check_date.month] }}
+        </span>
+      </div>
+      <p class="dash-card-meta">
+        {% set weekdays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'] %}
+        {{ weekdays[next_check_date.weekday()] }} {{ next_check_date.strftime('%d.%m.%y') }}
+      </p>
+    </article>
+
+    <article class="dash-card">
+      <h2 class="dash-card-label">Последний экзамен</h2>
+      {% if last_percent is not none %}
+        <p class="dash-stat-big dash-stat-percent">{{ last_percent }}%</p>
+        <p class="dash-card-note">по тесту{% if last_test_title %} «{{ last_test_title }}»{% endif %}{% if last_test_date %} от {{ last_test_date.strftime('%d.%m.%y') }}{% endif %}</p>
+        <p class="dash-grade-line {{ last_grade_class }}">оценка: {{ last_grade }}</p>
+      {% else %}
+        <p class="dash-stat-big dash-stat-muted">—</p>
+        <p class="dash-card-note">Вы ещё не сдавали экзамен</p>
+        <a href="{{ exam_href }}" class="dash-card-link">Сдать первый экзамен →</a>
+      {% endif %}
+    </article>
+
+    <article class="dash-card">
+      <h2 class="dash-card-label">Количество ошибок</h2>
+      {% if last_errors is not none %}
+        <p class="dash-stat-big dash-stat-errors">{{ last_errors }}</p>
+        <p class="dash-card-note">за последний тест</p>
+        <p class="dash-card-meta">Допустимое количество ошибок не более {{ max_errors_allowed }}</p>
+        {% if last_grade %}
+          <p class="dash-grade-line {{ last_grade_class }}">оценка: {{ last_grade }}</p>
+        {% endif %}
+      {% else %}
+        <p class="dash-stat-big dash-stat-muted">—</p>
+        <p class="dash-card-note">нет данных о последней попытке</p>
+      {% endif %}
+    </article>
+  </section>
+
+  {% if created_tests %}
+  <section class="dash-section">
+    <h2 class="dash-section-title">Мои тесты</h2>
+    <div class="dash-table-wrap">
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Билетов</th>
+            <th>Создан</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in created_tests %}
+            <tr>
+              <td>{{ t.title }}</td>
+              <td>{{ t.tickets|length }}</td>
+              <td>{{ t.created_at.strftime('%d.%m.%Y') }}</td>
+              <td><a href="/tests/{{ t.id }}/edit">Редактировать</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="dash-card-meta"><a href="/tests/new">+ Создать новый тест</a></p>
+  </section>
+  {% endif %}
+
+  {% if attempt_rows %}
+  <section class="dash-section">
+    <h2 class="dash-section-title">История прохождений</h2>
+    <div class="dash-table-wrap">
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Тест</th>
+            <th>Дата</th>
+            <th>Результат</th>
+            <th>Ошибки</th>
+            <th>%</th>
+            <th>Оценка</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in attempt_rows %}
+            <tr>
+              <td>{{ row.test.title }}</td>
+              <td>{{ row.attempt.finished_at.strftime('%d.%m.%Y %H:%M') }}</td>
+              <td>{{ row.correct }} / {{ row.total }}</td>
+              <td>{{ row.errors }}</td>
+              <td>{{ row.percent }}%</td>
+              <td class="{{ row.grade_class }}">{{ row.grade }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+{% endblock %}

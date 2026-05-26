@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Развивайся{% endblock %}</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body class="dash-body">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <a href="/cabinet" class="dash-logo">
+        <span class="dash-logo-mark">Я</span>
+        <span class="dash-logo-text">Разви<span class="dash-logo-accent">вайся</span></span>
+      </a>
+      <p class="dash-logo-sub">ПЛАТФОРМА ДЛЯ ОБУЧЕНИЯ И СДАЧИ ЭКЗАМЕНА ПО ЭЛЕКТРОБЕЗОПАСНОСТИ</p>
+
+      <nav class="dash-nav">
+        <a href="/cabinet" class="dash-nav-item {% if nav == 'home' %}is-active{% endif %}">Главная</a>
+        <a href="/training" class="dash-nav-item {% if nav == 'training' %}is-active{% endif %}">Обучение</a>
+        <a href="/tests/catalog" class="dash-nav-item {% if nav == 'exam' %}is-active{% endif %}">Экзамен</a>
+      </nav>
+
+      <div class="dash-support">
+        <p class="dash-support-title">Поддержка</p>
+        <p>8-800-555-35-35</p>
+        <p>support-@ivan.ru</p>
+        <p class="dash-support-hours">Пн — Пт, 9:00 — 00:00</p>
+      </div>
+    </aside>
+
+    <div class="dash-main">
+      <header class="dash-topbar">
+        <div class="dash-user">
+          <span class="dash-avatar" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="18" r="10" fill="#c4cdd8"/><path d="M8 42c2-10 10-14 16-14s14 4 16 14" fill="#9aa8bc"/></svg>
+          </span>
+          <div>
+            <div class="dash-user-name">{{ user_display|default(user.username) }}</div>
+            <div class="dash-user-meta">{{ safety_group|default('IV') }} группа {{ safety_group_desc|default('до и выше 1000 В') }}</div>
+          </div>
+        </div>
+        <form action="/logout" method="post" class="dash-logout">
+          <button type="submit" class="dash-link-btn">Выход</button>
+        </form>
+      </header>
+
+      <div class="dash-content">
+        {% block dashboard_body %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

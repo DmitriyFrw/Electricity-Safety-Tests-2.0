@@ -1,0 +1,45 @@
+{% extends "layout_dashboard.html" %}
+{% block title %}Экзамен — Развивайся{% endblock %}
+{% block dashboard_body %}
+  <div class="dash-page-card">
+    <h1>Экзамен</h1>
+    <p class="dash-card-note">Выберите тест для сдачи. Для успешной сдачи нужно не менее {{ min_pass_percent }}% правильных ответов.</p>
+    <a href="{{ exam_href }}" class="dash-exam-btn">Сдать экзамен</a>
+  </div>
+
+  <div class="dash-table-wrap">
+    {% if tests %}
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Автор</th>
+            <th>Билетов</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tests %}
+            <tr>
+              <td>{{ t.title }}</td>
+              <td>{{ t.author.username }}</td>
+              <td>{{ t.tickets|length }}</td>
+              <td>
+                {% if ready_flags.get(t.id) %}
+                  <a class="dash-exam-btn" style="padding:0.35rem 0.75rem;font-size:0.85rem;" href="/tests/{{ t.id }}/take">Пройти</a>
+                {% else %}
+                  <span class="dash-pill-draft">Черновик</span>
+                {% endif %}
+                {% if t.author_id == user.id %}
+                  <a href="/tests/{{ t.id }}/edit">Редактировать</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="dash-card-note" style="padding:1rem;">В системе пока нет тестов.</p>
+    {% endif %}
+  </div>
+{% endblock %}

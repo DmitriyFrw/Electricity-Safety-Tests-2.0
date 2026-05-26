@@ -1,0 +1,38 @@
+{% extends "layout_dashboard.html" %}
+{% block title %}Экзамен: {{ test.title }}{% endblock %}
+{% block dashboard_body %}
+  <div class="dash-page-card">
+    <h1>{{ test.title }}</h1>
+    <p class="dash-card-note">Отметьте один вариант на вопрос (A–D или 1–4). Для сдачи нужно не менее {{ min_pass_percent }}% правильных ответов.</p>
+  </div>
+
+  <form method="post" action="/tests/{{ test.id }}/take">
+    {% for ticket in tickets %}
+      <div class="dash-page-card dash-ticket">
+        <h2>Билет {{ loop.index }}</h2>
+        {% set qs = ticket.questions | sort(attribute='position') %}
+        {% for q in qs %}
+          <div class="dash-question">
+            <p><strong>Вопрос {{ q.position }}.</strong> {{ q.text }}</p>
+            <div class="dash-radio-line">
+              {% for i in [0,1,2,3] %}
+                <label>
+                  <input type="radio" name="q_{{ q.id }}" value="{{ letters[i] }}" {% if i == 0 %}required{% endif %} />
+                  {{ letters[i] }} ({{ digits[i] }}) —
+                  {% if i == 0 %}{{ q.option_a }}
+                  {% elif i == 1 %}{{ q.option_b }}
+                  {% elif i == 2 %}{{ q.option_c }}
+                  {% else %}{{ q.option_d }}{% endif %}
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <p>
+      <button type="submit" class="dash-exam-btn" style="border:none;cursor:pointer;">Отправить ответы</button>
+      <a href="/tests/catalog" class="dash-card-link" style="margin-left:1rem;">Отмена</a>
+    </p>
+  </form>
+{% endblock %}

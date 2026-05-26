@@ -1,0 +1,44 @@
+import { FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../api/client";
+import DashboardLayout from "../layout/DashboardLayout";
+
+export default function TestNewPage() {
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const fd = new FormData(e.target as HTMLFormElement);
+    try {
+      const t = await api.createTest(
+        String(fd.get("title")),
+        String(fd.get("description") || "")
+      );
+      navigate(`/tests/${t.id}/edit`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    }
+  };
+
+  return (
+    <DashboardLayout active="home">
+      <div className="dash-page-card dash-form">
+        <h1>Новый тест</h1>
+        {error && <p className="auth-error">{error}</p>}
+        <form onSubmit={onSubmit}>
+          <label htmlFor="title">Название</label>
+          <input id="title" name="title" required maxLength={200} />
+          <label htmlFor="description">Описание</label>
+          <textarea id="description" name="description" />
+          <button type="submit" className="dash-exam-btn" style={{ border: "none", cursor: "pointer", marginTop: "1rem" }}>
+            Создать
+          </button>
+          <Link to="/cabinet" className="dash-card-link" style={{ marginLeft: "1rem" }}>
+            Отмена
+          </Link>
+        </form>
+      </div>
+    </DashboardLayout>
+  );
+}

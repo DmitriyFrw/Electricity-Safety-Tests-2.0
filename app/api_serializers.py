@@ -11,6 +11,7 @@ from app.constants import (
 )
 from app.dashboard_stats import build_dashboard_context, display_name
 from app.models import Attempt, Test, Ticket, User
+from app.roles import can_create_tests, can_edit_test, role_label
 from app.schemas import (
     AttemptRowOut,
     CreatedTestOut,
@@ -39,8 +40,14 @@ def user_out(user: User) -> UserOut:
         id=user.id,
         username=user.username,
         display_name=dn,
+        role=user.role,
+        role_label=role_label(user.role),
+        can_create_tests=can_create_tests(user),
         safety_group=DEFAULT_SAFETY_GROUP,
         safety_group_desc=DEFAULT_SAFETY_GROUP_DESC,
+        full_name=user.full_name,
+        birth_date=user.birth_date,
+        job_title=user.job_title,
     )
 
 
@@ -71,6 +78,7 @@ def dashboard_out(
         )
     return DashboardOut(
         user=user_out(user),
+        can_create_tests=can_create_tests(user),
         tickets_count=base["tickets_count"],
         exam_test_id=base["exam_test_id"],
         min_pass_percent=base["min_pass_percent"],
@@ -108,7 +116,7 @@ def test_list_out(db: Session, tests: list[Test], current_user: User) -> TestLis
                 author_username=t.author.username if t.author else "",
                 ticket_count=len(t.tickets),
                 ready=test_is_ready_to_take(db, t),
-                is_owner=t.author_id == current_user.id,
+                can_edit=can_edit_test(current_user, t),
             )
         )
     return TestListOut(items=items)

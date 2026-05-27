@@ -17,7 +17,7 @@ from app.api_serializers import (
 from app.attempt_service import submit_test_attempt_with_answers
 from app.constants import QUESTIONS_PER_TICKET
 from app.database import get_db
-from app.deps import login_required
+from app.deps import login_required, require_test_edit_access, test_editor_required
 from app.exam_service import (
     completed_ticket_ids,
     create_exam_attempt,
@@ -56,13 +56,6 @@ def _load_test_full(db: Session, test_id: int) -> Test | None:
     )
 
 
-def _require_owner(db: Session, test_id: int, user: User) -> Test:
-    test = db.get(Test, test_id)
-    if not test or test.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Редактирование доступно только автору")
-    return test
-
-
 def _require_ready_test(db: Session, test: Test, user: User) -> None:
     if not test_is_ready_to_take(db, test):
         if user.id == test.author_id:
@@ -88,7 +81,7 @@ def list_tests(
 def create_test(
     body: TestCreateIn,
     db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(login_required)],
+    user: Annotated[User, Depends(test_editor_required)],
 ):
     title = body.title.strip()
     if not title:
@@ -108,9 +101,9 @@ def create_test(
 def get_test_for_edit(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(login_required)],
+    user: Annotated[User, Depends(test_editor_required)],
 ):
-    _require_owner(db, test_id, user)
+    require_test_edit_access(db, test_id, user)
     test = _load_test_full(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Тест не найден")
@@ -282,9 +275,9 @@ def finish_exam(
 def add_ticket(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(login_required)],
+    user: Annotated[User, Depends(test_editor_required)],
 ):
-    _require_owner(db, test_id, user)
+    require_test_edit_access(db, test_id, user)
     try:
         assert_can_add_ticket(db, test_id)
     except ValueError as e:
@@ -317,9 +310,9 @@ def save_ticket(
     ticket_id: int,
     body: TicketSaveIn,
     db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(login_required)],
+    user: Annotated[User, Depends(test_editor_required)],
 ):
-    _require_owner(db, test_id, user)
+    require_test_edit_access(db, test_id, user)
     ticket = db.get(Ticket, ticket_id)
     if not ticket or ticket.test_id != test_id:
         raise HTTPException(status_code=404, detail="Билет не найден")
@@ -353,9 +346,9 @@ def delete_ticket(
     test_id: int,
     ticket_id: int,
     db: Annotated[Session, Depends(get_db)],
-    user: Annotated[User, Depends(login_required)],
+    user: Annotated[User, Depends(test_editor_required)],
 ):
-    _require_owner(db, test_id, user)
+    require_test_edit_access(db, test_id, user)
     ticket = db.get(Ticket, ticket_id)
     if not ticket or ticket.test_id != test_id:
         raise HTTPException(status_code=404, detail="Билет не найден")

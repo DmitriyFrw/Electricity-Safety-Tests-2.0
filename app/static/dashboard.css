@@ -688,3 +688,55 @@ body.dash-body {
 .dash-exam-timer-warn {
   color: var(--dash-danger);
 }
+
+/* Запрет копирования текста билета */
+.dash-no-copy,
+.dash-no-copy * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.dash-manuals-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.dash-manuals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dash-manuals-item {
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-card-bg);
+  color: var(--dash-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.dash-manuals-item.is-active {
+  border-color: var(--dash-primary);
+  background: var(--dash-primary-soft, #eef4ff);
+}
+
+.dash-manual-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .dash-manuals-layout {
+    grid-template-columns: 1fr;
+  }
+}

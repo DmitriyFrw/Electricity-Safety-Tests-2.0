@@ -25,20 +25,19 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Развивайся — API", lifespan=lifespan)
 
-# Внешний middleware для трассировки запросов.
+# Порядок add_middleware: последний добавленный — внешний (выполняется первым на запрос).
+# Нужно: CORS → Session → CSRF → … → приложение (иначе CSRF/роуты падают на request.session).
 app.add_middleware(CorrelationIdMiddleware)
 
 if settings.rate_limit_enabled and settings.redis_url:
     try:
         app.add_middleware(RedisRateLimitMiddleware, redis_url=settings.redis_url)
     except Exception as e:
-        # Не ломаем запуск приложения, если Redis-модуль/зависимости отсутствуют.
-        # Rate limiting будет отключен.
-        # eslint-disable-next-line no-console
         import logging
 
         logging.getLogger("app").warning("Rate limit disabled: %s", e)
 
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(
     AppSessionMiddleware,
     secret_key=settings.secret_key,
@@ -47,7 +46,6 @@ app.add_middleware(
     httponly=settings.session_cookie_httponly,
     same_site=settings.session_cookie_samesite,  # type: ignore[arg-type]
 )
-app.add_middleware(CSRFMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

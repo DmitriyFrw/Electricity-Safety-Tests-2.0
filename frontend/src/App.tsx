@@ -9,6 +9,7 @@ import RegisterPage from "./pages/RegisterPage";
 import TakeExamPage from "./pages/TakeExamPage";
 import TakeTrainingPage from "./pages/TakeTrainingPage";
 import TrainingResultPage from "./pages/TrainingResultPage";
+import ManualsPage from "./pages/ManualsPage";
 import TestEditPage from "./pages/TestEditPage";
 import TestNewPage from "./pages/TestNewPage";
 import TrainingPage from "./pages/TrainingPage";
@@ -17,6 +18,14 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <p className="dash-card-note">Загрузка…</p>;
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function EditorRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <p className="dash-card-note">Загрузка…</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.can_create_tests) return <Navigate to="/cabinet" replace />;
   return <>{children}</>;
 }
 
@@ -32,6 +41,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <CabinetPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/manuals"
+          element={
+            <PrivateRoute>
+              <ManualsPage />
             </PrivateRoute>
           }
         />
@@ -86,17 +103,17 @@ export default function App() {
         <Route
           path="/tests/new"
           element={
-            <PrivateRoute>
+            <EditorRoute>
               <TestNewPage />
-            </PrivateRoute>
+            </EditorRoute>
           }
         />
         <Route
           path="/tests/:testId/edit"
           element={
-            <PrivateRoute>
+            <EditorRoute>
               <TestEditPage />
-            </PrivateRoute>
+            </EditorRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

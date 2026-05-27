@@ -170,7 +170,7 @@ export default function TakeExamPage() {
         <p className="dash-card-note">Для сдачи нужно ≥ {paper.min_pass_percent}% правильных ответов</p>
       </div>
       <form onSubmit={onSubmit}>
-        <div className="dash-page-card dash-ticket">
+        <div className="dash-page-card dash-ticket dash-no-copy">
           <h2>Билет {paper.ticket_index}</h2>
           {paper.ticket.questions.map((q) => (
             <div key={q.id} className="dash-question">

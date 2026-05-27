@@ -2,6 +2,7 @@ import type {
   Dashboard,
   ExamPaper,
   ExamResult,
+  Manual,
   TestEdit,
   TestListItem,
   User,
@@ -48,4 +49,11 @@ export const api = {
 
   deleteTicket: (testId: number, ticketId: number) =>
     deleteReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`),
+
+  updateProfile: (body: { full_name: string; birth_date: string; job_title: string }) =>
+    putReact<User>("/profile", body),
+
+  listManuals: () => getReact<Manual[]>("/manuals"),
+
+  protocolPdfUrl: () => "/api/profile/protocol.pdf",
 };

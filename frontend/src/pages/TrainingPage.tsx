@@ -35,7 +35,7 @@ export default function TrainingPage() {
                 <td>{t.ready ? <span className="dash-pill-ok">Готов</span> : <span className="dash-pill-draft">Черновик</span>}</td>
                 <td>
                   {t.ready && <Link to={`/training/${t.id}`}>Пройти</Link>}
-                  {t.is_owner && (
+                  {t.can_edit && (
                     <>
                       {" "}
                       <Link to={`/tests/${t.id}/edit`}>Редактировать</Link>

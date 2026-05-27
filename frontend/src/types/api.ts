@@ -2,8 +2,20 @@ export interface User {
   id: number;
   username: string;
   display_name: string;
+  role: "admin" | "ezh" | "kot" | string;
+  role_label: string;
+  can_create_tests: boolean;
   safety_group: string;
   safety_group_desc: string;
+  full_name: string | null;
+  birth_date: string | null;
+  job_title: string | null;
+}
+
+export interface Manual {
+  id: string;
+  title: string;
+  filename: string;
 }
 
 export interface AttemptRow {
@@ -28,6 +40,7 @@ export interface CreatedTest {
 
 export interface Dashboard {
   user: User;
+  can_create_tests: boolean;
   tickets_count: number;
   exam_test_id: number | null;
   min_pass_percent: number;
@@ -52,7 +65,7 @@ export interface TestListItem {
   author_username: string;
   ticket_count: number;
   ready: boolean;
-  is_owner: boolean;
+  can_edit: boolean;
 }
 
 export interface QuestionExam {

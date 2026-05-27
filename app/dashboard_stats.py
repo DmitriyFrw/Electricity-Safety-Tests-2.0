@@ -18,6 +18,8 @@ from app.validation import test_is_ready_to_take
 
 
 def display_name(user: User) -> str:
+    if user.full_name and user.full_name.strip():
+        return user.full_name.strip()
     name = (user.username or "").strip()
     if not name:
         return "Пользователь"

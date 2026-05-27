@@ -10,8 +10,26 @@ class UserOut(BaseModel):
     id: int
     username: str
     display_name: str
+    role: str
+    role_label: str
+    can_create_tests: bool
     safety_group: str
     safety_group_desc: str
+    full_name: Optional[str] = None
+    birth_date: Optional[date] = None
+    job_title: Optional[str] = None
+
+
+class ProfileUpdateIn(BaseModel):
+    full_name: str = Field(min_length=1, max_length=200)
+    birth_date: date
+    job_title: str = Field(min_length=1, max_length=200)
+
+
+class ManualOut(BaseModel):
+    id: str
+    title: str
+    filename: str
 
 
 class RegisterIn(BaseModel):
@@ -59,6 +77,7 @@ class CreatedTestOut(BaseModel):
 
 class DashboardOut(BaseModel):
     user: UserOut
+    can_create_tests: bool
     tickets_count: int
     exam_test_id: Optional[int]
     min_pass_percent: int
@@ -83,7 +102,7 @@ class TestListItemOut(BaseModel):
     author_username: str
     ticket_count: int
     ready: bool
-    is_owner: bool
+    can_edit: bool
 
 
 class TestListOut(BaseModel):

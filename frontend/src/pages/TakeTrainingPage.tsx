@@ -63,7 +63,7 @@ export default function TakeTrainingPage() {
       </div>
       <form onSubmit={onSubmit}>
         {paper.tickets.map((ticket, ti) => (
-          <div key={ticket.id} className="dash-page-card dash-ticket">
+          <div key={ticket.id} className="dash-page-card dash-ticket dash-no-copy">
             <h2>Билет {ti + 1}</h2>
             {ticket.questions.map((q) => (
               <div key={q.id} className="dash-question">

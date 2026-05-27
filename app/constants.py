@@ -18,3 +18,16 @@ EXAM_TICKET_TIME_LIMIT_SECONDS = 10 * 60
 
 ATTEMPT_MODE_TRAINING = "training"
 ATTEMPT_MODE_EXAM = "exam"
+
+# Роли пользователей
+ROLE_ADMIN = "admin"
+ROLE_EZH = "ezh"
+ROLE_KOT = "kot"
+
+ROLE_LABELS: dict[str, str] = {
+    ROLE_ADMIN: "Администратор",
+    ROLE_EZH: "Еж",
+    ROLE_KOT: "Кот",
+}
+
+ROLES_CAN_EDIT_TESTS = frozenset({ROLE_ADMIN, ROLE_EZH})

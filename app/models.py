@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -14,6 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.constants import ROLE_KOT
 from app.database import Base
 
 if TYPE_CHECKING:
@@ -26,6 +28,10 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default=ROLE_KOT, index=True)
+    full_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    birth_date: Mapped[Optional[dt.date]] = mapped_column(Date, nullable=True)
+    job_title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc)
     )

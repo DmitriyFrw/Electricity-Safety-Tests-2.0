@@ -9,8 +9,9 @@ from app.api_serializers import user_out
 from app.auth_utils import hash_password, verify_password
 from app.database import get_db
 from app.deps import get_current_user_optional, login_required
-from app.models import User
+from app.constants import ROLE_KOT
 from app.csrf import get_or_create_csrf_token, rotate_csrf_token
+from app.models import User
 from app.schemas import CsrfOut, LoginIn, MessageOut, RegisterIn, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -44,7 +45,7 @@ def auth_register(
         raise HTTPException(status_code=400, detail="Пароли не совпадают")
     if db.query(User).filter(User.username == u).first():
         raise HTTPException(status_code=400, detail="Такой логин уже занят")
-    user = User(username=u, password_hash=hash_password(body.password))
+    user = User(username=u, password_hash=hash_password(body.password), role=ROLE_KOT)
     db.add(user)
     db.commit()
     db.refresh(user)

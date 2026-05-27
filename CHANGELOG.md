@@ -14,6 +14,10 @@
 - API-тесты: `pytest` + `pytest-asyncio` + `httpx` для FastAPI.
 - Dockerfile + `docker-compose` + CI workflow.
 - Валидация конфигурации через `pydantic-settings`.
+- Роли пользователей: **admin**, **Еж** (`ezh`), **Кот** (`kot`); создание/редактирование тестов — только admin и Еж.
+- Раздел **Мануалы** (`/manuals`, `GET /api/manuals`).
+- Профиль Кота (ФИО, дата рождения, должность) и формирование **PDF-протокола** (`GET /api/profile/protocol.pdf`).
+- Запрет выделения текста в билетах (CSS `user-select: none`).
 
 ## [0.4.0] - 2026-05-26
 

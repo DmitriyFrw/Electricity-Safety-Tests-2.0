@@ -106,3 +106,23 @@ async def test_exam_ticket_timeout(async_client: AsyncClient, db_session):
     assert submit.status_code == 408
     assert "X-Correlation-ID" in submit.headers
 
+
+@pytest.mark.asyncio
+async def test_kot_cannot_create_test(async_client: AsyncClient):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "kotuser", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+    assert reg.json()["role"] == "kot"
+
+    csrf2 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    create = await async_client.post(
+        "/api/tests",
+        json={"title": "Forbidden", "description": None},
+        headers={"X-CSRF-Token": csrf2},
+    )
+    assert create.status_code == 403
+

@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 
 const NAV = [
   { to: "/cabinet", label: "Главная", key: "home" },
+  { to: "/manuals", label: "Мануалы", key: "manuals" },
   { to: "/training", label: "Обучение", key: "training" },
   { to: "/exam", label: "Экзамен", key: "exam" },
 ] as const;
@@ -13,7 +14,7 @@ export default function DashboardLayout({
   active,
 }: {
   children: React.ReactNode;
-  active: "home" | "training" | "exam";
+  active: "home" | "manuals" | "training" | "exam";
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export default function DashboardLayout({
             <div>
               <div className="dash-user-name">{user?.display_name}</div>
               <div className="dash-user-meta">
-                {user?.safety_group} группа {user?.safety_group_desc}
+                {user?.role_label} · {user?.safety_group} группа {user?.safety_group_desc}
               </div>
             </div>
           </div>

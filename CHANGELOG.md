@@ -8,6 +8,12 @@
 ### Added
 
 - Защита **CSRF**: `CSRFMiddleware`, `GET /api/auth/csrf`, заголовок `X-CSRF-Token` в axios.
+- Корреляционные ID для трассировки: заголовок `X-Correlation-ID` + middleware.
+- Rate limiting через Redis (опционально) для защиты API.
+- Централизованная обработка ошибок API на клиенте: 401/403/500 в interceptor axios.
+- API-тесты: `pytest` + `pytest-asyncio` + `httpx` для FastAPI.
+- Dockerfile + `docker-compose` + CI workflow.
+- Валидация конфигурации через `pydantic-settings`.
 
 ## [0.4.0] - 2026-05-26
 

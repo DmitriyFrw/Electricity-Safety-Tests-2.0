@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-import os
 from functools import lru_cache
+from pathlib import Path
+from typing import Literal
 
-from dotenv import load_dotenv
-
-load_dotenv()
+from pydantic import Field
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _normalize_db_url(url: str) -> str:
+    # postgres:// -> postgresql+psycopg:// (psycopg v3)
     u = url.replace("postgres://", "postgresql://", 1)
     if not u:
         return u
@@ -18,34 +20,54 @@ def _normalize_db_url(url: str) -> str:
     return u
 
 
-def _env_bool(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in ("1", "true", "yes", "on")
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
-class Settings:
-    database_url: str = _normalize_db_url(os.getenv("DATABASE_URL", ""))
-    secret_key: str = os.getenv("SECRET_KEY", "dev-change-me-in-production")
-    app_host: str = os.getenv("APP_HOST", "127.0.0.1")
-    app_port: int = int(os.getenv("APP_PORT", "8000"))
-    session_cookie_secure: bool = _env_bool("SESSION_COOKIE_SECURE", False)
-    session_cookie_httponly: bool = _env_bool("SESSION_COOKIE_HTTPONLY", True)
-    session_cookie_samesite: str = os.getenv("SESSION_COOKIE_SAMESITE", "lax").strip().lower()
-    cors_origins: list[str] = [
-        o.strip()
-        for o in os.getenv(
-            "CORS_ORIGINS",
-            "http://127.0.0.1:5173,http://localhost:5173",
-        ).split(",")
-        if o.strip()
-    ]
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    database_url: str = Field(default="", alias="DATABASE_URL")
+    secret_key: str = Field(default="dev-change-me-in-production", alias="SECRET_KEY")
+    app_host: str = Field(default="127.0.0.1", alias="APP_HOST")
+    app_port: int = Field(default=8000, alias="APP_PORT")
+
+    session_cookie_secure: bool = Field(default=False, alias="SESSION_COOKIE_SECURE")
+    session_cookie_httponly: bool = Field(default=True, alias="SESSION_COOKIE_HTTPONLY")
+    session_cookie_samesite: Literal["lax", "strict", "none"] = Field(
+        default="lax", alias="SESSION_COOKIE_SAMESITE"
+    )
+
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"],
+        alias="CORS_ORIGINS",
+    )
+
+    # Rate limiting (Redis)
+    redis_url: str = Field(default="", alias="REDIS_URL")
+    rate_limit_enabled: bool = Field(default=False, alias="RATE_LIMIT_ENABLED")
+    rate_limit_requests: int = Field(default=60, alias="RATE_LIMIT_REQUESTS")
+    rate_limit_window_seconds: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SECONDS")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _v_normalize_db_url(cls, v: object) -> object:
+        if not isinstance(v, str):
+            return v
+        return _normalize_db_url(v.strip())
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _v_parse_cors_origins(cls, v: object) -> object:
+        # Support "a,b,c" format from env
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v
 
 
 @lru_cache
 def get_settings() -> Settings:
-    s = Settings()
-    if s.session_cookie_samesite not in ("lax", "strict", "none"):
-        s.session_cookie_samesite = "lax"
-    return s
+    return Settings()

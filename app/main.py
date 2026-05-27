@@ -7,6 +7,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.api import api_router
 from app.config import get_settings
+from app.middleware.correlation_id import CorrelationIdMiddleware
+from app.middleware.redis_rate_limit import RedisRateLimitMiddleware
 from app.session_middleware import AppSessionMiddleware
 from app.csrf import CSRFMiddleware, CSRF_HEADER
 from app.database import Base, engine
@@ -22,6 +24,21 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Развивайся — API", lifespan=lifespan)
+
+# Внешний middleware для трассировки запросов.
+app.add_middleware(CorrelationIdMiddleware)
+
+if settings.rate_limit_enabled and settings.redis_url:
+    try:
+        app.add_middleware(RedisRateLimitMiddleware, redis_url=settings.redis_url)
+    except Exception as e:
+        # Не ломаем запуск приложения, если Redis-модуль/зависимости отсутствуют.
+        # Rate limiting будет отключен.
+        # eslint-disable-next-line no-console
+        import logging
+
+        logging.getLogger("app").warning("Rate limit disabled: %s", e)
+
 app.add_middleware(
     AppSessionMiddleware,
     secret_key=settings.secret_key,

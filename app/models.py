@@ -4,6 +4,7 @@ import datetime as dt
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
@@ -95,6 +96,7 @@ class Attempt(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"), nullable=False, index=True)
+    mode: Mapped[str] = mapped_column(String(20), nullable=False, default="training", index=True)
     started_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc)
     )
@@ -105,6 +107,27 @@ class Attempt(Base):
     user_answers: Mapped[list[UserAnswer]] = relationship(
         "UserAnswer", back_populates="attempt", cascade="all, delete-orphan"
     )
+    ticket_attempts: Mapped[list["TicketAttempt"]] = relationship(
+        "TicketAttempt", back_populates="attempt", cascade="all, delete-orphan"
+    )
+
+
+class TicketAttempt(Base):
+    __tablename__ = "ticket_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("attempts.id"), nullable=False, index=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"), nullable=False, index=True)
+    started_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc)
+    )
+    finished_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    timed_out: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    attempt: Mapped[Attempt] = relationship("Attempt", back_populates="ticket_attempts")
+    ticket: Mapped[Ticket] = relationship("Ticket")
+
+    __table_args__ = (UniqueConstraint("attempt_id", "ticket_id", name="uq_attempt_ticket"),)
 
 
 class UserAnswer(Base):

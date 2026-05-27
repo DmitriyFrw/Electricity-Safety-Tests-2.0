@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.answer_labels import parse_answer_label
 from app.grading import grade_css_class, grade_for_percent, score_percent
+from app.constants import ATTEMPT_MODE_TRAINING
 from app.models import Attempt, Question, Test, Ticket, UserAnswer
 
 
@@ -108,7 +109,12 @@ def submit_test_attempt_with_answers(
 ) -> tuple[Attempt, AttemptScore, list[dict[str, Any]]]:
     """Сохраняет попытку: answers — словарь question_id -> A|B|C|D|1|2|3|4."""
     when = finished_at or dt.datetime.now(dt.timezone.utc)
-    attempt = Attempt(user_id=user_id, test_id=test.id, finished_at=when)
+    attempt = Attempt(
+        user_id=user_id,
+        test_id=test.id,
+        mode=ATTEMPT_MODE_TRAINING,
+        finished_at=when,
+    )
     db.add(attempt)
     db.flush()
 

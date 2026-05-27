@@ -78,6 +78,29 @@ export interface ExamPaper {
   tickets: TicketExam[];
 }
 
+export interface ExamSession {
+  attempt_id: number;
+  test_id: number;
+  test_title: string;
+  ticket_count: number;
+  completed_ticket_ids: number[];
+  next_ticket_id: number | null;
+  time_limit_seconds: number;
+}
+
+export interface ExamTicketPaper {
+  test_id: number;
+  test_title: string;
+  attempt_id: number;
+  ticket: TicketExam;
+  ticket_index: number;
+  ticket_count: number;
+  min_pass_percent: number;
+  time_limit_seconds: number;
+  seconds_remaining: number;
+  deadline_at: string;
+}
+
 export interface TicketResultRow {
   n: number;
   correct: number;

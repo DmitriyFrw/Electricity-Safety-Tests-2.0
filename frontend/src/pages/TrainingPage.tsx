@@ -34,7 +34,7 @@ export default function TrainingPage() {
                 <td>{t.ticket_count}</td>
                 <td>{t.ready ? <span className="dash-pill-ok">Готов</span> : <span className="dash-pill-draft">Черновик</span>}</td>
                 <td>
-                  {t.ready && <Link to={`/exam/${t.id}`}>Пройти</Link>}
+                  {t.ready && <Link to={`/training/${t.id}`}>Пройти</Link>}
                   {t.is_owner && (
                     <>
                       {" "}

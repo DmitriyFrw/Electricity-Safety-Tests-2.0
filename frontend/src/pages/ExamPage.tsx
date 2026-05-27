@@ -13,7 +13,9 @@ export default function ExamPage() {
     <DashboardLayout active="exam">
       <div className="dash-page-card">
         <h1>Экзамен</h1>
-        <p className="dash-card-note">Выберите тест для сдачи</p>
+        <p className="dash-card-note">
+          На каждый билет — {10} минут. Тренировка без ограничения по времени — в разделе «Обучение».
+        </p>
         {firstReady && (
           <Link to={`/exam/${firstReady.id}`} className="dash-exam-btn">
             Сдать экзамен

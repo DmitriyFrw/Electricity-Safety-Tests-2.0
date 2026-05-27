@@ -6,15 +6,34 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from app.answer_labels import parse_answer_label
-from app.api_serializers import exam_paper_out, exam_result_out, test_edit_out, test_list_out
+from app.api_serializers import (
+    exam_paper_out,
+    exam_result_out,
+    exam_session_out,
+    exam_ticket_paper_out,
+    test_edit_out,
+    test_list_out,
+)
 from app.attempt_service import submit_test_attempt_with_answers
 from app.constants import QUESTIONS_PER_TICKET
 from app.database import get_db
 from app.deps import login_required
+from app.exam_service import (
+    completed_ticket_ids,
+    create_exam_attempt,
+    finish_exam_attempt,
+    get_open_exam_attempt,
+    next_ticket,
+    start_ticket_for_exam,
+    submit_exam_ticket,
+    ticket_deadline,
+)
 from app.models import Question, Test, Ticket, User
 from app.schemas import (
     ExamPaperOut,
     ExamResultOut,
+    ExamSessionOut,
+    ExamTicketPaperOut,
     MessageOut,
     SubmitExamIn,
     TestCreateIn,
@@ -42,6 +61,13 @@ def _require_owner(db: Session, test_id: int, user: User) -> Test:
     if not test or test.author_id != user.id:
         raise HTTPException(status_code=403, detail="Редактирование доступно только автору")
     return test
+
+
+def _require_ready_test(db: Session, test: Test, user: User) -> None:
+    if not test_is_ready_to_take(db, test):
+        if user.id == test.author_id:
+            raise HTTPException(status_code=400, detail="Тест ещё не заполнен полностью")
+        raise HTTPException(status_code=400, detail="Тест недоступен для сдачи")
 
 
 @router.get("", response_model=TestListOut)
@@ -91,8 +117,8 @@ def get_test_for_edit(
     return test_edit_out(db, test)
 
 
-@router.get("/{test_id}/exam", response_model=ExamPaperOut)
-def get_exam_paper(
+@router.get("/{test_id}/training", response_model=ExamPaperOut)
+def get_training_paper(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
@@ -100,15 +126,12 @@ def get_exam_paper(
     test = _load_test_full(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Тест не найден")
-    if not test_is_ready_to_take(db, test):
-        if user.id == test.author_id:
-            raise HTTPException(status_code=400, detail="Тест ещё не заполнен полностью")
-        raise HTTPException(status_code=400, detail="Тест недоступен для сдачи")
+    _require_ready_test(db, test, user)
     return exam_paper_out(test)
 
 
-@router.post("/{test_id}/exam", response_model=ExamResultOut)
-def submit_exam(
+@router.post("/{test_id}/training", response_model=ExamResultOut)
+def submit_training(
     test_id: int,
     body: SubmitExamIn,
     db: Annotated[Session, Depends(get_db)],
@@ -117,9 +140,7 @@ def submit_exam(
     test = _load_test_full(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Тест не найден")
-    if not test_is_ready_to_take(db, test):
-        raise HTTPException(status_code=400, detail="Тест недоступен для сдачи")
-
+    _require_ready_test(db, test, user)
     answers = {a.question_id: a.value for a in body.answers}
     _attempt, summary, ticket_rows = submit_test_attempt_with_answers(
         db,
@@ -127,6 +148,133 @@ def submit_exam(
         test=test,
         answers=answers,
     )
+    return exam_result_out(test, summary, ticket_rows)
+
+
+@router.post("/{test_id}/exam/session", response_model=ExamSessionOut)
+def start_exam_session(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    test = _load_test_full(db, test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Тест не найден")
+    _require_ready_test(db, test, user)
+    attempt = create_exam_attempt(db, user_id=user.id, test_id=test.id)
+    done = set(completed_ticket_ids(db, attempt))
+    nxt = next_ticket(test, done)
+    return exam_session_out(
+        attempt_id=attempt.id,
+        test=test,
+        completed_ticket_ids=sorted(done),
+        next_ticket_id=nxt.id if nxt else None,
+    )
+
+
+@router.get("/{test_id}/exam/session", response_model=ExamSessionOut)
+def get_exam_session(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    test = _load_test_full(db, test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Тест не найден")
+    attempt = get_open_exam_attempt(db, user_id=user.id, test_id=test_id)
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Нет активной экзаменационной сессии")
+    done = set(completed_ticket_ids(db, attempt))
+    nxt = next_ticket(test, done)
+    return exam_session_out(
+        attempt_id=attempt.id,
+        test=test,
+        completed_ticket_ids=sorted(done),
+        next_ticket_id=nxt.id if nxt else None,
+    )
+
+
+@router.get("/{test_id}/exam/tickets/{ticket_id}", response_model=ExamTicketPaperOut)
+def get_exam_ticket(
+    test_id: int,
+    ticket_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    test = _load_test_full(db, test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Тест не найден")
+    _require_ready_test(db, test, user)
+    attempt = get_open_exam_attempt(db, user_id=user.id, test_id=test_id)
+    if not attempt:
+        raise HTTPException(status_code=400, detail="Сначала начните экзамен")
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket or ticket.test_id != test_id:
+        raise HTTPException(status_code=404, detail="Билет не найден")
+    tickets_sorted = sorted(test.tickets, key=lambda t: t.position)
+    try:
+        ta, remaining = start_ticket_for_exam(db, attempt=attempt, ticket=ticket, test=test)
+    except ValueError as e:
+        raise HTTPException(status_code=408, detail=str(e)) from e
+    ticket_index = next(i for i, t in enumerate(tickets_sorted, start=1) if t.id == ticket.id)
+    return exam_ticket_paper_out(
+        test=test,
+        attempt_id=attempt.id,
+        ticket=ticket,
+        ticket_index=ticket_index,
+        seconds_remaining=remaining,
+        deadline_at=ticket_deadline(ta.started_at),
+    )
+
+
+@router.post("/{test_id}/exam/tickets/{ticket_id}", response_model=ExamSessionOut)
+def submit_exam_ticket_answers(
+    test_id: int,
+    ticket_id: int,
+    body: SubmitExamIn,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    test = _load_test_full(db, test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Тест не найден")
+    attempt = get_open_exam_attempt(db, user_id=user.id, test_id=test_id)
+    if not attempt:
+        raise HTTPException(status_code=400, detail="Нет активной экзаменационной сессии")
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket or ticket.test_id != test_id:
+        raise HTTPException(status_code=404, detail="Билет не найден")
+    answers = {a.question_id: a.value for a in body.answers}
+    try:
+        submit_exam_ticket(db, attempt=attempt, ticket=ticket, answers=answers)
+    except ValueError as e:
+        raise HTTPException(status_code=408, detail=str(e)) from e
+    done = set(completed_ticket_ids(db, attempt))
+    nxt = next_ticket(test, done)
+    return exam_session_out(
+        attempt_id=attempt.id,
+        test=test,
+        completed_ticket_ids=sorted(done),
+        next_ticket_id=nxt.id if nxt else None,
+    )
+
+
+@router.post("/{test_id}/exam/finish", response_model=ExamResultOut)
+def finish_exam(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    test = _load_test_full(db, test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Тест не найден")
+    attempt = get_open_exam_attempt(db, user_id=user.id, test_id=test_id)
+    if not attempt:
+        raise HTTPException(status_code=400, detail="Нет активной экзаменационной сессии")
+    try:
+        summary, ticket_rows = finish_exam_attempt(db, attempt=attempt, test=test)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return exam_result_out(test, summary, ticket_rows)
 
 

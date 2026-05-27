@@ -29,6 +29,10 @@ class MessageOut(BaseModel):
     message: str
 
 
+class CsrfOut(BaseModel):
+    csrf_token: str
+
+
 class ErrorOut(BaseModel):
     detail: str
 
@@ -117,6 +121,29 @@ class ExamPaperOut(BaseModel):
     title: str
     min_pass_percent: int
     tickets: list[TicketExamOut]
+
+
+class ExamSessionOut(BaseModel):
+    attempt_id: int
+    test_id: int
+    test_title: str
+    ticket_count: int
+    completed_ticket_ids: list[int]
+    next_ticket_id: Optional[int]
+    time_limit_seconds: int
+
+
+class ExamTicketPaperOut(BaseModel):
+    test_id: int
+    test_title: str
+    attempt_id: int
+    ticket: TicketExamOut
+    ticket_index: int
+    ticket_count: int
+    min_pass_percent: int
+    time_limit_seconds: int
+    seconds_remaining: int
+    deadline_at: datetime
 
 
 class AnswerItemIn(BaseModel):

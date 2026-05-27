@@ -7,6 +7,8 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import TakeExamPage from "./pages/TakeExamPage";
+import TakeTrainingPage from "./pages/TakeTrainingPage";
+import TrainingResultPage from "./pages/TrainingResultPage";
 import TestEditPage from "./pages/TestEditPage";
 import TestNewPage from "./pages/TestNewPage";
 import TrainingPage from "./pages/TrainingPage";
@@ -46,6 +48,22 @@ export default function App() {
           element={
             <PrivateRoute>
               <ExamPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/training/:testId"
+          element={
+            <PrivateRoute>
+              <TakeTrainingPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/training/:testId/result"
+          element={
+            <PrivateRoute>
+              <TrainingResultPage />
             </PrivateRoute>
           }
         />

@@ -5,6 +5,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Защита **CSRF**: `CSRFMiddleware`, `GET /api/auth/csrf`, заголовок `X-CSRF-Token` в axios.
+
 ## [0.4.0] - 2026-05-26
 
 ### Added

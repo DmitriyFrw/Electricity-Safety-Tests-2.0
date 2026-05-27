@@ -4,6 +4,7 @@ from app.attempt_service import attempt_to_row
 from app.constants import (
     DEFAULT_SAFETY_GROUP,
     DEFAULT_SAFETY_GROUP_DESC,
+    EXAM_TICKET_TIME_LIMIT_SECONDS,
     MAX_TICKETS_PER_TEST,
     MIN_PASS_PERCENT,
     QUESTIONS_PER_TICKET,
@@ -16,6 +17,8 @@ from app.schemas import (
     DashboardOut,
     ExamPaperOut,
     ExamResultOut,
+    ExamSessionOut,
+    ExamTicketPaperOut,
     QuestionEditOut,
     QuestionExamOut,
     TestEditOut,
@@ -111,27 +114,70 @@ def test_list_out(db: Session, tests: list[Test], current_user: User) -> TestLis
     return TestListOut(items=items)
 
 
+def _ticket_exam_out(ticket: Ticket) -> TicketExamOut:
+    qs = [
+        QuestionExamOut(
+            id=q.id,
+            position=q.position,
+            text=q.text,
+            option_a=q.option_a,
+            option_b=q.option_b,
+            option_c=q.option_c,
+            option_d=q.option_d,
+        )
+        for q in sorted(ticket.questions, key=lambda x: x.position)
+    ]
+    return TicketExamOut(id=ticket.id, position=ticket.position, questions=qs)
+
+
 def exam_paper_out(test: Test) -> ExamPaperOut:
-    tickets = []
-    for ticket in sorted(test.tickets, key=lambda x: x.position):
-        qs = [
-            QuestionExamOut(
-                id=q.id,
-                position=q.position,
-                text=q.text,
-                option_a=q.option_a,
-                option_b=q.option_b,
-                option_c=q.option_c,
-                option_d=q.option_d,
-            )
-            for q in sorted(ticket.questions, key=lambda x: x.position)
-        ]
-        tickets.append(TicketExamOut(id=ticket.id, position=ticket.position, questions=qs))
+    tickets = [_ticket_exam_out(ticket) for ticket in sorted(test.tickets, key=lambda x: x.position)]
     return ExamPaperOut(
         id=test.id,
         title=test.title,
         min_pass_percent=MIN_PASS_PERCENT,
         tickets=tickets,
+    )
+
+
+def exam_session_out(
+    *,
+    attempt_id: int,
+    test: Test,
+    completed_ticket_ids: list[int],
+    next_ticket_id: int | None,
+) -> ExamSessionOut:
+    return ExamSessionOut(
+        attempt_id=attempt_id,
+        test_id=test.id,
+        test_title=test.title,
+        ticket_count=len(test.tickets),
+        completed_ticket_ids=completed_ticket_ids,
+        next_ticket_id=next_ticket_id,
+        time_limit_seconds=EXAM_TICKET_TIME_LIMIT_SECONDS,
+    )
+
+
+def exam_ticket_paper_out(
+    *,
+    test: Test,
+    attempt_id: int,
+    ticket: Ticket,
+    ticket_index: int,
+    seconds_remaining: int,
+    deadline_at,
+) -> ExamTicketPaperOut:
+    return ExamTicketPaperOut(
+        test_id=test.id,
+        test_title=test.title,
+        attempt_id=attempt_id,
+        ticket=_ticket_exam_out(ticket),
+        ticket_index=ticket_index,
+        ticket_count=len(test.tickets),
+        min_pass_percent=MIN_PASS_PERCENT,
+        time_limit_seconds=EXAM_TICKET_TIME_LIMIT_SECONDS,
+        seconds_remaining=seconds_remaining,
+        deadline_at=deadline_at,
     )
 
 

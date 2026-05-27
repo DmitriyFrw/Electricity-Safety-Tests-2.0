@@ -677,3 +677,14 @@ body.dash-body {
 .dash-ticket + .dash-ticket {
   margin-top: 0;
 }
+
+.dash-exam-timer {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--dash-primary);
+  margin: 0.5rem 0 0;
+}
+
+.dash-exam-timer-warn {
+  color: var(--dash-danger);
+}

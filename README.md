@@ -32,6 +32,12 @@ UI: http://127.0.0.1:5173 — запросы `/api/*` проксируются �
 
 Сессия: cookie `exam_session`, axios с `withCredentials: true`.
 
+### CSRF
+
+1. При старте UI: `GET /api/auth/csrf` → токен в сессии и в памяти клиента.
+2. Все **POST/PUT/DELETE** отправляют заголовок **`X-CSRF-Token`** (см. `frontend/src/api/csrf.ts`).
+3. Backend (`CSRFMiddleware`) сверяет заголовок с `session["csrf_token"]`.
+
 ### Цепочка данных (getReact → state)
 
 1. React вызывает **`getReact<T>('/dashboard')`** (`frontend/src/api/getReact.ts`) — внутри **axios.get**.

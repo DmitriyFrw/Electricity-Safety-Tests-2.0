@@ -41,7 +41,7 @@ export default function RegisterPage() {
           <input id="password" name="password" type="password" required />
           <label htmlFor="password2">Пароль ещё раз</label>
           <input id="password2" name="password2" type="password" required />
-          <button type="submit" className="dash-exam-btn" disabled={loading}>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "…" : "Зарегистрироваться"}
           </button>
         </form>

@@ -3,7 +3,15 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { initCsrf, setupCsrfInterceptor } from "./api/csrf";
-import "../../app/static/dashboard.css";
+
+import "./styles/razvivaisia/variables.css";
+import "./styles/razvivaisia/reset.css";
+import "./styles/razvivaisia/base.css";
+import "./styles/razvivaisia/components.css";
+import "./styles/razvivaisia/layout.css";
+import "./styles/razvivaisia/pages.css";
+import "./styles/razvivaisia/responsive.css";
+import "./styles/react-bridge.css";
 
 setupCsrfInterceptor();
 

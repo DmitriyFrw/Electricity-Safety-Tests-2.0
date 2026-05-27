@@ -38,7 +38,7 @@ export default function LoginPage() {
           <input id="username" name="username" required autoComplete="username" />
           <label htmlFor="password">Пароль</label>
           <input id="password" name="password" type="password" required autoComplete="current-password" />
-          <button type="submit" className="dash-exam-btn" disabled={loading}>
+          <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
             {loading ? "Вход…" : "Войти"}
           </button>
         </form>

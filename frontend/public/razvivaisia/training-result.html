@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Просмотр ошибок тренировки — платформа Развивайся">
+    
+    <meta property="og:title" content="Просмотр ошибок — Развивайся">
+    <meta property="og:description" content="Анализ ошибок после тренировочного билета">
+    <meta property="og:type" content="website">
+    
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <title>Просмотр ошибок — Развивайся</title>
+</head>
+<body>
+    <div class="page-wrapper">
+        
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <div class="header-logo">
+                <button class="burger-menu" id="burgerMenu" aria-label="Открыть меню">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                
+                <a href="index.html">
+                    <img src="assets/images/logo.svg" alt="Развивайся" class="header-logo-img">
+                </a>
+            </div>
+            
+            <div class="header-user">
+                <img src="assets/images/hedgehog-avatar.png" alt="Аватар пользователя" class="header-user-avatar">
+                <div class="header-user-info">
+                    <div class="header-user-name">Бродягин С.В.</div>
+                    <div class="header-user-group"><span>IV группа</span> до и выше 1000 В</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- ===== MAIN LAYOUT ===== -->
+        <div class="main-layout">
+            
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <!-- ===== SIDEBAR ===== -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    <ul class="sidebar-menu">
+                        <li>
+                            <a href="index.html" class="sidebar-menu-item">Главная</a>
+                        </li>
+                        <li>
+                            <a href="training.html" class="sidebar-menu-item active">Тренировка</a>
+                        </li>
+                        <li>
+                            <a href="exam.html" class="sidebar-menu-item">Экзамен</a>
+                        </li>
+                        <li>
+                            <a href="documents.html" class="sidebar-menu-item">Нормативные документы</a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <div class="sidebar-support">
+                    <div class="sidebar-support-title">Служба поддержки</div>
+                    <a href="tel:88005553535" class="sidebar-support-phone">8-800-555-35-35</a>
+                    <a href="mailto:support@ivan.ru" class="sidebar-support-email">support@ivan.ru</a>
+                    <div class="sidebar-support-hours">Пн - Пт с 9:00 - 00:00</div>
+                </div>
+            </aside>
+            
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+                <div class="content-wrapper">
+                    
+                    <!-- Page Header -->
+                    <div class="errors-header">
+                        <div class="page-title">
+                            <svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <div>
+                                <h1>Просмотр ошибок</h1>
+                                <p>Билет №22 — Тренировка</p>
+                            </div>
+                        </div>
+                        <a href="training-result.html" class="btn btn-outline">Вернуться к результатам</a>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="errors-summary">
+                        <div class="errors-summary-stat">
+                            <div class="errors-summary-label">Всего вопросов</div>
+                            <div class="errors-summary-value">10</div>
+                        </div>
+                        <div class="errors-summary-stat">
+                            <div class="errors-summary-label">Правильных</div>
+                            <div class="errors-summary-value correct">8</div>
+                        </div>
+                        <div class="errors-summary-stat">
+                            <div class="errors-summary-label">Ошибок</div>
+                            <div class="errors-summary-value incorrect">2</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Errors List -->
+                    <!-- Backend: errors array from API -->
+                    <div class="errors-list">
+                        
+                        <!-- Error Item 1 -->
+                        <div class="error-item">
+                            <div class="error-item-header">
+                                <span class="error-item-number">Вопрос №3</span>
+                            </div>
+                            
+                            <div class="error-item-question">
+                                Какое утверждение, относительно количества нарядов-допусков, которые допускается выдавать в электроустановках с напряжением выше 1000 В, где напряжение снято со всех токоведущих частей, является верным?
+                            </div>
+                            
+                            <div class="error-item-answers">
+                                <div class="error-answer error-answer-user">
+                                    <svg class="error-answer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    <div>
+                                        <div class="error-answer-label">Ваш ответ:</div>
+                                        <div class="error-answer-text">На каждую секцию один наряд-допуск для работы на части присоединений</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="error-answer error-answer-correct">
+                                    <svg class="error-answer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <div>
+                                        <div class="error-answer-label">Правильный ответ:</div>
+                                        <div class="error-answer-text">Один наряд-допуск для одновременной работы на сборных шинах и всех присоединениях</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Error Item 2 -->
+                        <div class="error-item">
+                            <div class="error-item-header">
+                                <span class="error-item-number">Вопрос №7</span>
+                            </div>
+                            
+                            <div class="error-item-question">
+                                Какие требования предъявляются к работникам, допускаемым к выполнению работ в электроустановках?
+                            </div>
+                            
+                            <div class="error-item-answers">
+                                <div class="error-answer error-answer-user">
+                                    <svg class="error-answer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    <div>
+                                        <div class="error-answer-label">Ваш ответ:</div>
+                                        <div class="error-answer-text">Работники должны иметь профессиональную подготовку, соответствующую характеру работы</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="error-answer error-answer-correct">
+                                    <svg class="error-answer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <div>
+                                        <div class="error-answer-label">Правильный ответ:</div>
+                                        <div class="error-answer-text">Работники должны иметь профессиональную подготовку, группу по электробезопасности и не иметь медицинских противопоказаний</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Bottom Actions -->
+                    <div style="margin-top: var(--spacing-8); display: flex; gap: var(--spacing-4); flex-wrap: wrap;">
+                        <a href="training-test.html?ticket=22" class="btn btn-primary">Пройти билет заново</a>
+                        <a href="training.html" class="btn btn-outline">Выбрать другой билет</a>
+                    </div>
+                    
+                </div>
+            </main>
+            
+        </div>
+    </div>
+    
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -161,16 +161,15 @@ export default function TakeExamPage() {
     <DashboardLayout active="exam">
       <div className="dash-page-card">
         <h1>{paper.test_title}</h1>
-        <p className="dash-card-note">
-          Билет {paper.ticket_index} из {paper.ticket_count} · лимит {paper.time_limit_seconds / 60} мин на билет
-        </p>
         <p className={`dash-exam-timer ${secondsLeft <= 60 ? "dash-exam-timer-warn" : ""}`}>
           Осталось: {formatTime(secondsLeft)}
         </p>
-        <p className="dash-card-note">Для сдачи нужно ≥ {paper.min_pass_percent}% правильных ответов</p>
+        <p className="dash-card-note">
+          Билет {paper.ticket_index} из {paper.ticket_count} · лимит {paper.time_limit_seconds / 60} мин
+        </p>
       </div>
       <form onSubmit={onSubmit}>
-        <div className="dash-page-card dash-ticket dash-no-copy">
+        <div className="test-question-card dash-no-copy">
           <h2>Билет {paper.ticket_index}</h2>
           {paper.ticket.questions.map((q) => (
             <div key={q.id} className="dash-question">

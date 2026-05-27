@@ -30,7 +30,7 @@ export default function ManualsPage() {
     (async () => {
       try {
         const res = await fetch(`/api/manuals/${activeId}`, { credentials: "include" });
-        if (!res.ok) throw new Error("Не удалось загрузить мануал");
+        if (!res.ok) throw new Error("Не удалось загрузить документ");
         setContent(await res.text());
       } catch (e) {
         setContent("");
@@ -41,37 +41,36 @@ export default function ManualsPage() {
 
   return (
     <DashboardLayout active="manuals">
-      <div className="dash-page-card">
-        <h1>Мануалы</h1>
-        <p className="dash-card-note">Справочные материалы по электробезопасности</p>
+      <div className="documents-card">
+        <h1>Нормативные документы</h1>
+        <p className="dash-card-note">Справочные материалы для подготовки к экзамену</p>
+        {error && <p className="auth-error">{error}</p>}
+        {loading && <p className="dash-card-note">Загрузка…</p>}
+        {!loading && manuals.length === 0 && <p className="dash-card-note">Документы пока не добавлены.</p>}
+        {manuals.length > 0 && (
+          <>
+            <ul className="documents-list">
+              {manuals.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    className={`documents-link ${activeId === m.id ? "active" : ""}`}
+                    onClick={() => setActiveId(m.id)}
+                  >
+                    {m.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <article className="documents-preview">
+              <pre className="dash-manual-text">{content}</pre>
+            </article>
+          </>
+        )}
+        <p className="dash-card-meta" style={{ marginTop: "var(--spacing-4)" }}>
+          <Link to="/cabinet">← В личный кабинет</Link>
+        </p>
       </div>
-      {error && <p className="auth-error">{error}</p>}
-      {loading && <p className="dash-card-note">Загрузка…</p>}
-      {!loading && manuals.length === 0 && (
-        <p className="dash-card-note">Мануалы пока не добавлены.</p>
-      )}
-      {manuals.length > 0 && (
-        <div className="dash-manuals-layout">
-          <aside className="dash-manuals-list">
-            {manuals.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`dash-manuals-item ${activeId === m.id ? "is-active" : ""}`}
-                onClick={() => setActiveId(m.id)}
-              >
-                {m.title}
-              </button>
-            ))}
-          </aside>
-          <article className="dash-page-card dash-manuals-content">
-            <pre className="dash-manual-text">{content}</pre>
-          </article>
-        </div>
-      )}
-      <p className="dash-card-meta">
-        <Link to="/cabinet">← В личный кабинет</Link>
-      </p>
     </DashboardLayout>
   );
 }

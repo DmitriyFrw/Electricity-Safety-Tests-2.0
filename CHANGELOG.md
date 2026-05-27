@@ -5,6 +5,26 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-27
+
+### Added
+
+- **Сервисный слой** (`app/services/`): бизнес-логика вынесена из контроллеров (`AuthService`, `TestService`, `DashboardService`, `ProfileService`, `ManualService`).
+- **FormRequest** (`app/form_requests/`): валидация входных данных через Pydantic-модели (`RegisterRequest`, `LoginRequest`, `TestCreateRequest`, `TicketSaveRequest`, `SubmitExamRequest`, `ProfileUpdateRequest`).
+- **Репозитории** (`app/repositories/`) с **eager loading** (`selectinload`) для тестов, попыток и дашборда — устранение N+1.
+- **TTL-кэш** (`app/cache.py`, `cachetools`) для списка мануалов; настройка `CACHE_TTL_SECONDS`.
+- **Хэширование паролей**: bcrypt через passlib, настраиваемая сложность `BCRYPT_ROUNDS`.
+- **CI/CD**: job `deploy` на ветке `main` — сборка production-образа, smoke-deploy и опциональная публикация в GHCR (`GHCR_TOKEN`).
+- `docker-compose.prod.yml` и скрипт `scripts/deploy.sh` для деплоя.
+
+### Changed
+
+- Контроллеры `app/api/*` стали тонкими: делегируют сервисам и маппят `AppError` → HTTP.
+- Экзамен по билетам документирован в README (сессия, билеты по одному, finish).
+- README актуализирован: архитектура, роли, Docker, CI/CD.
+
+## [0.4.0] - 2026-05-26
+
 ### Added
 
 - Защита **CSRF**: `CSRFMiddleware`, `GET /api/auth/csrf`, заголовок `X-CSRF-Token` в axios.
@@ -18,11 +38,7 @@
 - Раздел **Мануалы** (`/manuals`, `GET /api/manuals`).
 - Профиль Кота (ФИО, дата рождения, должность) и формирование **PDF-протокола** (`GET /api/profile/protocol.pdf`).
 - Запрет выделения текста в билетах (CSS `user-select: none`).
-
-## [0.4.0] - 2026-05-26
-
-### Added
-
+- Синхронизация UI-макета **razvivaisia** с React: CSS, layout, кабинет, мануалы, статические прототипы в `frontend/public/razvivaisia/`.
 - **JSON REST API** под префиксом `/api` (auth, dashboard, tests, exam).
 - **Frontend:** React + TypeScript + Vite (`frontend/`), UI дашборда «Развивайся».
 - CORS для `localhost:5173`, раздача SPA из `frontend/dist` в production.

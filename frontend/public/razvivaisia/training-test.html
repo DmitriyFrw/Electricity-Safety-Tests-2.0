@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Тренировка — прохождение билета по электробезопасности">
+    
+    <meta property="og:title" content="Тренировка — Развивайся">
+    <meta property="og:description" content="Прохождение тренировочного билета">
+    <meta property="og:type" content="website">
+    
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <title>Тренировка по билетам — Развивайся</title>
+</head>
+<body>
+    <div class="page-wrapper">
+        
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <div class="header-logo">
+                <button class="burger-menu" id="burgerMenu" aria-label="Открыть меню">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                
+                <a href="index.html">
+                    <img src="assets/images/logo.svg" alt="Развивайся" class="header-logo-img">
+                </a>
+            </div>
+            
+            <div class="header-user">
+                <img src="assets/images/hedgehog-avatar.png" alt="Аватар пользователя" class="header-user-avatar">
+                <div class="header-user-info">
+                    <div class="header-user-name">Бродягин С.В.</div>
+                    <div class="header-user-group"><span>IV группа</span> до и выше 1000 В</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- ===== MAIN LAYOUT ===== -->
+        <div class="main-layout">
+            
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <!-- ===== SIDEBAR ===== -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    <ul class="sidebar-menu">
+                        <li>
+                            <a href="index.html" class="sidebar-menu-item">Главная</a>
+                        </li>
+                        <li>
+                            <a href="training.html" class="sidebar-menu-item active">Тренировка</a>
+                        </li>
+                        <li>
+                            <a href="exam.html" class="sidebar-menu-item">Экзамен</a>
+                        </li>
+                        <li>
+                            <a href="documents.html" class="sidebar-menu-item">Нормативные документы</a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <div class="sidebar-support">
+                    <div class="sidebar-support-title">Служба поддержки</div>
+                    <a href="tel:88005553535" class="sidebar-support-phone">8-800-555-35-35</a>
+                    <a href="mailto:support@ivan.ru" class="sidebar-support-email">support@ivan.ru</a>
+                    <div class="sidebar-support-hours">Пн - Пт с 9:00 - 00:00</div>
+                </div>
+            </aside>
+            
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+                <div class="content-wrapper">
+                    
+                    <div class="test-layout">
+                        
+                        <!-- Main Test Area -->
+                        <div class="test-main">
+                            
+                            <!-- Test Header Card -->
+                            <div class="test-header-card">
+                                <div class="test-header-info">
+                                    <svg class="test-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <div>
+                                        <div class="test-header-title">Тренировка по билетам</div>
+                                        <div class="test-header-subtitle">на IV группу по электробезопасности до и выше 1000 В.</div>
+                                    </div>
+                                </div>
+                                
+                                <a href="training.html" class="btn btn-outline">Вернуться к выбору билета</a>
+                            </div>
+                            
+                            <!-- Question Card -->
+                            <div class="test-question-card">
+                                
+                                <!-- Progress -->
+                                <div class="test-progress">
+                                    <!-- Backend: currentQuestion / totalQuestions -->
+                                    <span class="test-progress-text">Вопрос 5 из 10</span>
+                                    <div class="test-progress-bar">
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width: 50%;"></div>
+                                        </div>
+                                    </div>
+                                    <span class="test-progress-percent">50% выполнено</span>
+                                </div>
+                                
+                                <!-- Question Text -->
+                                <!-- Backend: question.text -->
+                                <div class="test-question-text">
+                                    Какое утверждение, относительно количества нарядов-допусков, которые допускается выдавать в электроустановках с напряжением выше 1000 В, где напряжение снято со всех токоведущих частей, в том числе с вводов воздушной линии электропередачи и кабельной линии, и заперт вход в соседние электроустановки (сборки и щиты до 1000 В могут оставаться под напряжением), и количества сборных шин и присоединений, на которых производятся работы, является верным, согласно Правилам по охране труда при эксплуатации электроустановок, утверждённым приказом Минтруда России от 15.12.2020 г. № 903н?
+                                </div>
+                                
+                                <!-- Answers -->
+                                <!-- Backend: question.answers -->
+                                <form class="test-answers" id="answersForm">
+                                    <div class="radio-group">
+                                        
+                                        <label class="radio-option" data-answer-id="1">
+                                            <input type="radio" name="answer" value="1">
+                                            <span class="radio-custom"></span>
+                                            <span class="radio-label">На каждую секцию один наряд-допуск для работы на части присоединений</span>
+                                        </label>
+                                        
+                                        <label class="radio-option selected" data-answer-id="2">
+                                            <input type="radio" name="answer" value="2" checked>
+                                            <span class="radio-custom"></span>
+                                            <span class="radio-label">Один наряд-допуск для одновременной работы на сборных шинах и всех присоединениях</span>
+                                        </label>
+                                        
+                                        <label class="radio-option" data-answer-id="3">
+                                            <input type="radio" name="answer" value="3">
+                                            <span class="radio-custom"></span>
+                                            <span class="radio-label">На каждое присоединение - один наряд-допуск</span>
+                                        </label>
+                                        
+                                    </div>
+                                </form>
+                                
+                                <!-- Hint -->
+                                <div class="test-hint">
+                                    <svg class="test-hint-icon" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Выберите один правильный ответ и нажмите на "Следующий вопрос"</span>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="test-actions">
+                                    <div class="test-actions-left">
+                                        <a href="training-result.html" class="btn btn-outline">Завершить тренировку</a>
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-outline" id="prevQuestion">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                                        </svg>
+                                        Предыдущий вопрос
+                                    </button>
+                                    
+                                    <button type="button" class="btn btn-outline" id="checkAnswer">
+                                        Проверить ответ
+                                    </button>
+                                    
+                                    <button type="button" class="btn btn-secondary" id="nextQuestion">
+                                        Следующий вопрос
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Sidebar — Results -->
+                        <div class="test-sidebar">
+                            <div class="test-results-card">
+                                <div class="test-results-header">
+                                    <img src="assets/images/clipboard-icon.png" alt="" class="test-results-icon">
+                                    <div class="test-results-title">Результат</div>
+                                </div>
+                                
+                                <div class="test-results-stats">
+                                    <!-- Backend: realtime stats -->
+                                    <div class="test-results-stat">
+                                        <span class="test-results-stat-label">Правильных ответов</span>
+                                        <span class="test-results-stat-value correct">3 из 10</span>
+                                    </div>
+                                    <div class="test-results-stat">
+                                        <span class="test-results-stat-label">Не правильных ответов</span>
+                                        <span class="test-results-stat-value incorrect">2 из 10</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="test-results-timer">
+                                    <svg class="test-results-timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 6v6l4 2"/>
+                                    </svg>
+                                    <span class="test-results-timer-label">Время тренировки</span>
+                                    <!-- Backend: timer value (JS updates) -->
+                                    <span class="test-results-timer-value" id="trainingTimer">00:12:41</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </main>
+            
+        </div>
+    </div>
+    
+    <script src="js/main.js"></script>
+</body>
+</html>

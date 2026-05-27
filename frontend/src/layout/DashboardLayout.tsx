@@ -1,13 +1,17 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { useMobileNav } from "../hooks/useMobileNav";
 
 const NAV = [
   { to: "/cabinet", label: "Главная", key: "home" },
-  { to: "/manuals", label: "Мануалы", key: "manuals" },
-  { to: "/training", label: "Обучение", key: "training" },
+  { to: "/training", label: "Тренировка", key: "training" },
   { to: "/exam", label: "Экзамен", key: "exam" },
+  { to: "/manuals", label: "Нормативные документы", key: "manuals" },
 ] as const;
+
+const LOGO = "/razvivaisia/assets/images/logo.svg";
+const AVATAR = "/razvivaisia/assets/images/hedgehog-avatar.svg";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +23,7 @@ export default function DashboardLayout({
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { open, toggle, close } = useMobileNav();
 
   const logout = async () => {
     await api.logout();
@@ -26,60 +31,81 @@ export default function DashboardLayout({
     window.location.reload();
   };
 
+  const isActive = (to: string, key: string) =>
+    active === key || location.pathname === to || location.pathname.startsWith(`${to}/`);
+
   return (
-    <div className="dash-shell">
-      <aside className="dash-sidebar">
-        <Link to="/cabinet" className="dash-logo">
-          <span className="dash-logo-mark">Я</span>
-          <span className="dash-logo-text">
-            Разви<span className="dash-logo-accent">вайся</span>
-          </span>
-        </Link>
-        <p className="dash-logo-sub">
-          ПЛАТФОРМА ДЛЯ ОБУЧЕНИЯ И СДАЧИ ЭКЗАМЕНА ПО ЭЛЕКТРОБЕЗОПАСНОСТИ
-        </p>
-        <nav className="dash-nav">
-          {NAV.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`dash-nav-item ${active === item.key || location.pathname.startsWith(item.to) ? "is-active" : ""}`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="dash-support">
-          <p className="dash-support-title">Поддержка</p>
-          <p>8-800-555-35-35</p>
-          <p>support-@ivan.ru</p>
-          <p className="dash-support-hours">Пн — Пт, 9:00 — 00:00</p>
+    <div className="page-wrapper">
+      <header className="header">
+        <div className="header-logo">
+          <button
+            type="button"
+            className={`burger-menu ${open ? "active" : ""}`}
+            id="burgerMenu"
+            aria-label="Открыть меню"
+            onClick={toggle}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <Link to="/cabinet">
+            <img src={LOGO} alt="Развивайся" className="header-logo-img" />
+          </Link>
         </div>
-      </aside>
-      <div className="dash-main">
-        <header className="dash-topbar">
-          <div className="dash-user">
-            <span className="dash-avatar" aria-hidden="true">
-              <svg viewBox="0 0 48 48" width="40" height="40">
-                <circle cx="24" cy="18" r="10" fill="#c4cdd8" />
-                <path
-                  d="M8 42c2-10 10-14 16-14s14 4 16 14"
-                  fill="#9aa8bc"
-                />
-              </svg>
-            </span>
-            <div>
-              <div className="dash-user-name">{user?.display_name}</div>
-              <div className="dash-user-meta">
-                {user?.role_label} · {user?.safety_group} группа {user?.safety_group_desc}
-              </div>
+        <div className="header-user header-user-actions">
+          <img src={AVATAR} alt="" className="header-user-avatar" />
+          <div className="header-user-info">
+            <div className="header-user-name">{user?.display_name}</div>
+            <div className="header-user-group">
+              <span>{user?.safety_group} группа</span> {user?.safety_group_desc}
             </div>
           </div>
           <button type="button" className="dash-link-btn" onClick={() => void logout()}>
             Выход
           </button>
-        </header>
-        <div className="dash-content">{children}</div>
+        </div>
+      </header>
+
+      <div className="main-layout">
+        <div
+          className={`sidebar-overlay ${open ? "active" : ""}`}
+          id="sidebarOverlay"
+          onClick={close}
+          onKeyDown={() => undefined}
+          role="presentation"
+        />
+        <aside className={`sidebar ${open ? "active" : ""}`} id="sidebar">
+          <nav className="sidebar-nav">
+            <ul className="sidebar-menu">
+              {NAV.map((item) => (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    className={`sidebar-menu-item ${isActive(item.to, item.key) ? "active" : ""}`}
+                    onClick={close}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="sidebar-support">
+            <div className="sidebar-support-title">Служба поддержки</div>
+            <a href="tel:88005553535" className="sidebar-support-phone">
+              8-800-555-35-35
+            </a>
+            <a href="mailto:support@ivan.ru" className="sidebar-support-email">
+              support@ivan.ru
+            </a>
+            <div className="sidebar-support-hours">Пн - Пт с 9:00 - 00:00</div>
+          </div>
+        </aside>
+
+        <main className="main-content">
+          <div className="content-wrapper">{children}</div>
+        </main>
       </div>
     </div>
   );

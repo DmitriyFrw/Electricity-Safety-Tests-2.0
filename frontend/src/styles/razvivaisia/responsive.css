@@ -1,0 +1,347 @@
+/* ============================================
+   RESPONSIVE — Адаптивная верстка
+   ============================================ */
+
+/* ===== LAPTOP (max-width: 1200px) ===== */
+
+@media (max-width: 1200px) {
+    :root {
+        --sidebar-width: 250px;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-bottom-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tickets-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .test-layout {
+        grid-template-columns: 1fr 280px;
+    }
+}
+
+
+/* ===== TABLET (max-width: 992px) ===== */
+
+@media (max-width: 992px) {
+    :root {
+        --sidebar-width: 220px;
+        --header-height: 80px;
+    }
+
+    .header {
+        padding: 0 var(--spacing-6);
+    }
+
+    .header-logo-img {
+        height: 50px;
+    }
+
+    .header-logo-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .sidebar {
+        padding: var(--spacing-4);
+    }
+
+    .sidebar-menu-item {
+        padding: var(--spacing-3) var(--spacing-4);
+        font-size: var(--font-size-base);
+    }
+
+    .main-content {
+        padding: var(--spacing-6);
+    }
+
+    .dashboard-hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .dashboard-hero-mascot {
+        display: none;
+    }
+
+    .dashboard-hero-action {
+        align-items: center;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-bottom-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .tickets-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .test-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .test-sidebar {
+        position: static;
+        order: -1;
+    }
+
+    .test-header-stats {
+        gap: var(--spacing-4);
+    }
+
+    .result-header {
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+
+    .result-header-stats {
+        width: 100%;
+        justify-content: space-around;
+    }
+}
+
+
+/* ===== MOBILE LANDSCAPE (max-width: 768px) ===== */
+
+@media (max-width: 768px) {
+    .header {
+        padding: 0 var(--spacing-4);
+    }
+
+    .header-logo-subtitle {
+        display: none;
+    }
+
+    .header-user-info {
+        display: none;
+    }
+
+    .main-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: var(--header-height);
+        left: -100%;
+        width: 280px;
+        height: calc(100vh - var(--header-height));
+        z-index: var(--z-fixed);
+        transition: left var(--transition-normal);
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: calc(var(--z-fixed) - 1);
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .burger-menu {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+    }
+
+    .burger-menu span {
+        display: block;
+        width: 100%;
+        height: 3px;
+        background-color: var(--color-text-primary);
+        border-radius: 2px;
+        transition: all var(--transition-fast);
+    }
+
+    .burger-menu.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 6px);
+    }
+
+    .burger-menu.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .burger-menu.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -6px);
+    }
+
+    .main-content {
+        padding: var(--spacing-4);
+    }
+
+    .tickets-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .test-header-card {
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+
+    .test-header-stats {
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .test-progress {
+        flex-direction: column;
+        gap: var(--spacing-3);
+    }
+
+    .test-progress-bar {
+        width: 100%;
+        margin: 0;
+    }
+
+    .test-actions {
+        flex-direction: column;
+    }
+
+    .test-actions .btn {
+        width: 100%;
+    }
+
+    .test-actions-left {
+        margin-right: 0;
+        width: 100%;
+    }
+
+    .exam-rules-actions {
+        flex-direction: column;
+    }
+
+    .exam-rules-actions .btn {
+        width: 100%;
+    }
+
+    .result-actions-buttons {
+        flex-direction: column;
+    }
+
+    .result-actions-buttons .btn {
+        width: 100%;
+    }
+
+    .result-download {
+        flex-direction: column;
+        gap: var(--spacing-4);
+    }
+
+    .result-download .btn {
+        width: 100%;
+    }
+}
+
+
+/* ===== MOBILE PORTRAIT (max-width: 576px) ===== */
+
+@media (max-width: 576px) {
+    :root {
+        --header-height: 70px;
+    }
+
+    .header-logo-img {
+        height: 40px;
+    }
+
+    .header-logo-title {
+        font-size: var(--font-size-lg);
+    }
+
+    .header-user-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .dashboard-widget {
+        padding: var(--spacing-4);
+    }
+
+    .dashboard-widget-value {
+        font-size: var(--font-size-3xl);
+    }
+
+    .ticket-card {
+        padding: var(--spacing-4);
+    }
+
+    .test-question-card {
+        padding: var(--spacing-4);
+    }
+
+    .radio-option {
+        padding: var(--spacing-3);
+    }
+
+    .exam-rules-card {
+        padding: var(--spacing-5);
+    }
+
+    .documents-card {
+        padding: var(--spacing-5);
+    }
+
+    .documents-list li {
+        font-size: var(--font-size-base);
+    }
+}
+
+
+/* ===== BURGER MENU BUTTON — Hidden by default, shown on mobile ===== */
+
+.burger-menu {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .burger-menu {
+        display: flex;
+    }
+}
+
+
+/* ===== PRINT STYLES ===== */
+
+@media print {
+    .header,
+    .sidebar,
+    .test-actions,
+    .result-actions-buttons {
+        display: none !important;
+    }
+
+    .main-content {
+        padding: 0;
+    }
+
+    .card,
+    .test-question-card,
+    .result-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}

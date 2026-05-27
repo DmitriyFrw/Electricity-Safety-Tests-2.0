@@ -38,18 +38,99 @@ UI: http://127.0.0.1:5173 — запросы `/api/*` проксируются �
 2. Все **POST/PUT/DELETE** отправляют заголовок **`X-CSRF-Token`** (см. `frontend/src/api/csrf.ts`).
 3. Backend (`CSRFMiddleware`) сверяет заголовок с `session["csrf_token"]`.
 
-### Цепочка данных (getReact → state)
+## Docker
 
-1. React вызывает **`getReact<T>('/dashboard')`** (`frontend/src/api/getReact.ts`) — внутри **axios.get**.
-2. Backend (`/api/...`) отвечает **JSON**.
-3. Хук **`useGetReact`** кладёт ответ в **`useState`**: `{ data, loading, error }`.
-
-```tsx
-const { data, loading, error } = useGetReact<Dashboard>("/dashboard");
-// data обновляется после GET — UI перерисовывается
+```bash
+docker compose up -d db redis
+docker compose build backend
+docker compose run --rm backend pytest   # тесты
+docker compose up backend                # API на :8000
 ```
 
-## Production
+Production-стек:
+
+```bash
+export SECRET_KEY=$(openssl rand -hex 32)
+./scripts/deploy.sh
+# или: docker compose -f docker-compose.prod.yml up -d
+```
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`):
+
+| Job | Когда | Действие |
+|-----|-------|----------|
+| **test** | push / PR | `docker compose up db redis`, pytest |
+| **deploy** | push в `main` | сборка prod-образа, smoke-deploy, healthcheck |
+
+Опционально: секрет `GHCR_TOKEN` — публикация образа в GitHub Container Registry.
+
+## Безопасность
+
+- **Пароли:** bcrypt через passlib (`app/auth_utils.py`), сложность — `BCRYPT_ROUNDS` (по умолчанию 12).
+- **Сессии:** HttpOnly-cookie, настройки `SESSION_COOKIE_*`.
+- **CSRF** на мутирующих запросах.
+
+## Роли
+
+| Роль | Код | Возможности |
+|------|-----|-------------|
+| Администратор | `admin` | всё |
+| Еж | `ezh` | создание и редактирование тестов |
+| Кот | `kot` | обучение, экзамен, мануалы, профиль, PDF-протокол |
+
+## Основные API (JSON)
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/auth/csrf` | CSRF-токен |
+| GET | `/api/auth/me` | Текущий пользователь или `null` |
+| POST | `/api/auth/register` | Регистрация (FormRequest) |
+| POST | `/api/auth/login` | Вход |
+| POST | `/api/auth/logout` | Выход |
+| GET | `/api/dashboard` | Личный кабинет |
+| GET | `/api/tests` | Список тестов |
+| POST | `/api/tests` | Создать тест (admin/ezh) |
+| GET | `/api/tests/{id}` | Редактирование (admin/ezh) |
+| GET | `/api/tests/{id}/training` | Билеты для тренировки |
+| POST | `/api/tests/{id}/training` | Отправить ответы (тренировка) |
+| POST | `/api/tests/{id}/exam/session` | Начать экзамен |
+| GET | `/api/tests/{id}/exam/session` | Статус сессии |
+| GET | `/api/tests/{id}/exam/tickets/{ticket_id}` | Билет (10 мин) |
+| POST | `/api/tests/{id}/exam/tickets/{ticket_id}` | Ответы по билету |
+| POST | `/api/tests/{id}/exam/finish` | Завершить экзамен |
+| POST/PUT/DELETE | `/api/tests/{id}/tickets/...` | CRUD билетов |
+| GET/PUT | `/api/profile` | Профиль Кота |
+| GET | `/api/profile/protocol.pdf` | PDF-протокол |
+| GET | `/api/manuals` | Список мануалов (кэш TTL) |
+
+## Архитектура backend
+
+```
+app/
+├── api/              # Тонкие контроллеры (FastAPI routes)
+├── form_requests/    # Валидация входа (аналог Laravel FormRequest)
+├── services/         # Бизнес-логика
+├── repositories/     # Запросы к БД + eager loading (selectinload)
+├── cache.py          # TTL-кэш (cachetools)
+├── auth_utils.py     # bcrypt hash/verify
+├── exceptions.py     # AppError → HTTP
+└── main.py
+```
+
+**Оптимизация БД:** репозитории загружают связи (`Test.tickets.questions`, `Attempt.test`) одним запросом; список мануалов кэшируется in-memory (`CACHE_TTL_SECONDS`).
+
+## Тесты
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+# или через Docker:
+docker compose run --rm backend pytest
+```
+
+## Production (без Docker)
 
 ```bash
 cd frontend && npm run build
@@ -58,37 +139,17 @@ cd .. && uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 После `npm run build` FastAPI отдаёт SPA из `frontend/dist/`.
 
-## Основные API (JSON)
-
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/auth/me` | Текущий пользователь или `null` |
-| POST | `/api/auth/register` | Регистрация |
-| POST | `/api/auth/login` | Вход |
-| POST | `/api/auth/logout` | Выход |
-| GET | `/api/dashboard` | Данные личного кабинета |
-| GET | `/api/tests` | Список тестов |
-| POST | `/api/tests` | Создать тест |
-| GET | `/api/tests/{id}` | Редактирование (автор) |
-| GET | `/api/tests/{id}/exam` | Билеты для сдачи |
-| POST | `/api/tests/{id}/exam` | Отправить ответы |
-| POST | `/api/tests/{id}/tickets` | Добавить билет |
-| PUT | `/api/tests/{id}/tickets/{ticket_id}` | Сохранить билет |
-| DELETE | `/api/tests/{id}/tickets/{ticket_id}` | Удалить билет |
-
-## Структура
+## Структура проекта
 
 ```
 exam_tests/
 ├── app/
-│   ├── api/           # JSON-маршруты
-│   ├── main.py
-│   ├── schemas.py
-│   └── ...
-└── frontend/
-    └── src/
-        ├── api/client.ts
-        └── pages/
+├── frontend/
+├── tests/
+├── scripts/
+├── docker-compose.yml
+├── docker-compose.prod.yml
+└── .github/workflows/ci.yml
 ```
 
 Старые Jinja-шаблоны (`app/templates/`) больше не используются — UI только в React.

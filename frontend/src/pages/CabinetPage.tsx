@@ -6,18 +6,41 @@ import { useGetReact } from "../hooks/useGetReact";
 import type { Dashboard } from "../types/api";
 import { formatDateRu, parseNextCheck } from "../utils/format";
 
+const InfoIcon = () => (
+  <svg className="info-box-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <path
+      fillRule="evenodd"
+      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
+
 export default function CabinetPage() {
   const { data, error, loading, reload } = useGetReact<Dashboard>("/dashboard");
   const [profileError, setProfileError] = useState("");
   const [profileSaved, setProfileSaved] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
 
-  if (error) return <DashboardLayout active="home"><p className="auth-error">{error}</p></DashboardLayout>;
-  if (loading || !data) return <DashboardLayout active="home"><p className="dash-card-note">Загрузка…</p></DashboardLayout>;
+  if (error) {
+    return (
+      <DashboardLayout active="home">
+        <p className="auth-error">{error}</p>
+      </DashboardLayout>
+    );
+  }
+  if (loading || !data) {
+    return (
+      <DashboardLayout active="home">
+        <p className="dash-card-note">Загрузка…</p>
+      </DashboardLayout>
+    );
+  }
 
   const examHref = data.exam_test_id ? `/exam/${data.exam_test_id}` : "/exam";
   const next = parseNextCheck(data.next_check_date);
   const isKot = data.user.role === "kot";
+  const mascot = "/razvivaisia/assets/images/hedgehog-helmet.svg";
 
   const onProfileSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,145 +65,148 @@ export default function CabinetPage() {
 
   return (
     <DashboardLayout active="home">
-      <section className="dash-hero">
-        <div className="dash-hero-left">
+      <div className="dashboard-hero">
+        <div className="dashboard-hero-content">
           <h1>Личный кабинет</h1>
-          <p className="dash-hero-sub">платформа для подготовки и сдачи экзамена по электробезопасности</p>
+          <p>платформы для подготовки и сдачи экзамена по электробезопасности</p>
           <p className="dash-card-note">Роль: {data.user.role_label}</p>
-          <div className="dash-hero-alert">
-            <span className="dash-info-icon">i</span>
-            Экзамен сдаётся в присутствии ответственного лица
+          <div className="info-box info-box-default">
+            <InfoIcon />
+            <span>Экзамен сдается в присутствии контролирующего лица</span>
           </div>
         </div>
-        <div className="dash-hero-helmet" aria-hidden="true">
-          <div className="dash-helmet-icon">
-            <span className="dash-helmet-ya">Я</span>
+        <img src={mascot} alt="" className="dashboard-hero-mascot" />
+        <div className="dashboard-hero-action">
+          <Link to={examHref} className="btn btn-primary btn-lg">
+            Сдать экзамен
+          </Link>
+          <div className="info-box info-box-default">
+            <InfoIcon />
+            <span>для успешной сдачи экзамена необходимо набрать не менее {data.min_pass_percent}% правильных ответов</span>
           </div>
         </div>
-        <div className="dash-hero-exam">
-          <Link to={examHref} className="dash-exam-btn">Сдать экзамен</Link>
-          <p className="dash-exam-hint">
-            <span className="dash-info-icon sm">i</span>
-            для успешной сдачи необходимо не менее {data.min_pass_percent}% правильных ответов
-          </p>
-        </div>
-      </section>
+      </div>
 
       {isKot && (
-        <section className="dash-section">
-          <h2 className="dash-section-title">Данные для протокола PDF</h2>
-          <div className="dash-page-card dash-form">
-            {profileError && <p className="auth-error">{profileError}</p>}
-            {profileSaved && <p className="dash-card-note">{profileSaved}</p>}
-            <form onSubmit={onProfileSubmit}>
-              <label htmlFor="full_name">ФИО</label>
-              <input
-                id="full_name"
-                name="full_name"
-                required
-                maxLength={200}
-                defaultValue={data.user.full_name ?? ""}
-              />
-              <label htmlFor="birth_date">Дата рождения</label>
-              <input
-                id="birth_date"
-                name="birth_date"
-                type="date"
-                required
-                defaultValue={data.user.birth_date ?? ""}
-              />
-              <label htmlFor="job_title">Занимаемая должность</label>
-              <input
-                id="job_title"
-                name="job_title"
-                required
-                maxLength={200}
-                defaultValue={data.user.job_title ?? ""}
-              />
-              <div style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                <button type="submit" className="dash-exam-btn" disabled={savingProfile} style={{ border: "none", cursor: "pointer" }}>
-                  {savingProfile ? "Сохранение…" : "Сохранить"}
-                </button>
-                <a href={api.protocolPdfUrl()} className="dash-exam-btn" style={{ textDecoration: "none" }}>
-                  Скачать протокол PDF
-                </a>
-              </div>
-            </form>
-          </div>
-        </section>
+        <div className="dashboard-widget" style={{ marginBottom: "var(--spacing-6)" }}>
+          <div className="dashboard-widget-title">Данные для протокола PDF</div>
+          {profileError && <p className="auth-error">{profileError}</p>}
+          {profileSaved && <p className="dash-card-note">{profileSaved}</p>}
+          <form onSubmit={onProfileSubmit} className="dash-form">
+            <label htmlFor="full_name">ФИО</label>
+            <input id="full_name" name="full_name" required maxLength={200} defaultValue={data.user.full_name ?? ""} />
+            <label htmlFor="birth_date">Дата рождения</label>
+            <input id="birth_date" name="birth_date" type="date" required defaultValue={data.user.birth_date ?? ""} />
+            <label htmlFor="job_title">Занимаемая должность</label>
+            <input id="job_title" name="job_title" required maxLength={200} defaultValue={data.user.job_title ?? ""} />
+            <div style={{ marginTop: "var(--spacing-4)", display: "flex", gap: "var(--spacing-3)", flexWrap: "wrap" }}>
+              <button type="submit" className="btn btn-primary" disabled={savingProfile}>
+                {savingProfile ? "Сохранение…" : "Сохранить"}
+              </button>
+              <a href={api.protocolPdfUrl()} className="btn btn-outline">
+                Скачать протокол PDF
+              </a>
+            </div>
+          </form>
+        </div>
       )}
 
-      <section className="dash-grid">
-        <article className="dash-card dash-card-wide">
-          <h2 className="dash-card-label">Количество доступных билетов</h2>
-          <p className="dash-stat-big">{data.tickets_count}</p>
-          <p className="dash-card-note">Изучите материалы по каждому билету перед сдачей</p>
-          {data.materials_updated && (
-            <p className="dash-card-meta">
-              последняя редакция {formatDateRu(data.materials_updated).split(",")[0]}
-            </p>
-          )}
-          <Link to="/training" className="dash-card-link">Перейти к обучению →</Link>
-        </article>
-        <article className="dash-card">
-          <h2 className="dash-card-label">Протокол проверки знаний PDF</h2>
-          <div className="dash-pdf-icon">PDF</div>
-          <p className="dash-card-note">
-            {isKot
-              ? "Заполните данные выше и скачайте протокол"
-              : "Протоколы формируются для роли Кот"}
-          </p>
-          {isKot ? (
-            <a href={api.protocolPdfUrl()} className="dash-card-link">Скачать протокол →</a>
-          ) : (
-            <Link to="/exam" className="dash-card-link">Каталог экзаменов</Link>
-          )}
-        </article>
-        <article className="dash-card dash-card-group">
-          <h2 className="dash-card-label">Текущая группа по ЭБ</h2>
-          <div className="dash-group-badge">{data.user.safety_group}</div>
-          <p className="dash-group-desc">{data.user.safety_group_desc}</p>
-        </article>
-        <article className="dash-card dash-card-calendar">
-          <h2 className="dash-card-label">Следующая проверка знаний</h2>
-          <div className="dash-calendar">
-            <span className="dash-cal-day">{next.day}</span>
-            <span className="dash-cal-month">{next.month}</span>
+      <div className="dashboard-stats">
+        <div className="dashboard-widget widget-tickets">
+          <div className="dashboard-widget-header">
+            <div>
+              <div className="dashboard-widget-title">Количество доступных билетов</div>
+              <div className="dashboard-widget-subtitle">
+                для изучения материалов необходимых для успешной сдачи экзамена по электробезопасности
+              </div>
+            </div>
           </div>
-          <p className="dash-card-meta">{next.weekday} {next.short}</p>
-        </article>
-        <article className="dash-card">
-          <h2 className="dash-card-label">Последний экзамен</h2>
+          <div className="dashboard-widget-value">{data.tickets_count}</div>
+          {data.materials_updated && (
+            <div className="dashboard-widget-footer">
+              последняя редакция {formatDateRu(data.materials_updated).split(",")[0]}
+            </div>
+          )}
+          <Link to="/training" className="dash-card-link" style={{ display: "inline-block", marginTop: "var(--spacing-3)" }}>
+            Перейти к обучению →
+          </Link>
+        </div>
+
+        <div className="dashboard-widget widget-protocol">
+          <div className="dashboard-widget-header">
+            <div className="dashboard-widget-title">Протокол проверки знаний в PDF</div>
+          </div>
+          {isKot ? (
+            <a href={api.protocolPdfUrl()} className="btn btn-outline">
+              Скачать
+            </a>
+          ) : (
+            <span className="dash-card-note">Доступно для роли Кот</span>
+          )}
+          <div className="info-box info-box-default" style={{ marginTop: "var(--spacing-4)" }}>
+            <InfoIcon />
+            <span>Протокол формируется автоматически из данных личного кабинета</span>
+          </div>
+        </div>
+
+        <div className="dashboard-widget widget-group">
+          <div className="dashboard-widget-title">Текущая группа по ЭБ</div>
+          <div className="dashboard-widget-value">{data.user.safety_group}</div>
+          <div className="dashboard-widget-footer">{data.user.safety_group_desc}</div>
+        </div>
+      </div>
+
+      <div className="dashboard-bottom-stats">
+        <div className="dashboard-widget widget-date">
+          <div className="dashboard-widget-title">Следующая проверка знаний</div>
+          <div className="dashboard-widget-subtitle">назначена на:</div>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "var(--spacing-4)", margin: "var(--spacing-4) 0" }}>
+            <div>
+              <div className="widget-date-day">{next.day}</div>
+              <div className="widget-date-month">{next.month}</div>
+            </div>
+            <div>
+              <div className="widget-date-weekday">{next.weekday}</div>
+              <div className="widget-date-full">{next.short}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-widget">
+          <div className="dashboard-widget-title">Последний экзамен</div>
           {data.last_percent != null ? (
-            <>
-              <p className="dash-stat-big dash-stat-percent">{data.last_percent}%</p>
-              <p className="dash-card-note">
-                {data.last_test_title && `«${data.last_test_title}»`}
-                {data.last_test_date && ` · ${formatDateRu(data.last_test_date)}`}
-              </p>
-              {data.last_grade && (
-                <p className={`dash-grade-line ${data.last_grade_class}`}>оценка: {data.last_grade}</p>
-              )}
-            </>
+            <div className="widget-result">
+              <div className="widget-result-percentage">{data.last_percent}%</div>
+              <div className="widget-result-details">
+                {data.last_test_title && <div>«{data.last_test_title}»</div>}
+                {data.last_test_date && <div>за тест от: {formatDateRu(data.last_test_date).split(",")[0]}</div>}
+                {data.last_grade && <div className={data.last_grade_class}>оценка: {data.last_grade}</div>}
+              </div>
+            </div>
           ) : (
-            <>
-              <p className="dash-stat-big dash-stat-muted">—</p>
-              <Link to={examHref} className="dash-card-link">Сдать первый экзамен →</Link>
-            </>
+            <Link to={examHref} className="dash-card-link">
+              Сдать первый экзамен →
+            </Link>
           )}
-        </article>
-        <article className="dash-card">
-          <h2 className="dash-card-label">Количество ошибок</h2>
+        </div>
+
+        <div className="dashboard-widget">
+          <div className="dashboard-widget-title">Количество ошибок</div>
+          <div className="dashboard-widget-subtitle">за прошлый тест:</div>
           {data.last_errors != null ? (
-            <>
-              <p className="dash-stat-big dash-stat-errors">{data.last_errors}</p>
-              <p className="dash-card-meta">допустимо не более {data.max_errors_allowed}</p>
-            </>
+            <div className="widget-errors">
+              <div className="widget-errors-count">{data.last_errors}</div>
+              <div className="widget-errors-details">
+                <div className="widget-errors-allowed">
+                  Допустимое количество ошибок не более <strong>{data.max_errors_allowed}</strong>
+                </div>
+              </div>
+            </div>
           ) : (
-            <p className="dash-stat-big dash-stat-muted">—</p>
+            <div className="dashboard-widget-value">—</div>
           )}
-        </article>
-      </section>
+        </div>
+      </div>
 
       {data.can_create_tests && data.created_tests.length > 0 && (
         <section className="dash-section">
@@ -191,7 +217,7 @@ export default function CabinetPage() {
                 <tr>
                   <th>Название</th>
                   <th>Билетов</th>
-                  <th></th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -207,16 +233,16 @@ export default function CabinetPage() {
               </tbody>
             </table>
           </div>
-          <p className="dash-card-meta">
-            <Link to="/tests/new">+ Создать тест</Link>
-          </p>
+          <Link to="/tests/new" className="dash-card-link">
+            + Создать тест
+          </Link>
         </section>
       )}
 
       {data.can_create_tests && data.created_tests.length === 0 && (
-        <section className="dash-section">
-          <Link to="/tests/new" className="dash-card-link">+ Создать тест</Link>
-        </section>
+        <Link to="/tests/new" className="dash-card-link">
+          + Создать тест
+        </Link>
       )}
 
       {data.attempts.length > 0 && (

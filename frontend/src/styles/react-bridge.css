@@ -1,0 +1,221 @@
+/* Мост React ↔ razvivaisia: auth, утилиты, совместимость API-классов */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-6);
+  background: var(--color-bg-main);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-8);
+}
+
+.auth-card h1 {
+  margin-bottom: var(--spacing-4);
+  font-size: var(--font-size-2xl);
+}
+
+.auth-card label {
+  display: block;
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-card input,
+.auth-card textarea {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font: inherit;
+}
+
+.auth-error {
+  color: var(--color-error);
+  margin: var(--spacing-2) 0;
+}
+
+.auth-links {
+  margin-top: var(--spacing-4);
+  text-align: center;
+  font-size: var(--font-size-sm);
+}
+
+.auth-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--spacing-4);
+}
+
+/* Запрет копирования текста билета */
+.dash-no-copy,
+.dash-no-copy * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Совместимость старых классов с новыми кнопками */
+.dash-exam-btn,
+a.dash-exam-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: 2px solid var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dash-exam-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.dash-card-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.dash-card-note {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.dash-link-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.header-user-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.grade-excellent { color: var(--color-accent-green); }
+.grade-good { color: var(--color-primary); }
+.grade-satisfactory { color: var(--color-warning); }
+.grade-bad { color: var(--color-error); }
+
+.dash-table-wrap { overflow-x: auto; margin-top: var(--spacing-4); }
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+.dash-table th,
+.dash-table td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-size: var(--font-size-sm);
+}
+.dash-table th { background: var(--color-gray-50); font-weight: var(--font-weight-semibold); }
+
+.dash-pill-ok {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-full);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+}
+.dash-pill-draft {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-full);
+  background: var(--color-gray-100);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.dash-section { margin-top: var(--spacing-8); }
+.dash-section-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-4);
+}
+
+.dash-page-card {
+  background: var(--color-white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-6);
+  margin-bottom: var(--spacing-4);
+}
+
+.dash-form label {
+  display: block;
+  margin: var(--spacing-3) 0 var(--spacing-1);
+  font-size: var(--font-size-sm);
+}
+.dash-form input,
+.dash-form textarea {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+}
+
+.documents-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.documents-link.active {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.documents-preview {
+  margin-top: var(--spacing-6);
+  padding: var(--spacing-4);
+  background: var(--color-gray-50);
+  border-radius: var(--border-radius-lg);
+}
+
+.dash-exam-timer {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  margin: var(--spacing-2) 0;
+}
+
+.dash-exam-timer-warn {
+  color: var(--color-error);
+}
+
+.dash-manual-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}

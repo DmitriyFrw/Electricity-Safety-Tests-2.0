@@ -20,7 +20,7 @@ export default function HomePage() {
         <p className="dash-card-note" style={{ textAlign: "center" }}>
           Платформа для обучения и сдачи экзамена по электробезопасности
         </p>
-        <Link to="/register" className="dash-exam-btn" style={{ display: "block", textAlign: "center" }}>
+        <Link to="/register" className="btn btn-primary btn-lg" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
           Создать аккаунт
         </Link>
         <p className="auth-links">

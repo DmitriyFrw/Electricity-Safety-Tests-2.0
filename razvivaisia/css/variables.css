@@ -1,0 +1,161 @@
+/* ============================================
+   CSS VARIABLES — Развивайся
+   Образовательная платформа по электробезопасности
+   ============================================ */
+
+:root {
+    /* ===== COLORS ===== */
+    
+    /* Primary */
+    --color-primary: #4DA6E8;
+    --color-primary-hover: #3A95D7;
+    --color-primary-light: #E8F4FC;
+    
+    /* Secondary */
+    --color-secondary: #2D2D2D;
+    --color-secondary-hover: #1A1A1A;
+    
+    /* Accent */
+    --color-accent-red: #E85D5D;
+    --color-accent-red-light: #FDECEC;
+    --color-accent-red-bg: #F5D0D0;
+    
+    --color-accent-yellow: #F5D78E;
+    --color-accent-yellow-light: #FFF8E7;
+    
+    --color-accent-green: #5DC887;
+    --color-accent-green-light: #E8F8EF;
+    
+    /* Neutrals */
+    --color-white: #FFFFFF;
+    --color-gray-50: #F9FAFB;
+    --color-gray-100: #F3F4F6;
+    --color-gray-200: #E5E7EB;
+    --color-gray-300: #D1D5DB;
+    --color-gray-400: #9CA3AF;
+    --color-gray-500: #6B7280;
+    --color-gray-600: #4B5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1F2937;
+    --color-gray-900: #111827;
+    
+    /* Background */
+    --color-bg-main: #E8E8E8;
+    --color-bg-sidebar: #D9D9D9;
+    --color-bg-card: #FFFFFF;
+    --color-bg-card-hover: #F9FAFB;
+    
+    /* Text */
+    --color-text-primary: #2D2D2D;
+    --color-text-secondary: #6B7280;
+    --color-text-muted: #9CA3AF;
+    --color-text-inverse: #FFFFFF;
+    
+    /* Borders */
+    --color-border: #E5E7EB;
+    --color-border-light: #F3F4F6;
+    
+    /* Status */
+    --color-success: #5DC887;
+    --color-success-bg: #E8F8EF;
+    --color-error: #E85D5D;
+    --color-error-bg: #F5D0D0;
+    --color-warning: #F5D78E;
+    --color-warning-bg: #FFF8E7;
+    --color-info: #4DA6E8;
+    --color-info-bg: #E8F4FC;
+    
+    
+    /* ===== TYPOGRAPHY ===== */
+    
+    --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    /* Font Sizes */
+    --font-size-xs: 0.75rem;      /* 12px */
+    --font-size-sm: 0.875rem;     /* 14px */
+    --font-size-base: 1rem;       /* 16px */
+    --font-size-lg: 1.125rem;     /* 18px */
+    --font-size-xl: 1.25rem;      /* 20px */
+    --font-size-2xl: 1.5rem;      /* 24px */
+    --font-size-3xl: 1.875rem;    /* 30px */
+    --font-size-4xl: 2.25rem;     /* 36px */
+    --font-size-5xl: 3rem;        /* 48px */
+    
+    /* Font Weights */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Line Heights */
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+    
+    
+    /* ===== SPACING ===== */
+    
+    --spacing-0: 0;
+    --spacing-1: 0.25rem;    /* 4px */
+    --spacing-2: 0.5rem;     /* 8px */
+    --spacing-3: 0.75rem;    /* 12px */
+    --spacing-4: 1rem;       /* 16px */
+    --spacing-5: 1.25rem;    /* 20px */
+    --spacing-6: 1.5rem;     /* 24px */
+    --spacing-8: 2rem;       /* 32px */
+    --spacing-10: 2.5rem;    /* 40px */
+    --spacing-12: 3rem;      /* 48px */
+    --spacing-16: 4rem;      /* 64px */
+    --spacing-20: 5rem;      /* 80px */
+    --spacing-24: 6rem;      /* 96px */
+    
+    
+    /* ===== BORDERS ===== */
+    
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    --border-radius-2xl: 24px;
+    --border-radius-full: 9999px;
+    
+    --border-width-thin: 1px;
+    --border-width-medium: 2px;
+    --border-width-thick: 3px;
+    
+    
+    /* ===== SHADOWS ===== */
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+    
+    
+    /* ===== TRANSITIONS ===== */
+    
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+    
+    
+    /* ===== LAYOUT ===== */
+    
+    --sidebar-width: 280px;
+    --header-height: 100px;
+    --container-max-width: 1440px;
+    --content-max-width: 1100px;
+    
+    
+    /* ===== Z-INDEX ===== */
+    
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-fixed: 300;
+    --z-modal-backdrop: 400;
+    --z-modal: 500;
+    --z-tooltip: 600;
+}

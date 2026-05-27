@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Экзамен не сдан — платформа Развивайся">
+    
+    <meta property="og:title" content="Экзамен не сдан — Развивайся">
+    <meta property="og:description" content="К сожалению, экзамен не сдан. Пересдача будет назначена автоматически.">
+    <meta property="og:type" content="website">
+    
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <title>Экзамен не сдан — Развивайся</title>
+</head>
+<body>
+    <div class="page-wrapper">
+        
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <div class="header-logo">
+                <button class="burger-menu" id="burgerMenu" aria-label="Открыть меню">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                
+                <a href="index.html">
+                    <img src="assets/images/logo.svg" alt="Развивайся" class="header-logo-img">
+                </a>
+            </div>
+            
+            <div class="header-user">
+                <img src="assets/images/hedgehog-avatar.png" alt="Аватар пользователя" class="header-user-avatar">
+                <div class="header-user-info">
+                    <div class="header-user-name">Бродягин С.В.</div>
+                    <div class="header-user-group"><span>IV группа</span> до и выше 1000 В</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- ===== MAIN LAYOUT ===== -->
+        <div class="main-layout">
+            
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <!-- ===== SIDEBAR ===== -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    <ul class="sidebar-menu">
+                        <li>
+                            <a href="index.html" class="sidebar-menu-item">Главная</a>
+                        </li>
+                        <li>
+                            <a href="training.html" class="sidebar-menu-item">Тренировка</a>
+                        </li>
+                        <li>
+                            <a href="exam.html" class="sidebar-menu-item active">Экзамен</a>
+                        </li>
+                        <li>
+                            <a href="documents.html" class="sidebar-menu-item">Нормативные документы</a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <div class="sidebar-support">
+                    <div class="sidebar-support-title">Служба поддержки</div>
+                    <a href="tel:88005553535" class="sidebar-support-phone">8-800-555-35-35</a>
+                    <a href="mailto:support@ivan.ru" class="sidebar-support-email">support@ivan.ru</a>
+                    <div class="sidebar-support-hours">Пн - Пт с 9:00 - 00:00</div>
+                </div>
+            </aside>
+            
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+                <div class="content-wrapper">
+                    
+                    <!-- Result Header Card — FAIL (red background) -->
+                    <div class="result-card result-card-fail">
+                        <div class="result-header">
+                            <div class="result-header-info">
+                                <svg class="result-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                <div>
+                                    <div class="result-header-title">Вы не сдали экзамен</div>
+                                    <div class="result-header-subtitle">на IV группу по электробезопасности до и выше 1000 В.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="result-header-stats">
+                                <!-- Backend: result.ticketNumber -->
+                                <div class="result-header-stat">
+                                    <div class="result-header-stat-label">Билет №</div>
+                                    <div class="result-header-stat-value">22</div>
+                                </div>
+                                
+                                <!-- Backend: result.timeSpent -->
+                                <div class="result-header-stat">
+                                    <div class="result-header-stat-label">Затраченное время</div>
+                                    <div class="result-header-stat-value">
+                                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <path d="M12 6v6l4 2"/>
+                                            </svg>
+                                            00:10:00
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Backend: result.percentage -->
+                                <div class="result-header-stat">
+                                    <div class="result-header-stat-label">Результат</div>
+                                    <div class="result-header-stat-value" style="color: var(--color-error);">50%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Card -->
+                    <div class="result-actions-card">
+                        <div class="result-download">
+                            <div class="result-download-info">
+                                <div class="result-download-title">Для подписи обратиться к ответственному лицу</div>
+                                <div class="result-download-description">
+                                    Пересдача назначится автоматически
+                                </div>
+                            </div>
+                            
+                            <!-- Backend: protocol.downloadUrl -->
+                            <a href="#" class="btn btn-primary" id="downloadProtocolFail">Скачать PDF</a>
+                        </div>
+                    </div>
+                    
+                </div>
+            </main>
+            
+        </div>
+    </div>
+    
+    <script src="js/main.js"></script>
+</body>
+</html>

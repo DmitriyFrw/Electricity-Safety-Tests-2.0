@@ -1,0 +1,9 @@
+<svg width="300" height="80" viewBox="0 0 300 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Placeholder Logo - Replace with actual logo from Figma -->
+    <text x="10" y="50" font-family="Inter, sans-serif" font-size="32" font-weight="700" fill="#2D2D2D">
+        развивайс<tspan fill="#E85D5D">Я</tspan>
+    </text>
+    <text x="10" y="70" font-family="Inter, sans-serif" font-size="10" fill="#9CA3AF">
+        Образовательная платформа / Личный рост / Центр обучения
+    </text>
+</svg>

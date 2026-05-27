@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный кабинет — Развивайся</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+  <!-- Заголовок -->
+  <section class="dash-hero">
+    <div class="dash-hero-left">
+      <h1>Личный кабинет</h1>
+      <p class="dash-hero-sub">платформа для подготовки и сдачи экзамена по электробезопасности</p>
+      <div class="dash-hero-alert">
+        <span class="dash-info-icon">i</span>
+        Экзамен сдаётся в присутствии ответственного лица
+      </div>
+    </div>
+    <div class="dash-hero-helmet" aria-hidden="true">
+      <div class="dash-helmet-icon"><span class="dash-helmet-ya">Я</span></div>
+    </div>
+    <div class="dash-hero-exam">
+      <a id="exam-btn" href="#" class="dash-exam-btn">Сдать экзамен</a>
+      <p class="dash-exam-hint">
+        <span class="dash-info-icon sm">i</span>
+        для успешной сдачи экзамена необходимо набрать не менее <span id="min-pass">80</span>% правильных ответов
+      </p>
+    </div>
+  </section>
+
+  <!-- Карточки -->
+  <section class="dash-grid">
+    <article class="dash-card dash-card-wide">
+      <h2 class="dash-card-label">Количество доступных билетов</h2>
+      <p class="dash-stat-big" id="tickets-count">—</p>
+      <p class="dash-card-note">Изучите материалы по каждому билету перед сдачей экзамена</p>
+      <p class="dash-card-meta" id="materials-meta"></p>
+      <a href="/training" class="dash-card-link">Перейти к обучению →</a>
+    </article>
+
+    <article class="dash-card">
+      <h2 class="dash-card-label">Протокол проверки знаний PDF</h2>
+      <div class="dash-pdf-icon" aria-hidden="true">PDF</div>
+      <p class="dash-card-note">Протоколы формируются автоматически после сдачи экзамена. Для подписи обратитесь в службу поддержки.</p>
+      <a href="/tests/catalog" class="dash-card-link">Каталог тестов</a>
+    </article>
+
+    <article class="dash-card dash-card-group">
+      <h2 class="dash-card-label">Текущая группа по ЭБ</h2>
+      <div class="dash-group-badge" id="safety-group">—</div>
+      <p class="dash-group-desc" id="safety-group-desc">—</p>
+    </article>
+
+    <article class="dash-card dash-card-calendar">
+      <h2 class="dash-card-label">Следующая проверка знаний</h2>
+      <div class="dash-calendar">
+        <span class="dash-cal-day" id="cal-day">—</span>
+        <span class="dash-cal-month" id="cal-month">—</span>
+      </div>
+      <p class="dash-card-meta" id="cal-meta">—</p>
+    </article>
+
+    <article class="dash-card">
+      <h2 class="dash-card-label">Последний экзамен</h2>
+      <div id="last-exam-container"></div>
+    </article>
+
+    <article class="dash-card">
+      <h2 class="dash-card-label">Количество ошибок</h2>
+      <div id="last-errors-container"></div>
+    </article>
+  </section>
+
+  <!-- Таблицы -->
+  <div id="tables-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const { data } = await axios.get('/api/cabinet/stats');
+
+
+        document.getElementById('exam-btn').href = data.exam_href;
+        document.getElementById('min-pass').textContent = data.min_pass_percent;
+        document.getElementById('tickets-count').textContent = data.tickets_count;
+        document.getElementById('materials-meta').textContent = data.materials_updated 
+          ? `последняя редакция ${data.materials_updated}` : '';
+        document.getElementById('safety-group').textContent = data.safety_group;
+        document.getElementById('safety-group-desc').textContent = data.safety_group_desc;
+        document.getElementById('cal-day').textContent = new Date(data.next_check_date).getDate();
+        document.getElementById('cal-month').textContent = data.next_check_month;
+        document.getElementById('cal-meta').textContent = `${data.next_check_weekday} ${data.next_check_date}`;
+
+
+        const lastExamHTML = data.last_percent !== null
+          ? `<p class="dash-stat-big dash-stat-percent">${data.last_percent}%</p>
+             <p class="dash-card-note">по тесту${data.last_test_title ? ` «${data.last_test_title}»` : ''}${data.last_test_date ? ` от ${data.last_test_date}` : ''}</p>
+             <p class="dash-grade-line ${data.last_grade_class}">оценка: ${data.last_grade}</p>`
+          : `<p class="dash-stat-big dash-stat-muted">—</p>
+             <p class="dash-card-note">Вы ещё не сдавали экзамен</p>
+             <a href="${data.exam_href}" class="dash-card-link">Сдать первый экзамен →</a>`;
+        document.getElementById('last-exam-container').innerHTML = lastExamHTML;
+
+
+        const lastErrorsHTML = data.last_errors !== null
+          ? `<p class="dash-stat-big dash-stat-errors">${data.last_errors}</p>
+             <p class="dash-card-note">за последний тест</p>
+             <p class="dash-card-meta">Допустимое количество ошибок не более ${data.max_errors_allowed}</p>
+             ${data.last_grade ? `<p class="dash-grade-line ${data.last_grade_class}">оценка: ${data.last_grade}</p>` : ''}`
+          : `<p class="dash-stat-big dash-stat-muted">—</p>
+             <p class="dash-card-note">нет данных о последней попытке</p>`;
+        document.getElementById('last-errors-container').innerHTML = lastErrorsHTML;
+
+
+        let tablesHTML = '';
+        if (data.created_tests.length) {
+          tablesHTML += `
+            <section class="dash-section"><h2 class="dash-section-title">Мои тесты</h2>
+            <div class="dash-table-wrap"><table class="dash-table"><thead><tr><th>Название</th><th>Билетов</th><th>Создан</th><th></th></tr></thead><tbody>
+            ${data.created_tests.map(t => `<tr><td>${t.title}</td><td>${t.tickets_count}</td><td>${t.created_at}</td><td><a href="/tests/${t.id}/edit">Редактировать</a></td></tr>`).join('')}
+            </tbody></table></div><p class="dash-card-meta"><a href="/tests/new">+ Создать новый тест</a></p></section>`;
+        }
+
+        if (data.attempt_rows.length) {
+          tablesHTML += `
+            <section class="dash-section"><h2 class="dash-section-title">История прохождений</h2>
+            <div class="dash-table-wrap"><table class="dash-table"><thead><tr><th>Тест</th><th>Дата</th><th>Результат</th><th>Ошибки</th><th>%</th><th>Оценка</th></tr></thead><tbody>
+            ${data.attempt_rows.map(r => `<tr><td>${r.test_title}</td><td>${r.date}</td><td>${r.correct} / ${r.total}</td><td>${r.errors}</td><td>${r.percent}%</td><td class="${r.grade_class}">${r.grade}</td></tr>`).join('')}
+            </tbody></table></div></section>`;
+        }
+        document.getElementById('tables-container').innerHTML = tablesHTML;
+
+      } catch (err) {
+        console.error('Dashboard load failed:', err);
+        document.body.innerHTML = `<div style="padding:2rem;color:red">⚠️ Не удалось загрузить кабинет. ${err.response?.data?.detail || err.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

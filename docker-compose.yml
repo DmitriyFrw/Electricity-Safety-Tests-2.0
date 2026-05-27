@@ -31,6 +31,8 @@ services:
       RATE_LIMIT_ENABLED: "false"
       RATE_LIMIT_REQUESTS: "60"
       RATE_LIMIT_WINDOW_SECONDS: "60"
+      BCRYPT_ROUNDS: "12"
+      CACHE_TTL_SECONDS: "300"
     ports:
       - "8000:8000"
     depends_on:

@@ -13,8 +13,7 @@ from app.constants import (
     MAX_ERRORS_DISPLAY,
     MIN_PASS_PERCENT,
 )
-from app.models import Attempt, Test, User
-from app.validation import test_is_ready_to_take
+from app.models import Attempt, Test, Ticket, User
 
 
 def display_name(user: User) -> str:
@@ -30,34 +29,45 @@ def display_name(user: User) -> str:
     return name[0].upper() + name[1:]
 
 
-def build_dashboard_context(db: Session, user: User) -> dict[str, Any]:
-    tests = (
-        db.query(Test)
-        .options(selectinload(Test.tickets))
-        .order_by(Test.created_at.desc())
-        .all()
-    )
+def build_dashboard_context(
+    db: Session,
+    user: User,
+    *,
+    attempts: list[Attempt] | None = None,
+    all_tests: list[Test] | None = None,
+    created_tests_count: int | None = None,
+) -> dict[str, Any]:
+    from app.validation import test_is_ready_loaded
+
+    if all_tests is None:
+        all_tests = (
+            db.query(Test)
+            .options(selectinload(Test.tickets).selectinload(Ticket.questions))
+            .order_by(Test.created_at.desc())
+            .all()
+        )
 
     tickets_count = 0
     exam_test_id: Optional[int] = None
     materials_updated: Optional[dt.datetime] = None
 
-    for t in tests:
+    for t in all_tests:
         if materials_updated is None or t.created_at > materials_updated:
             materials_updated = t.created_at
-        if test_is_ready_to_take(db, t):
+        if test_is_ready_loaded(t):
             tickets_count += len(t.tickets)
             if exam_test_id is None:
                 exam_test_id = t.id
 
-    attempts = (
-        db.query(Attempt)
-        .options(selectinload(Attempt.test), selectinload(Attempt.user_answers))
-        .filter(Attempt.user_id == user.id, Attempt.finished_at.isnot(None))
-        .order_by(Attempt.finished_at.desc())
-        .limit(50)
-        .all()
-    )
+    if attempts is None:
+        attempts = (
+            db.query(Attempt)
+            .options(selectinload(Attempt.test), selectinload(Attempt.user_answers))
+            .filter(Attempt.user_id == user.id, Attempt.finished_at.isnot(None))
+            .order_by(Attempt.finished_at.desc())
+            .limit(50)
+            .all()
+        )
 
     last_percent: Optional[float] = None
     last_errors: Optional[int] = None
@@ -103,6 +113,8 @@ def build_dashboard_context(db: Session, user: User) -> dict[str, Any]:
         "last_test_title": last_test_title,
         "last_test_date": last_test_date,
         "next_check_date": next_check_date,
-        "created_tests_count": db.query(Test).filter(Test.author_id == user.id).count(),
+        "created_tests_count": created_tests_count
+        if created_tests_count is not None
+        else db.query(Test).filter(Test.author_id == user.id).count(),
         "has_attempts": bool(attempts),
     }

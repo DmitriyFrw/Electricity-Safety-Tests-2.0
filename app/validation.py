@@ -24,7 +24,16 @@ def ticket_is_complete(ticket: Ticket) -> bool:
     return True
 
 
+def test_is_ready_loaded(test: Test) -> bool:
+    """Проверка готовности теста по уже загруженным билетам (без доп. запросов)."""
+    if not test.tickets:
+        return False
+    return all(ticket_is_complete(ticket) for ticket in test.tickets)
+
+
 def test_is_ready_to_take(db: Session, test: Test) -> bool:
+    if test.tickets and all(hasattr(t, "questions") and t.questions for t in test.tickets):
+        return test_is_ready_loaded(test)
     t = (
         db.query(Test)
         .options(selectinload(Test.tickets).selectinload(Ticket.questions))

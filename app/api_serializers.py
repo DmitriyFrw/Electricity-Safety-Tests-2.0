@@ -58,7 +58,9 @@ def dashboard_out(
     created_tests: list[Test],
     attempts: list[Attempt],
 ) -> DashboardOut:
-    base = build_dashboard_context(db, user)
+    base = build_dashboard_context(
+        db, user, attempts=attempts, created_tests_count=len(created_tests)
+    )
     attempt_rows = []
     for a in attempts:
         row = attempt_to_row(db, a)

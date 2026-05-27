@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     rate_limit_requests: int = Field(default=60, alias="RATE_LIMIT_REQUESTS")
     rate_limit_window_seconds: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SECONDS")
 
+    # Безопасность и производительность
+    bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS", ge=4, le=31)
+    cache_ttl_seconds: int = Field(default=300, alias="CACHE_TTL_SECONDS", ge=0)
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _v_normalize_db_url(cls, v: object) -> object:

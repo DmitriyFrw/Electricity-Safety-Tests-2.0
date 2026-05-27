@@ -1,19 +1,11 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
 import DashboardLayout from "../layout/DashboardLayout";
+import { useGetReact } from "../hooks/useGetReact";
 import type { TestListItem } from "../types/api";
 
 export default function TrainingPage() {
-  const [tests, setTests] = useState<TestListItem[]>([]);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    api
-      .listTests()
-      .then(setTests)
-      .catch((e) => setError(e instanceof Error ? e.message : "Ошибка"));
-  }, []);
+  const { data, error, loading } = useGetReact<{ items: TestListItem[] }>("/tests");
+  const tests = data?.items ?? [];
 
   return (
     <DashboardLayout active="training">
@@ -22,6 +14,7 @@ export default function TrainingPage() {
         <p className="dash-card-note">Выберите тест для изучения билетов</p>
       </div>
       {error && <p className="auth-error">{error}</p>}
+      {loading && <p className="dash-card-note">Загрузка…</p>}
       <div className="dash-table-wrap">
         <table className="dash-table">
           <thead>

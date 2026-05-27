@@ -1,7 +1,8 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { deleteReact, postReact, putReact } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
+import { useGetReact } from "../hooks/useGetReact";
 import type { QuestionSave, TestEdit } from "../types/api";
 
 const CORRECT_OPTIONS = ["A", "B", "C", "D"];
@@ -13,37 +14,28 @@ function indexToLetter(index: number): string {
 export default function TestEditPage() {
   const { testId } = useParams();
   const id = Number(testId);
-  const [test, setTest] = useState<TestEdit | null>(null);
-  const [error, setError] = useState("");
+  const editPath = id ? `/tests/${id}` : null;
+  const { data: test, setData: setTest, error, loading } = useGetReact<TestEdit>(editPath, Boolean(id));
+  const [actionError, setActionError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const load = useCallback(() => {
-    if (!id) return;
-    api
-      .getTestEdit(id)
-      .then(setTest)
-      .catch((e) => setError(e instanceof Error ? e.message : "Ошибка"));
-  }, [id]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const addTicket = async () => {
     if (!id) return;
     try {
-      setTest(await api.addTicket(id));
+      setTest(await postReact<TestEdit>(`/tests/${id}/tickets`));
+      setActionError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setActionError(e instanceof Error ? e.message : "Ошибка");
     }
   };
 
   const deleteTicket = async (ticketId: number) => {
     if (!id || !confirm("Удалить билет?")) return;
     try {
-      setTest(await api.deleteTicket(id, ticketId));
+      setTest(await deleteReact<TestEdit>(`/tests/${id}/tickets/${ticketId}`));
+      setActionError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      setActionError(e instanceof Error ? e.message : "Ошибка");
     }
   };
 
@@ -65,22 +57,24 @@ export default function TestEditPage() {
       });
     }
     try {
-      setTest(await api.saveTicket(id, ticketId, questions));
-      setError("");
+      setTest(await putReact<TestEdit>(`/tests/${id}/tickets/${ticketId}`, { questions }));
+      setActionError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка сохранения");
+      setActionError(err instanceof Error ? err.message : "Ошибка сохранения");
     } finally {
       setSaving(false);
     }
   };
 
-  if (!test) {
+  if (loading || !test) {
     return (
       <DashboardLayout active="home">
         <p className="dash-card-note">{error || "Загрузка…"}</p>
       </DashboardLayout>
     );
   }
+
+  const displayError = actionError || error;
 
   return (
     <DashboardLayout active="home">
@@ -90,7 +84,7 @@ export default function TestEditPage() {
           Билетов {test.tickets.length}/{test.max_tickets}
           {test.ready ? " · готов к сдаче" : " · заполните все билеты"}
         </p>
-        {error && <p className="auth-error">{error}</p>}
+        {displayError && <p className="auth-error">{displayError}</p>}
         <button
           type="button"
           className="dash-exam-btn"

@@ -1,23 +1,14 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
 import DashboardLayout from "../layout/DashboardLayout";
+import { useGetReact } from "../hooks/useGetReact";
 import type { Dashboard } from "../types/api";
 import { formatDateRu, parseNextCheck } from "../utils/format";
 
 export default function CabinetPage() {
-  const [data, setData] = useState<Dashboard | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    api
-      .dashboard()
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Ошибка"));
-  }, []);
+  const { data, error, loading } = useGetReact<Dashboard>("/dashboard");
 
   if (error) return <DashboardLayout active="home"><p className="auth-error">{error}</p></DashboardLayout>;
-  if (!data) return <DashboardLayout active="home"><p className="dash-card-note">Загрузка…</p></DashboardLayout>;
+  if (loading || !data) return <DashboardLayout active="home"><p className="dash-card-note">Загрузка…</p></DashboardLayout>;
 
   const examHref = data.exam_test_id ? `/exam/${data.exam_test_id}` : "/exam";
   const next = parseNextCheck(data.next_check_date);

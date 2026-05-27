@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { api } from "../api/client";
+import { getReact } from "../api/getReact";
 import type { User } from "../types/api";
 
 interface AuthState {
@@ -24,8 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const me = await api.me();
-      setUser(me);
+      const json = await getReact<User | null>("/auth/me");
+      setUser(json);
     } catch {
       setUser(null);
     } finally {

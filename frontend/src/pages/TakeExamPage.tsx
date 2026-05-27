@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { postReact } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
-import type { ExamPaper } from "../types/api";
+import { useGetReact } from "../hooks/useGetReact";
+import type { ExamPaper, ExamResult } from "../types/api";
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
@@ -10,22 +11,16 @@ export default function TakeExamPage() {
   const { testId } = useParams();
   const navigate = useNavigate();
   const id = Number(testId);
-  const [paper, setPaper] = useState<ExamPaper | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    api
-      .getExamPaper(id)
-      .then(setPaper)
-      .catch((e) => setError(e instanceof Error ? e.message : "Ошибка"));
-  }, [id]);
+  const examPath = id ? `/tests/${id}/exam` : null;
+  const { data: paper, error: loadError, loading: loadPaper } = useGetReact<ExamPaper>(examPath, Boolean(id));
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!paper) return;
-    setLoading(true);
+    setSubmitting(true);
+    setSubmitError("");
     const fd = new FormData(e.target as HTMLFormElement);
     const answers: { question_id: number; value: string }[] = [];
     paper.tickets.forEach((ticket) =>
@@ -35,24 +30,24 @@ export default function TakeExamPage() {
       })
     );
     try {
-      const result = await api.submitExam(paper.id, answers);
+      const result = await postReact<ExamResult>(`/tests/${paper.id}/exam`, { answers });
       navigate(`/exam/${paper.id}/result`, { state: { result } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка отправки");
+      setSubmitError(err instanceof Error ? err.message : "Ошибка отправки");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (error && !paper) {
+  if (loadError && !paper) {
     return (
       <DashboardLayout active="exam">
-        <p className="auth-error">{error}</p>
+        <p className="auth-error">{loadError}</p>
         <Link to="/exam">← К каталогу</Link>
       </DashboardLayout>
     );
   }
-  if (!paper) {
+  if (loadPaper || !paper) {
     return (
       <DashboardLayout active="exam">
         <p className="dash-card-note">Загрузка…</p>
@@ -97,9 +92,9 @@ export default function TakeExamPage() {
             ))}
           </div>
         ))}
-        {error && <p className="auth-error">{error}</p>}
-        <button type="submit" className="dash-exam-btn" disabled={loading} style={{ border: "none", cursor: "pointer" }}>
-          {loading ? "Отправка…" : "Отправить ответы"}
+        {submitError && <p className="auth-error">{submitError}</p>}
+        <button type="submit" className="dash-exam-btn" disabled={submitting} style={{ border: "none", cursor: "pointer" }}>
+          {submitting ? "Отправка…" : "Отправить ответы"}
         </button>
         <Link to="/exam" className="dash-card-link" style={{ marginLeft: "1rem" }}>
           Отмена

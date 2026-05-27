@@ -30,7 +30,18 @@ npm run dev
 
 UI: http://127.0.0.1:5173 — запросы `/api/*` проксируются на backend.
 
-Сессия: cookie `exam_session`, в fetch включено `credentials: "include"`.
+Сессия: cookie `exam_session`, axios с `withCredentials: true`.
+
+### Цепочка данных (getReact → state)
+
+1. React вызывает **`getReact<T>('/dashboard')`** (`frontend/src/api/getReact.ts`) — внутри **axios.get**.
+2. Backend (`/api/...`) отвечает **JSON**.
+3. Хук **`useGetReact`** кладёт ответ в **`useState`**: `{ data, loading, error }`.
+
+```tsx
+const { data, loading, error } = useGetReact<Dashboard>("/dashboard");
+// data обновляется после GET — UI перерисовывается
+```
 
 ## Production
 

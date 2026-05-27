@@ -7,84 +7,45 @@ import type {
   User,
 } from "../types/api";
 import type { QuestionSave } from "../types/api";
+import { deleteReact, getReact, postReact, putReact } from "./getReact";
 
-const API = "/api";
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    credentials: "include",
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      detail = body.detail ?? detail;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(typeof detail === "string" ? detail : "Ошибка запроса");
-  }
-  if (res.status === 204) {
-    return undefined as T;
-  }
-  return res.json() as Promise<T>;
-}
-
+/** API-слой: все вызовы через getReact / postReact (axios → JSON). */
 export const api = {
-  me: () => request<User | null>("/auth/me"),
+  me: () => getReact<User | null>("/auth/me"),
 
   login: (username: string, password: string) =>
-    request<User>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    }),
+    postReact<User>("/auth/login", { username, password }),
 
   register: (username: string, password: string, password2: string) =>
-    request<User>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ username, password, password2 }),
-    }),
+    postReact<User>("/auth/register", { username, password, password2 }),
 
-  logout: () =>
-    request<{ message: string }>("/auth/logout", { method: "POST" }),
+  logout: () => postReact<{ message: string }>("/auth/logout"),
 
-  dashboard: () => request<Dashboard>("/dashboard"),
+  dashboard: () => getReact<Dashboard>("/dashboard"),
 
   listTests: () =>
-    request<{ items: TestListItem[] }>("/tests").then((r) => r.items),
+    getReact<{ items: TestListItem[] }>("/tests").then((r) => r.items),
 
   createTest: (title: string, description?: string) =>
-    request<{ id: number; title: string }>("/tests", {
-      method: "POST",
-      body: JSON.stringify({ title, description: description || null }),
+    postReact<{ id: number; title: string }>("/tests", {
+      title,
+      description: description || null,
     }),
 
-  getTestEdit: (testId: number) => request<TestEdit>(`/tests/${testId}`),
+  getTestEdit: (testId: number) => getReact<TestEdit>(`/tests/${testId}`),
 
-  getExamPaper: (testId: number) => request<ExamPaper>(`/tests/${testId}/exam`),
+  getExamPaper: (testId: number) => getReact<ExamPaper>(`/tests/${testId}/exam`),
 
-  submitExam: (testId: number, answers: { question_id: number; value: string }[]) =>
-    request<ExamResult>(`/tests/${testId}/exam`, {
-      method: "POST",
-      body: JSON.stringify({ answers }),
-    }),
+  submitExam: (
+    testId: number,
+    answers: { question_id: number; value: string }[]
+  ) => postReact<ExamResult>(`/tests/${testId}/exam`, { answers }),
 
-  addTicket: (testId: number) =>
-    request<TestEdit>(`/tests/${testId}/tickets`, { method: "POST" }),
+  addTicket: (testId: number) => postReact<TestEdit>(`/tests/${testId}/tickets`),
 
   saveTicket: (testId: number, ticketId: number, questions: QuestionSave[]) =>
-    request<TestEdit>(`/tests/${testId}/tickets/${ticketId}`, {
-      method: "PUT",
-      body: JSON.stringify({ questions }),
-    }),
+    putReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`, { questions }),
 
   deleteTicket: (testId: number, ticketId: number) =>
-    request<TestEdit>(`/tests/${testId}/tickets/${ticketId}`, {
-      method: "DELETE",
-    }),
+    deleteReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`),
 };

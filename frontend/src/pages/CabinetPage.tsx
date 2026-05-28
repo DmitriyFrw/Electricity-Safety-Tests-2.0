@@ -111,6 +111,25 @@ export default function CabinetPage() {
         </div>
       )}
 
+      {data.signed_protocol && (
+        <div className="dashboard-widget" style={{ marginBottom: "var(--spacing-6)" }}>
+          <div className="dashboard-widget-title">Подписанный протокол экзамена</div>
+          <p className="dash-card-note">
+            Экзамен: <strong>{data.signed_protocol.test_title}</strong>
+            <br />
+            Результат: <strong>{data.signed_protocol.result_percent}%</strong>
+            <br />
+            Подписал: <strong>{data.signed_protocol.signer_username}</strong>
+          </p>
+          <a
+            className="btn btn-outline"
+            href={`/api/tests/${data.signed_protocol.test_id}/exam/attempts/${data.signed_protocol.attempt_id}/protocol.pdf`}
+          >
+            Скачать подписанный протокол (.pdf)
+          </a>
+        </div>
+      )}
+
       <div className="dashboard-stats">
         <div className="dashboard-widget widget-tickets">
           <div className="dashboard-widget-header">
@@ -180,7 +199,9 @@ export default function CabinetPage() {
               <div className="widget-result-details">
                 {data.last_test_title && <div>«{data.last_test_title}»</div>}
                 {data.last_test_date && <div>за тест от: {formatDateRu(data.last_test_date).split(",")[0]}</div>}
-                {data.last_grade && <div className={data.last_grade_class}>оценка: {data.last_grade}</div>}
+                {data.last_grade && (
+                  <div className={data.last_grade_class ?? undefined}>оценка: {data.last_grade}</div>
+                )}
               </div>
             </div>
           ) : (

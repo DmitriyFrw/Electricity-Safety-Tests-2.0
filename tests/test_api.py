@@ -213,3 +213,115 @@ async def test_async_profile_exports(async_client: AsyncClient):
         forbidden = await client2.get(f"/api/profile/exports/{task_id2}")
         assert forbidden.status_code == 403
 
+
+@pytest.mark.asyncio
+async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient, db_session):
+    # kot user who passes exam
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "kot_signed", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+    kot_user_id = reg.json()["id"]
+
+    s = SessionLocal()
+    try:
+        kot = s.get(User, kot_user_id)
+        assert kot is not None
+        kot.full_name = "Кот Тестовый"
+        kot.birth_date = dt.date(2000, 1, 1)
+        kot.job_title = "Электромонтер"
+        # add ready test with one ticket
+        t = Test(author_id=kot_user_id, title="Signed Exam", description=None)
+        ticket = Ticket(position=1)
+        t.tickets.append(ticket)
+        for pos in range(1, 11):
+            ticket.questions.append(
+                Question(
+                    position=pos,
+                    text=f"Q{pos}",
+                    correct_index=0,
+                    option_a="A",
+                    option_b="B",
+                    option_c="C",
+                    option_d="D",
+                )
+            )
+        s.add(t)
+        s.commit()
+        s.refresh(t)
+        test_id = t.id
+        qids = [q.id for q in ticket.questions]
+    finally:
+        s.close()
+
+    csrf_sess = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    start = await async_client.post(
+        f"/api/tests/{test_id}/exam/session", headers={"X-CSRF-Token": csrf_sess}
+    )
+    start.raise_for_status()
+    sess = start.json()
+    ticket_id = sess["next_ticket_id"]
+    assert ticket_id is not None
+    await async_client.get(f"/api/tests/{test_id}/exam/tickets/{ticket_id}")
+    csrf_submit = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    submit = await async_client.post(
+        f"/api/tests/{test_id}/exam/tickets/{ticket_id}",
+        json={"answers": [{"question_id": qid, "value": "A"} for qid in qids]},
+        headers={"X-CSRF-Token": csrf_submit},
+    )
+    submit.raise_for_status()
+    csrf_finish = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    finish = await async_client.post(
+        f"/api/tests/{test_id}/exam/finish",
+        headers={"X-CSRF-Token": csrf_finish},
+    )
+    finish.raise_for_status()
+    attempt_id = finish.json()["attempt_id"]
+
+    # relogin as admin
+    s2 = SessionLocal()
+    try:
+        admin = User(username="admin_sign", password_hash=hash_password("password123"), role="admin")
+        s2.add(admin)
+        s2.commit()
+    finally:
+        s2.close()
+
+    csrf_logout = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    await async_client.post("/api/auth/logout", headers={"X-CSRF-Token": csrf_logout})
+    csrf_admin = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    login_admin = await async_client.post(
+        "/api/auth/login",
+        json={"username": "admin_sign", "password": "password123"},
+        headers={"X-CSRF-Token": csrf_admin},
+    )
+    login_admin.raise_for_status()
+
+    csrf_sign = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    sign = await async_client.post(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol/sign",
+        headers={"X-CSRF-Token": csrf_sign},
+    )
+    assert sign.status_code == 200
+    assert sign.json()["attempt_id"] == attempt_id
+    pdf = await async_client.get(f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol.pdf")
+    assert pdf.status_code == 200
+    assert pdf.headers.get("content-type", "").startswith("application/pdf")
+
+    # kot sees signed protocol block data in dashboard
+    csrf_logout2 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    await async_client.post("/api/auth/logout", headers={"X-CSRF-Token": csrf_logout2})
+    csrf_kot = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    login_kot = await async_client.post(
+        "/api/auth/login",
+        json={"username": "kot_signed", "password": "password123"},
+        headers={"X-CSRF-Token": csrf_kot},
+    )
+    login_kot.raise_for_status()
+    dash = await async_client.get("/api/dashboard")
+    dash.raise_for_status()
+    assert dash.json()["signed_protocol"] is not None
+

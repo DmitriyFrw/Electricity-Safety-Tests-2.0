@@ -53,6 +53,7 @@ export interface Dashboard {
   last_test_title: string | null;
   last_test_date: string | null;
   next_check_date: string;
+  signed_protocol: SignedProtocol | null;
   created_tests: CreatedTest[];
   attempts: AttemptRow[];
 }
@@ -124,6 +125,7 @@ export interface TicketResultRow {
 }
 
 export interface ExamResult {
+  attempt_id: number;
   test_id: number;
   test_title: string;
   correct: number;
@@ -133,8 +135,23 @@ export interface ExamResult {
   grade: string;
   grade_class: string;
   passed_exam: boolean;
+  protocol_signed: boolean;
   min_pass_percent: number;
   ticket_rows: TicketResultRow[];
+}
+
+export interface SignedProtocol {
+  attempt_id: number;
+  test_id: number;
+  signer_id: number;
+  signer_username: string;
+  examinee_id: number;
+  examinee_full_name: string;
+  examinee_birth_date: string;
+  examinee_job_title: string;
+  test_title: string;
+  result_percent: number;
+  signed_at: string;
 }
 
 export interface QuestionEdit {

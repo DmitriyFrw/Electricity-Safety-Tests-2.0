@@ -1,11 +1,18 @@
+import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { axiosErrorMessage, getReact, postReact } from "../api/getReact";
+import { useAuth } from "../auth/AuthContext";
 import DashboardLayout from "../layout/DashboardLayout";
-import type { ExamResult } from "../types/api";
+import type { ExamResult, SignedProtocol } from "../types/api";
 
 export default function ExamResultPage() {
   const { testId } = useParams();
   const location = useLocation();
+  const { user } = useAuth();
   const result = location.state?.result as ExamResult | undefined;
+  const [protocol, setProtocol] = useState<SignedProtocol | null>(null);
+  const [actionError, setActionError] = useState("");
+  const [signing, setSigning] = useState(false);
 
   if (!result) {
     return (
@@ -14,6 +21,40 @@ export default function ExamResultPage() {
         <Link to={`/exam/${testId}`}>Вернуться к экзамену</Link>
       </DashboardLayout>
     );
+  }
+
+  const canSign = Boolean(
+    result.passed_exam && (user?.role === "admin" || user?.role === "ezh")
+  );
+  const isSigned = result.protocol_signed || Boolean(protocol);
+
+  async function onSign() {
+    if (!testId) return;
+    setSigning(true);
+    setActionError("");
+    try {
+      const signed = await postReact<SignedProtocol>(
+        `/tests/${testId}/exam/attempts/${result.attempt_id}/protocol/sign`
+      );
+      setProtocol(signed);
+    } catch (e) {
+      setActionError(axiosErrorMessage(e));
+    } finally {
+      setSigning(false);
+    }
+  }
+
+  async function onLoadProtocol() {
+    if (!testId) return;
+    setActionError("");
+    try {
+      const p = await getReact<SignedProtocol>(
+        `/tests/${testId}/exam/attempts/${result.attempt_id}/protocol`
+      );
+      setProtocol(p);
+    } catch (e) {
+      setActionError(axiosErrorMessage(e));
+    }
   }
 
   return (
@@ -36,6 +77,43 @@ export default function ExamResultPage() {
         <Link to="/cabinet" className="dash-exam-btn">
           В кабинет
         </Link>
+      </section>
+      <section className="dash-page-card">
+        {canSign && !isSigned && (
+          <button
+            type="button"
+            className="dash-exam-btn"
+            onClick={onSign}
+            disabled={signing}
+            style={{ border: "none", cursor: "pointer" }}
+          >
+            {signing ? "Подписание..." : "Подписать"}
+          </button>
+        )}
+        {!protocol && (
+          <button
+            type="button"
+            className="dash-card-link"
+            onClick={onLoadProtocol}
+            style={{ border: "none", background: "transparent", cursor: "pointer" }}
+          >
+            Проверить статус протокола
+          </button>
+        )}
+        {protocol && (
+          <div className="dash-card-note">
+            Подписал: <strong>{protocol.signer_username}</strong>, экзаменуемый:{" "}
+            <strong>{protocol.examinee_full_name}</strong>
+            <br />
+            <a
+              className="dash-exam-btn"
+              href={`/api/tests/${testId}/exam/attempts/${result.attempt_id}/protocol.pdf`}
+            >
+              Скачать .pdf
+            </a>
+          </div>
+        )}
+        {actionError && <p className="auth-error">{actionError}</p>}
       </section>
       {result.ticket_rows.length > 0 && (
         <div className="dash-table-wrap">

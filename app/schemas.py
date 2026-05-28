@@ -47,6 +47,17 @@ class MessageOut(BaseModel):
     message: str
 
 
+class AsyncTaskAcceptedOut(BaseModel):
+    task_id: str
+    status: str
+
+
+class AsyncTaskStatusOut(BaseModel):
+    task_id: str
+    status: str
+    error: Optional[str] = None
+
+
 class CsrfOut(BaseModel):
     csrf_token: str
 

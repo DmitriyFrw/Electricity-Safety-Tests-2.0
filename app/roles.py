@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.constants import ROLE_ADMIN, ROLE_EZH, ROLES_CAN_EDIT_TESTS
 from app.models import Test, User
+from app.policies import AccessPolicy
 
 
 def role_label(role: str) -> str:
@@ -11,15 +12,11 @@ def role_label(role: str) -> str:
 
 
 def can_create_tests(user: User) -> bool:
-    return user.role in ROLES_CAN_EDIT_TESTS
+    return AccessPolicy.can_create_tests(user)
 
 
 def can_edit_test(user: User, test: Test) -> bool:
-    if user.role == ROLE_ADMIN:
-        return True
-    if user.role == ROLE_EZH and test.author_id == user.id:
-        return True
-    return False
+    return AccessPolicy.can_edit_test(user, test)
 
 
 def is_kot(user: User) -> bool:

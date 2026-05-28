@@ -5,6 +5,29 @@
 
 ## [Unreleased]
 
+### Added
+
+- Асинхронный экспорт тяжёлых операций:
+  - `POST /api/profile/protocol.pdf/export` (PDF),
+  - `POST /api/profile/attempts/export` (CSV),
+  - `GET /api/profile/exports/{task_id}` (статус/скачивание).
+- DTO-слой: `app/dto/*` (`AuditEventDTO`, `ExportRequestDTO`, `ExportTaskDTO`).
+- Policies-слой: `app/policies/access_policy.py` и интеграция в зависимости/роли.
+- Безопасность логина: лимит неудачных попыток входа (защита от брутфорса) через `LOGIN_RATE_LIMIT_ATTEMPTS` и `LOGIN_RATE_LIMIT_WINDOW_SECONDS`.
+- Аудит-логирование критических событий (логины/регистрация/запреты изменения).
+- Новые тесты:
+  - `tests/test_policies.py` (политики),
+  - `tests/test_services.py` (сервисы + проверка N+1 по числу SQL-запросов),
+  - интеграционные API тесты async exports и login rate limiting.
+
+### Changed
+
+- Время на экзаменационный билет увеличено с 10 до 20 минут (`EXAM_TICKET_TIME_LIMIT_SECONDS`).
+- Сервисный слой разложен по подпапкам модулей в `app/services/*`.
+- Исправлены критические проблемы deploy:
+  - `SECRET_KEY` прокинут в CI на этапе build production image,
+  - `scripts/deploy.sh` очищает стек при failed healthcheck.
+
 ## [0.5.0] - 2026-05-27
 
 ### Added

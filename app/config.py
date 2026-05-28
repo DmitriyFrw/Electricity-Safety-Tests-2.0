@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # Безопасность и производительность
     bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS", ge=4, le=31)
     cache_ttl_seconds: int = Field(default=300, alias="CACHE_TTL_SECONDS", ge=0)
+    login_rate_limit_attempts: int = Field(default=5, alias="LOGIN_RATE_LIMIT_ATTEMPTS", ge=1)
+    login_rate_limit_window_seconds: int = Field(
+        default=300, alias="LOGIN_RATE_LIMIT_WINDOW_SECONDS", ge=1
+    )
 
     @field_validator("database_url", mode="before")
     @classmethod

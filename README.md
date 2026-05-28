@@ -66,11 +66,17 @@ GitHub Actions (`.github/workflows/ci.yml`):
 
 Опционально: секрет `GHCR_TOKEN` — публикация образа в GitHub Container Registry.
 
+Критические фиксы деплоя:
+- в `deploy` job задан `SECRET_KEY` уже на этапе сборки;
+- `scripts/deploy.sh` очищает стек (`down -v`) при провале healthcheck.
+
 ## Безопасность
 
 - **Пароли:** bcrypt через passlib (`app/auth_utils.py`), сложность — `BCRYPT_ROUNDS` (по умолчанию 12).
 - **Сессии:** HttpOnly-cookie, настройки `SESSION_COOKIE_*`.
 - **CSRF** на мутирующих запросах.
+- **Защита от брутфорса логина:** in-memory limiter, параметры `LOGIN_RATE_LIMIT_ATTEMPTS` и `LOGIN_RATE_LIMIT_WINDOW_SECONDS`.
+- **Аудит критических действий:** логины, регистрации, запреты редактирования (`SecurityAuditService`).
 
 ## Роли
 
@@ -97,12 +103,15 @@ GitHub Actions (`.github/workflows/ci.yml`):
 | POST | `/api/tests/{id}/training` | Отправить ответы (тренировка) |
 | POST | `/api/tests/{id}/exam/session` | Начать экзамен |
 | GET | `/api/tests/{id}/exam/session` | Статус сессии |
-| GET | `/api/tests/{id}/exam/tickets/{ticket_id}` | Билет (10 мин) |
+| GET | `/api/tests/{id}/exam/tickets/{ticket_id}` | Билет (20 мин) |
 | POST | `/api/tests/{id}/exam/tickets/{ticket_id}` | Ответы по билету |
 | POST | `/api/tests/{id}/exam/finish` | Завершить экзамен |
 | POST/PUT/DELETE | `/api/tests/{id}/tickets/...` | CRUD билетов |
 | GET/PUT | `/api/profile` | Профиль Кота |
 | GET | `/api/profile/protocol.pdf` | PDF-протокол |
+| POST | `/api/profile/protocol.pdf/export` | Асинхронный экспорт PDF-протокола |
+| POST | `/api/profile/attempts/export` | Асинхронный экспорт результатов (CSV) |
+| GET | `/api/profile/exports/{task_id}` | Статус/скачивание результата фоновой задачи |
 | GET | `/api/manuals` | Список мануалов (кэш TTL) |
 
 ## Архитектура backend
@@ -111,7 +120,9 @@ GitHub Actions (`.github/workflows/ci.yml`):
 app/
 ├── api/              # Тонкие контроллеры (FastAPI routes)
 ├── form_requests/    # Валидация входа (аналог Laravel FormRequest)
-├── services/         # Бизнес-логика
+├── services/         # Бизнес-логика (в т.ч. подпапки modules/*)
+├── dto/              # Data Transfer Objects
+├── policies/         # Правила доступа (Policies)
 ├── repositories/     # Запросы к БД + eager loading (selectinload)
 ├── cache.py          # TTL-кэш (cachetools)
 ├── auth_utils.py     # bcrypt hash/verify
@@ -119,7 +130,8 @@ app/
 └── main.py
 ```
 
-**Оптимизация БД:** репозитории загружают связи (`Test.tickets.questions`, `Attempt.test`) одним запросом; список мануалов кэшируется in-memory (`CACHE_TTL_SECONDS`).
+**Оптимизация БД:** репозитории загружают связи (`Test.tickets.questions`, `Attempt.test`) через eager loading; список мануалов кэшируется in-memory (`CACHE_TTL_SECONDS`).  
+**Проверка N+1:** добавлен тест с подсчётом SQL-запросов в `tests/test_services.py`.
 
 ## Тесты
 
@@ -129,6 +141,11 @@ pytest
 # или через Docker:
 docker compose run --rm backend pytest
 ```
+
+Покрытие, добавленное в рамках рефакторинга:
+- unit-тесты сервисов;
+- unit-тесты политик доступа;
+- интеграционные тесты API (async exports, login brute-force limiter).
 
 ## Production (без Docker)
 

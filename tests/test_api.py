@@ -126,3 +126,76 @@ async def test_kot_cannot_create_test(async_client: AsyncClient):
     )
     assert create.status_code == 403
 
+
+@pytest.mark.asyncio
+async def test_login_rate_limit_bruteforce(async_client: AsyncClient):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "ratelimit_u", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+
+    for _ in range(5):
+        csrf_login = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+        bad = await async_client.post(
+            "/api/auth/login",
+            json={"username": "ratelimit_u", "password": "wrong-pass"},
+            headers={"X-CSRF-Token": csrf_login},
+        )
+        assert bad.status_code == 400
+
+    csrf_blocked = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    blocked = await async_client.post(
+        "/api/auth/login",
+        json={"username": "ratelimit_u", "password": "wrong-pass"},
+        headers={"X-CSRF-Token": csrf_blocked},
+    )
+    assert blocked.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_async_profile_exports(async_client: AsyncClient):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "export_u", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+
+    csrf_upd = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    upd = await async_client.put(
+        "/api/profile",
+        json={"full_name": "Test User", "birth_date": "2000-01-01", "job_title": "Engineer"},
+        headers={"X-CSRF-Token": csrf_upd},
+    )
+    upd.raise_for_status()
+
+    csrf_exp = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    task_res = await async_client.post("/api/profile/protocol.pdf/export", headers={"X-CSRF-Token": csrf_exp})
+    assert task_res.status_code == 202
+    task_id = task_res.json()["task_id"]
+
+    done_pdf = None
+    for _ in range(50):
+        r = await async_client.get(f"/api/profile/exports/{task_id}")
+        if r.status_code == 200 and r.headers.get("content-type", "").startswith("application/pdf"):
+            done_pdf = r
+            break
+    assert done_pdf is not None
+
+    csrf_exp2 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    task_res2 = await async_client.post("/api/profile/attempts/export", headers={"X-CSRF-Token": csrf_exp2})
+    assert task_res2.status_code == 202
+    task_id2 = task_res2.json()["task_id"]
+
+    done_csv = None
+    for _ in range(50):
+        r = await async_client.get(f"/api/profile/exports/{task_id2}")
+        if r.status_code == 200 and "text/csv" in r.headers.get("content-type", ""):
+            done_csv = r
+            break
+    assert done_csv is not None
+

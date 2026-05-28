@@ -3,13 +3,14 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from app.constants import EXAM_TICKET_TIME_LIMIT_SECONDS
 from app.auth_utils import hash_password
 from app.models import Question, Ticket, TicketAttempt, Test, User
 from app.database import SessionLocal
+from app.main import app
 
 
 @pytest.mark.asyncio
@@ -198,4 +199,17 @@ async def test_async_profile_exports(async_client: AsyncClient):
             done_csv = r
             break
     assert done_csv is not None
+
+    # Another logged-in user must not access чужую export-задачу.
+    transport = ASGITransport(app=app, lifespan="on")
+    async with AsyncClient(transport=transport, base_url="http://test") as client2:
+        csrf_other = (await client2.get("/api/auth/csrf")).json()["csrf_token"]
+        reg_other = await client2.post(
+            "/api/auth/register",
+            json={"username": "export_u2", "password": "password123", "password2": "password123"},
+            headers={"X-CSRF-Token": csrf_other},
+        )
+        reg_other.raise_for_status()
+        forbidden = await client2.get(f"/api/profile/exports/{task_id2}")
+        assert forbidden.status_code == 403
 

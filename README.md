@@ -47,6 +47,8 @@ docker compose run --rm backend pytest   # тесты
 docker compose up backend                # API на :8000
 ```
 
+`Dockerfile` собирает frontend из корректного `WORKDIR /app/frontend`.
+
 Production-стек:
 
 ```bash
@@ -70,6 +72,12 @@ GitHub Actions (`.github/workflows/ci.yml`):
 - в `deploy` job задан `SECRET_KEY` уже на этапе сборки;
 - `scripts/deploy.sh` очищает стек (`down -v`) при провале healthcheck.
 
+## Миграции
+
+- Для локальной разработки можно оставить `AUTO_CREATE_SCHEMA=true`.
+- Для production выставляйте `AUTO_CREATE_SCHEMA=false` и применяйте миграции перед запуском приложения.
+- SQL-скрипты в `scripts/` полезны как временная мера, но рекомендуется перейти на Alembic как основной миграционный процесс.
+
 ## Безопасность
 
 - **Пароли:** bcrypt через passlib (`app/auth_utils.py`), сложность — `BCRYPT_ROUNDS` (по умолчанию 12).
@@ -77,6 +85,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 - **CSRF** на мутирующих запросах.
 - **Защита от брутфорса логина:** in-memory limiter, параметры `LOGIN_RATE_LIMIT_ATTEMPTS` и `LOGIN_RATE_LIMIT_WINDOW_SECONDS`.
 - **Аудит критических действий:** логины, регистрации, запреты редактирования (`SecurityAuditService`).
+- **Экспорт-задачи привязаны к пользователю:** скачивание по `task_id` проверяет владельца задачи.
 
 ## Роли
 
@@ -132,6 +141,10 @@ app/
 
 **Оптимизация БД:** репозитории загружают связи (`Test.tickets.questions`, `Attempt.test`) через eager loading; список мануалов кэшируется in-memory (`CACHE_TTL_SECONDS`).  
 **Проверка N+1:** добавлен тест с подсчётом SQL-запросов в `tests/test_services.py`.
+
+## Ограничения async-экспортов
+
+Текущая реализация задач экспорта хранится in-memory в процессе API. Это подходит для dev/single-worker, но в production лучше вынести состояние в Redis/БД и использовать отдельную очередь задач.
 
 ## Тесты
 

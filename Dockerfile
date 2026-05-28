@@ -1,8 +1,8 @@
 FROM node:20-alpine AS frontend-build
-WORKDIR /app
-COPY frontend/package*.json ./frontend/
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
 RUN npm install --no-audit --no-fund
-COPY frontend ./frontend
+COPY frontend ./
 RUN npm run build
 
 FROM python:3.12-slim AS backend

@@ -101,6 +101,7 @@ class DashboardOut(BaseModel):
     last_test_title: Optional[str]
     last_test_date: Optional[datetime]
     next_check_date: date
+    signed_protocol: "SignedProtocolOut | None" = None
     created_tests: list[CreatedTestOut]
     attempts: list[AttemptRowOut]
 
@@ -195,6 +196,7 @@ class TicketResultRowOut(BaseModel):
 
 
 class ExamResultOut(BaseModel):
+    attempt_id: int
     test_id: int
     test_title: str
     correct: int
@@ -204,8 +206,23 @@ class ExamResultOut(BaseModel):
     grade: str
     grade_class: str
     passed_exam: bool
+    protocol_signed: bool = False
     min_pass_percent: int
     ticket_rows: list[TicketResultRowOut]
+
+
+class SignedProtocolOut(BaseModel):
+    attempt_id: int
+    test_id: int
+    signer_id: int
+    signer_username: str
+    examinee_id: int
+    examinee_full_name: str
+    examinee_birth_date: date
+    examinee_job_title: str
+    test_title: str
+    result_percent: int
+    signed_at: datetime
 
 
 class QuestionEditOut(BaseModel):

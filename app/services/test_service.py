@@ -12,7 +12,7 @@ from app.api_serializers import (
     test_list_out,
 )
 from app.attempt_service import submit_test_attempt_with_answers
-from app.constants import QUESTIONS_PER_TICKET
+from app.constants import MIN_PASS_PERCENT, QUESTIONS_PER_TICKET
 from app.deps import require_test_edit_access
 from app.exceptions import AppError
 from app.exam_service import (
@@ -26,7 +26,9 @@ from app.exam_service import (
     ticket_deadline,
 )
 from app.form_requests.tests import SubmitExamRequest, TestCreateRequest, TicketSaveRequest
-from app.models import Question, Test, Ticket, User
+from app.models import Attempt, Question, SignedProtocol, Test, Ticket, User
+from app.policies import AccessPolicy
+from app.pdf_service import build_signed_protocol_pdf
 from app.repositories import TestRepository
 from app.schemas import (
     ExamPaperOut,
@@ -36,6 +38,7 @@ from app.schemas import (
     TestCreateOut,
     TestEditOut,
     TestListOut,
+    SignedProtocolOut,
 )
 from app.validation import assert_can_add_ticket, test_is_ready_loaded, test_is_ready_to_take
 
@@ -96,7 +99,9 @@ class TestService:
             test=test,
             answers=form.answers_map(),
         )
-        return exam_result_out(test, summary, ticket_rows)
+        return exam_result_out(
+            test, summary, ticket_rows, attempt_id=_attempt.id, protocol_signed=False
+        )
 
     @staticmethod
     def start_exam_session(db: Session, test_id: int, user: User) -> ExamSessionOut:
@@ -192,7 +197,121 @@ class TestService:
             summary, ticket_rows = finish_exam_attempt(db, attempt=attempt, test=test)
         except ValueError as e:
             raise AppError(str(e), status_code=400) from e
-        return exam_result_out(test, summary, ticket_rows)
+        protocol = (
+            db.query(SignedProtocol).filter(SignedProtocol.attempt_id == attempt.id).one_or_none()
+        )
+        return exam_result_out(
+            test,
+            summary,
+            ticket_rows,
+            attempt_id=attempt.id,
+            protocol_signed=protocol is not None,
+        )
+
+    @staticmethod
+    def sign_protocol(
+        db: Session, test_id: int, attempt_id: int, signer: User
+    ) -> SignedProtocolOut:
+        if not AccessPolicy.can_create_tests(signer):
+            raise AppError("Подписывать протокол может только admin или Еж", status_code=403)
+        attempt = (
+            db.query(Attempt)
+            .filter(Attempt.id == attempt_id, Attempt.test_id == test_id)
+            .one_or_none()
+        )
+        if not attempt:
+            raise AppError("Попытка не найдена", status_code=404)
+        if attempt.finished_at is None:
+            raise AppError("Экзамен ещё не завершён", status_code=400)
+
+        existing = (
+            db.query(SignedProtocol).filter(SignedProtocol.attempt_id == attempt_id).one_or_none()
+        )
+        if existing:
+            return TestService._protocol_out(existing)
+
+        examinee = db.get(User, attempt.user_id)
+        test = db.get(Test, attempt.test_id)
+        if not examinee or not test:
+            raise AppError("Недостаточно данных для подписания протокола", status_code=400)
+        if not examinee.full_name or not examinee.birth_date or not examinee.job_title:
+            raise AppError(
+                "У пользователя Кот не заполнены ФИО, дата рождения или должность в профиле",
+                status_code=400,
+            )
+
+        total = len(attempt.user_answers)
+        correct = sum(
+            1
+            for ua in attempt.user_answers
+            if ua.selected_index is not None
+            and ua.question is not None
+            and ua.selected_index == ua.question.correct_index
+        )
+        percent = int(round((correct / total) * 100)) if total else 0
+        if percent < MIN_PASS_PERCENT:
+            raise AppError(
+                "Протокол можно подписать только после успешной сдачи экзамена",
+                status_code=400,
+            )
+
+        protocol = SignedProtocol(
+            attempt_id=attempt.id,
+            signer_id=signer.id,
+            examinee_id=examinee.id,
+            examinee_full_name=examinee.full_name,
+            examinee_birth_date=examinee.birth_date,
+            examinee_job_title=examinee.job_title,
+            test_title=test.title,
+            result_percent=percent,
+        )
+        db.add(protocol)
+        db.commit()
+        db.refresh(protocol)
+        return TestService._protocol_out(protocol)
+
+    @staticmethod
+    def get_signed_protocol(db: Session, test_id: int, attempt_id: int) -> SignedProtocolOut:
+        protocol = (
+            db.query(SignedProtocol)
+            .filter(SignedProtocol.attempt_id == attempt_id)
+            .one_or_none()
+        )
+        if not protocol:
+            raise AppError("Протокол ещё не подписан", status_code=404)
+        if protocol.attempt is None or protocol.attempt.test_id != test_id:
+            raise AppError("Протокол не найден", status_code=404)
+        return TestService._protocol_out(protocol)
+
+    @staticmethod
+    def get_signed_protocol_pdf(db: Session, test_id: int, attempt_id: int) -> bytes:
+        protocol = (
+            db.query(SignedProtocol)
+            .filter(SignedProtocol.attempt_id == attempt_id)
+            .one_or_none()
+        )
+        if not protocol:
+            raise AppError("Протокол ещё не подписан", status_code=404)
+        if protocol.attempt is None or protocol.attempt.test_id != test_id:
+            raise AppError("Протокол не найден", status_code=404)
+        return build_signed_protocol_pdf(protocol)
+
+    @staticmethod
+    def _protocol_out(protocol: SignedProtocol) -> SignedProtocolOut:
+        signer_username = protocol.signer.username if protocol.signer else ""
+        return SignedProtocolOut(
+            attempt_id=protocol.attempt_id,
+            test_id=protocol.attempt.test_id if protocol.attempt else 0,
+            signer_id=protocol.signer_id,
+            signer_username=signer_username,
+            examinee_id=protocol.examinee_id,
+            examinee_full_name=protocol.examinee_full_name,
+            examinee_birth_date=protocol.examinee_birth_date,
+            examinee_job_title=protocol.examinee_job_title,
+            test_title=protocol.test_title,
+            result_percent=protocol.result_percent,
+            signed_at=protocol.signed_at,
+        )
 
     @staticmethod
     def add_ticket(db: Session, test_id: int, user: User) -> TestEditOut:

@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     login_rate_limit_window_seconds: int = Field(
         default=300, alias="LOGIN_RATE_LIMIT_WINDOW_SECONDS", ge=1
     )
+    auto_create_schema: bool = Field(default=True, alias="AUTO_CREATE_SCHEMA")
 
     @field_validator("database_url", mode="before")
     @classmethod

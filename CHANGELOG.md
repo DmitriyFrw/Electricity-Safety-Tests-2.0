@@ -24,6 +24,11 @@
 
 - Время на экзаменационный билет увеличено с 10 до 20 минут (`EXAM_TICKET_TIME_LIMIT_SECONDS`).
 - Сервисный слой разложен по подпапкам модулей в `app/services/*`.
+- `LoginRateLimiter` исправлен: TTL кэша больше не мутируется на лету, кэш пересоздаётся при изменении TTL-конфига.
+- Export-задачи привязаны к владельцу (`owner_user_id`), доступ к `GET /api/profile/exports/{task_id}` ограничен владельцем.
+- `AUTO_CREATE_SCHEMA` вынесен в конфиг: в production можно отключить `create_all()` и использовать миграции.
+- PDF-сервис получил поддержку кириллических TTF-шрифтов (DejaVu/Noto-совместимый fallback), при отсутствии — безопасный fallback на Helvetica.
+- Исправлена frontend-сборка в `Dockerfile`: сборка выполняется из `WORKDIR /app/frontend`.
 - Исправлены критические проблемы deploy:
   - `SECRET_KEY` прокинут в CI на этапе build production image,
   - `scripts/deploy.sh` очищает стек при failed healthcheck.

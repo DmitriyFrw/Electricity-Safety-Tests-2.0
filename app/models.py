@@ -116,6 +116,9 @@ class Attempt(Base):
     ticket_attempts: Mapped[list["TicketAttempt"]] = relationship(
         "TicketAttempt", back_populates="attempt", cascade="all, delete-orphan"
     )
+    signed_protocol: Mapped[Optional["SignedProtocol"]] = relationship(
+        "SignedProtocol", back_populates="attempt", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class TicketAttempt(Base):
@@ -148,3 +151,24 @@ class UserAnswer(Base):
     question: Mapped[Question] = relationship("Question", back_populates="answers")
 
     __table_args__ = (UniqueConstraint("attempt_id", "question_id", name="uq_attempt_question"),)
+
+
+class SignedProtocol(Base):
+    __tablename__ = "signed_protocols"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("attempts.id"), unique=True, nullable=False, index=True)
+    signer_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    examinee_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    examinee_full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    examinee_birth_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    examinee_job_title: Mapped[str] = mapped_column(String(200), nullable=False)
+    test_title: Mapped[str] = mapped_column(String(200), nullable=False)
+    result_percent: Mapped[int] = mapped_column(Integer, nullable=False)
+    signed_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc)
+    )
+
+    attempt: Mapped[Attempt] = relationship("Attempt", back_populates="signed_protocol")
+    signer: Mapped[User] = relationship("User", foreign_keys=[signer_id])
+    examinee: Mapped[User] = relationship("User", foreign_keys=[examinee_id])

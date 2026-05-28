@@ -14,6 +14,7 @@ class ExportRequestDTO:
 @dataclass(slots=True)
 class ExportTaskDTO:
     task_id: str
+    owner_user_id: int
     status: str = "pending"
     content_type: str | None = None
     filename: str | None = None

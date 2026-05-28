@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -18,6 +19,7 @@ from app.schemas import (
     TestCreateOut,
     TestEditOut,
     TestListOut,
+    SignedProtocolOut,
 )
 from app.services.test_service import TestService
 
@@ -124,6 +126,47 @@ def finish_exam(
     user: Annotated[User, Depends(login_required)],
 ):
     return _handle(lambda: TestService.finish_exam(db, test_id, user))
+
+
+@router.post(
+    "/{test_id}/exam/attempts/{attempt_id}/protocol/sign",
+    response_model=SignedProtocolOut,
+)
+def sign_protocol(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(test_editor_required)],
+):
+    return _handle(lambda: TestService.sign_protocol(db, test_id, attempt_id, user))
+
+
+@router.get(
+    "/{test_id}/exam/attempts/{attempt_id}/protocol",
+    response_model=SignedProtocolOut,
+)
+def get_signed_protocol(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    return _handle(lambda: TestService.get_signed_protocol(db, test_id, attempt_id))
+
+
+@router.get("/{test_id}/exam/attempts/{attempt_id}/protocol.pdf")
+def get_signed_protocol_pdf(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+):
+    pdf_bytes = _handle(lambda: TestService.get_signed_protocol_pdf(db, test_id, attempt_id))
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="protocol_{attempt_id}.pdf"'},
+    )
 
 
 @router.post("/{test_id}/tickets", response_model=TestEditOut, status_code=201)

@@ -20,14 +20,18 @@ class ExportService:
     @classmethod
     def create_exam_results_export(cls, req: ExportRequestDTO) -> str:
         task_id = str(uuid.uuid4())
-        cls._tasks[task_id] = ExportTaskDTO(task_id=task_id, status="pending")
+        cls._tasks[task_id] = ExportTaskDTO(
+            task_id=task_id, owner_user_id=req.user_id, status="pending"
+        )
         cls._executor.submit(cls._run_exam_export, task_id, req)
         return task_id
 
     @classmethod
     def create_protocol_export(cls, user) -> str:
         task_id = str(uuid.uuid4())
-        cls._tasks[task_id] = ExportTaskDTO(task_id=task_id, status="pending")
+        cls._tasks[task_id] = ExportTaskDTO(
+            task_id=task_id, owner_user_id=user.id, status="pending"
+        )
         cls._executor.submit(cls._run_protocol_export, task_id, user)
         return task_id
 

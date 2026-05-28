@@ -71,6 +71,8 @@ def get_export_task(task_id: str, _user: Annotated[User, Depends(login_required)
     task = ExportService.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
+    if task.owner_user_id != _user.id:
+        raise HTTPException(status_code=403, detail="Нет доступа к этой задаче экспорта")
     if task.status != "done":
         return {"task_id": task.task_id, "status": task.status, "error": task.error}
     return Response(

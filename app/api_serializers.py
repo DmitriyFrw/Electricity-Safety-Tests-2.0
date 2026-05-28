@@ -10,7 +10,7 @@ from app.constants import (
     QUESTIONS_PER_TICKET,
 )
 from app.dashboard_stats import build_dashboard_context, display_name
-from app.models import Attempt, Test, Ticket, User
+from app.models import Attempt, SignedProtocol, Test, Ticket, User
 from app.roles import can_create_tests, can_edit_test, role_label
 from app.schemas import (
     AttemptRowOut,
@@ -29,6 +29,7 @@ from app.schemas import (
     TicketExamOut,
     TicketResultRowOut,
     UserOut,
+    SignedProtocolOut,
 )
 from app.validation import test_is_ready_to_take, ticket_is_complete
 from sqlalchemy.orm import Session
@@ -57,6 +58,7 @@ def dashboard_out(
     *,
     created_tests: list[Test],
     attempts: list[Attempt],
+    signed_protocol: SignedProtocol | None = None,
 ) -> DashboardOut:
     base = build_dashboard_context(
         db, user, attempts=attempts, created_tests_count=len(created_tests)
@@ -93,6 +95,23 @@ def dashboard_out(
         last_test_title=base["last_test_title"],
         last_test_date=base["last_test_date"],
         next_check_date=base["next_check_date"],
+        signed_protocol=(
+            SignedProtocolOut(
+                attempt_id=signed_protocol.attempt_id,
+                test_id=signed_protocol.attempt.test_id if signed_protocol.attempt else 0,
+                signer_id=signed_protocol.signer_id,
+                signer_username=signed_protocol.signer.username if signed_protocol.signer else "",
+                examinee_id=signed_protocol.examinee_id,
+                examinee_full_name=signed_protocol.examinee_full_name,
+                examinee_birth_date=signed_protocol.examinee_birth_date,
+                examinee_job_title=signed_protocol.examinee_job_title,
+                test_title=signed_protocol.test_title,
+                result_percent=signed_protocol.result_percent,
+                signed_at=signed_protocol.signed_at,
+            )
+            if signed_protocol
+            else None
+        ),
         created_tests=[
             CreatedTestOut(
                 id=t.id,
@@ -191,8 +210,11 @@ def exam_ticket_paper_out(
     )
 
 
-def exam_result_out(test: Test, summary, ticket_rows: list) -> ExamResultOut:
+def exam_result_out(
+    test: Test, summary, ticket_rows: list, *, attempt_id: int, protocol_signed: bool = False
+) -> ExamResultOut:
     return ExamResultOut(
+        attempt_id=attempt_id,
         test_id=test.id,
         test_title=test.title,
         correct=summary.correct,
@@ -202,6 +224,7 @@ def exam_result_out(test: Test, summary, ticket_rows: list) -> ExamResultOut:
         grade=summary.grade,
         grade_class=summary.grade_class,
         passed_exam=summary.percent >= MIN_PASS_PERCENT,
+        protocol_signed=protocol_signed,
         min_pass_percent=MIN_PASS_PERCENT,
         ticket_rows=[
             TicketResultRowOut(

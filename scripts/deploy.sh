@@ -23,4 +23,5 @@ done
 
 echo "Health check failed"
 docker compose -f "$COMPOSE_FILE" logs backend
+docker compose -f "$COMPOSE_FILE" down -v
 exit 1

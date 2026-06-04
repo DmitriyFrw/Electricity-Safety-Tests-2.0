@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Вход — Развивайся</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <a href="/" class="dash-logo">
+          <span class="dash-logo-mark">Я</span>
+          <span class="dash-logo-text">Разви<span class="dash-logo-accent">вайся</span></span>
+        </a>
+      </div>
+      <h1>Вход</h1>
+      {% if error %}<p class="auth-error">{{ error }}</p>{% endif %}
+      <form method="post" action="/login">
+        <label for="username">Логин</label>
+        <input id="username" name="username" type="text" required autocomplete="username" />
+        <label for="password">Пароль</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password" />
+        <button type="submit" class="dash-exam-btn">Войти</button>
+      </form>
+      <p class="auth-links"><a href="/register">Регистрация</a></p>
+    </div>
+  </div>
+</body>
+</html>

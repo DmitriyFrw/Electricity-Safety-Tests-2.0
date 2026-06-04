@@ -1,0 +1,47 @@
+{% extends "layout_dashboard.html" %}
+{% block title %}Результат — {{ test.title }}{% endblock %}
+{% block dashboard_body %}
+  <div class="dash-hero" style="grid-template-columns:1fr auto;">
+    <div>
+      <h1>Результат экзамена</h1>
+      <p class="dash-hero-sub">{{ test.title }}</p>
+      <p class="dash-stat-big dash-stat-percent" style="font-size:2.5rem;">{{ percent }}%</p>
+      <p class="dash-grade-line {{ grade_class }}">оценка: {{ grade }}</p>
+      <p class="dash-card-note">
+        Правильных ответов: {{ correct }} из {{ total }}
+        {% if last_errors is defined %} · ошибок: {{ last_errors }}{% endif %}
+        {% if passed_exam is defined %}
+          · {% if passed_exam %}<span class="grade-excellent">экзамен сдан</span>{% else %}<span class="grade-bad">не сдан</span> (нужно ≥ {{ min_pass_percent }}%){% endif %}
+        {% endif %}
+      </p>
+    </div>
+    <div class="dash-hero-exam">
+      <a href="/cabinet" class="dash-exam-btn">В кабинет</a>
+    </div>
+  </div>
+
+  {% if ticket_rows %}
+  <div class="dash-table-wrap">
+    <table class="dash-table">
+      <thead>
+        <tr>
+          <th>Билет</th>
+          <th>Правильно</th>
+          <th>%</th>
+          <th>Оценка</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tr in ticket_rows %}
+          <tr>
+            <td>№{{ tr.n }}</td>
+            <td>{{ tr.correct }} / {{ tr.total }}</td>
+            <td>{{ tr.percent }}%</td>
+            <td class="{{ tr.grade_class }}">{{ tr.grade }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% endblock %}

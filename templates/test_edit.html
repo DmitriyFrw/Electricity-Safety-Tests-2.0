@@ -1,0 +1,75 @@
+{% extends "layout_dashboard.html" %}
+{% block title %}Редактирование: {{ test.title }}{% endblock %}
+{% block dashboard_body %}
+  <div class="dash-page-card">
+    <h1>{{ test.title }}</h1>
+    {% if test.description %}<p class="dash-card-note">{{ test.description }}</p>{% endif %}
+    <p class="dash-card-meta">Билетов: {{ tickets|length }} / {{ max_tickets }}
+      {% if ready %} · <span style="color:#16a34a;">готов к прохождению</span>{% else %} · заполните все билеты{% endif %}
+    </p>
+    {% if error %}<p class="auth-error">{{ error }}</p>{% endif %}
+    <form method="post" action="/tests/{{ test.id }}/ticket/add" style="display:inline;">
+      <button type="submit" class="dash-exam-btn" style="border:none;cursor:pointer;" {% if tickets|length >= max_tickets %}disabled{% endif %}>
+        Добавить билет
+      </button>
+    </form>
+    {% if ready %}
+      <a class="dash-exam-btn" href="/tests/{{ test.id }}/take" style="margin-left:0.5rem;">Пробная попытка</a>
+    {% endif %}
+    <a href="/cabinet" class="dash-card-link" style="margin-left:0.75rem;">В кабинет</a>
+  </div>
+
+  {% for ticket in tickets %}
+    {% set qs = ticket.questions | sort(attribute='position') %}
+    <div class="dash-page-card dash-form dash-ticket">
+      <h2>Билет №{{ loop.index }}</h2>
+      {% if ticket_is_complete(ticket) %}
+        <p class="dash-grade-line grade-excellent" style="margin-top:0;">Билет заполнен</p>
+      {% else %}
+        <p class="dash-card-note" style="margin-top:0;">Заполните {{ questions_per_ticket }} вопросов и верные ответы</p>
+      {% endif %}
+      <form method="post" action="/tests/{{ test.id }}/ticket/{{ ticket.id }}/save">
+        {% for q in qs %}
+          <h3>Вопрос {{ q.position }}</h3>
+          <label for="q{{ q.id }}_text">Формулировка</label>
+          <textarea id="q{{ q.id }}_text" name="q{{ q.position }}_text" required>{{ q.text }}</textarea>
+          <div class="dash-choice-grid">
+            <div>
+              <label for="q{{ q.id }}_a">Вариант A (1)</label>
+              <input id="q{{ q.id }}_a" name="q{{ q.position }}_a" type="text" value="{{ q.option_a }}" required />
+            </div>
+            <div>
+              <label for="q{{ q.id }}_b">Вариант B (2)</label>
+              <input id="q{{ q.id }}_b" name="q{{ q.position }}_b" type="text" value="{{ q.option_b }}" required />
+            </div>
+            <div>
+              <label for="q{{ q.id }}_c">Вариант C (3)</label>
+              <input id="q{{ q.id }}_c" name="q{{ q.position }}_c" type="text" value="{{ q.option_c }}" required />
+            </div>
+            <div>
+              <label for="q{{ q.id }}_d">Вариант D (4)</label>
+              <input id="q{{ q.id }}_d" name="q{{ q.position }}_d" type="text" value="{{ q.option_d }}" required />
+            </div>
+          </div>
+          <label for="q{{ q.id }}_corr">Верный ответ</label>
+          <select id="q{{ q.id }}_corr" name="q{{ q.position }}_correct" required>
+            {% set labels = ['A / 1', 'B / 2', 'C / 3', 'D / 4'] %}
+            {% for i in range(4) %}
+              <option value="{{ ['A','B','C','D'][i] }}" {% if q.correct_index == i %}selected{% endif %}>{{ labels[i] }}</option>
+            {% endfor %}
+          </select>
+        {% endfor %}
+        <p style="margin-top:1rem;">
+          <button type="submit" class="dash-exam-btn" style="border:none;cursor:pointer;">Сохранить билет</button>
+        </p>
+      </form>
+      <form method="post" action="/tests/{{ test.id }}/ticket/{{ ticket.id }}/delete" onsubmit="return confirm('Удалить билет №{{ loop.index }}?');">
+        <button type="submit" class="dash-btn-danger">Удалить билет</button>
+      </form>
+    </div>
+  {% else %}
+    <div class="dash-page-card">
+      <p class="dash-card-note">Добавьте первый билет кнопкой выше.</p>
+    </div>
+  {% endfor %}
+{% endblock %}

@@ -60,6 +60,7 @@ class Settings(BaseSettings):
         default=300, alias="LOGIN_RATE_LIMIT_WINDOW_SECONDS", ge=1
     )
     auto_create_schema: bool = Field(default=True, alias="AUTO_CREATE_SCHEMA")
+    export_task_ttl_seconds: int = Field(default=3600, alias="EXPORT_TASK_TTL_SECONDS", ge=60)
 
     @field_validator("database_url", mode="before")
     @classmethod

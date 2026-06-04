@@ -7,6 +7,8 @@
 
 ### Added
 
+- DejaVu TTF в `app/static/fonts/` и `scripts/fetch-dejavu-fonts.sh`; Docker: `fonts-dejavu-core` + копирование шрифтов при сборке.
+- Alembic: `alembic/`, начальная ревизия `001_initial_schema`, `scripts/migrate.sh`, entrypoint с `alembic upgrade head` в production.
 - Асинхронный экспорт тяжёлых операций:
   - `POST /api/profile/protocol.pdf/export` (PDF),
   - `POST /api/profile/attempts/export` (CSV),
@@ -26,6 +28,7 @@
 - Сервисный слой разложен по подпапкам модулей в `app/services/*`.
 - `LoginRateLimiter` исправлен: TTL кэша больше не мутируется на лету, кэш пересоздаётся при изменении TTL-конфига.
 - Export-задачи привязаны к владельцу (`owner_user_id`), доступ к `GET /api/profile/exports/{task_id}` ограничен владельцем.
+- Export-задачи хранятся в Redis (`ExportTaskStore`) при `REDIS_URL`; in-memory fallback без Redis.
 - `AUTO_CREATE_SCHEMA` вынесен в конфиг: в production можно отключить `create_all()` и использовать миграции.
 - PDF-сервис получил поддержку кириллических TTF-шрифтов (DejaVu/Noto-совместимый fallback), при отсутствии — безопасный fallback на Helvetica.
 - Исправлена frontend-сборка в `Dockerfile`: сборка выполняется из `WORKDIR /app/frontend`.

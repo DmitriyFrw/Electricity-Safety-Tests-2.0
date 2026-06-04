@@ -72,11 +72,28 @@ GitHub Actions (`.github/workflows/ci.yml`):
 - в `deploy` job задан `SECRET_KEY` уже на этапе сборки;
 - `scripts/deploy.sh` очищает стек (`down -v`) при провале healthcheck.
 
-## Миграции
+## Миграции (Alembic)
 
-- Для локальной разработки можно оставить `AUTO_CREATE_SCHEMA=true`.
-- Для production выставляйте `AUTO_CREATE_SCHEMA=false` и применяйте миграции перед запуском приложения.
-- SQL-скрипты в `scripts/` полезны как временная мера, но рекомендуется перейти на Alembic как основной миграционный процесс.
+- Локально: `AUTO_CREATE_SCHEMA=true` (схема через `create_all` при старте) **или** `alembic upgrade head`.
+- Production (`docker-compose.prod.yml`): `AUTO_CREATE_SCHEMA=false`, `RUN_MIGRATIONS=true` — entrypoint выполняет `alembic upgrade head` перед uvicorn.
+
+```bash
+# применить миграции вручную
+export DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/exam_tests
+./scripts/migrate.sh
+# или: alembic upgrade head
+alembic revision --autogenerate -m "описание"   # новая ревизия
+```
+
+Начальная ревизия: `alembic/versions/001_initial_schema.py`.
+
+## PDF и шрифты
+
+Кириллица в PDF: DejaVu в `app/static/fonts/` (установка: `./scripts/fetch-dejavu-fonts.sh`). В Docker также ставится пакет `fonts-dejavu-core`.
+
+## Экспорт (async)
+
+Задачи экспорта профиля (PDF/CSV) хранятся в **Redis** при заданном `REDIS_URL`; без Redis — in-memory fallback (только dev/тесты). TTL: `EXPORT_TASK_TTL_SECONDS` (по умолчанию 3600).
 
 ## Безопасность
 
@@ -85,7 +102,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 - **CSRF** на мутирующих запросах.
 - **Защита от брутфорса логина:** in-memory limiter, параметры `LOGIN_RATE_LIMIT_ATTEMPTS` и `LOGIN_RATE_LIMIT_WINDOW_SECONDS`.
 - **Аудит критических действий:** логины, регистрации, запреты редактирования (`SecurityAuditService`).
-- **Экспорт-задачи привязаны к пользователю:** скачивание по `task_id` проверяет владельца задачи.
+- **Экспорт-задачи привязаны к пользователю:** скачивание по `task_id` проверяет владельца; состояние задачи в Redis (см. выше).
 
 ## Роли
 

@@ -35,6 +35,9 @@ services:
       CACHE_TTL_SECONDS: "300"
       LOGIN_RATE_LIMIT_ATTEMPTS: "5"
       LOGIN_RATE_LIMIT_WINDOW_SECONDS: "300"
+      AUTO_CREATE_SCHEMA: "true"
+      RUN_MIGRATIONS: "false"
+      EXPORT_TASK_TTL_SECONDS: "3600"
     ports:
       - "8000:8000"
     depends_on:

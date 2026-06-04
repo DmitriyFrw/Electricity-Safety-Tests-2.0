@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { postReact } from "../api/getReact";
+import { axiosErrorMessage, postReact } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { ExamPaper, ExamResult } from "../types/api";
@@ -33,7 +33,7 @@ export default function TakeTrainingPage() {
       const result = await postReact<ExamResult>(`/tests/${paper.id}/training`, { answers });
       navigate(`/training/${paper.id}/result`, { state: { result } });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Ошибка отправки");
+      setSubmitError(axiosErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

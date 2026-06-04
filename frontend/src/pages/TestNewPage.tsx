@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { axiosErrorMessage } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
 
 export default function TestNewPage() {
@@ -17,7 +18,7 @@ export default function TestNewPage() {
       );
       navigate(`/tests/${t.id}/edit`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
+      setError(axiosErrorMessage(err));
     }
   };
 

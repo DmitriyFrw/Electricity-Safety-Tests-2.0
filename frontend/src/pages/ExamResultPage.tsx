@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { axiosErrorMessage, getReact, postReact } from "../api/getReact";
+import { api } from "../api/client";
+import { axiosErrorMessage } from "../api/getReact";
 import { useAuth } from "../auth/AuthContext";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult, SignedProtocol } from "../types/api";
+import { formatDateRu } from "../utils/format";
 
 export default function ExamResultPage() {
   const { testId } = useParams();
@@ -13,12 +15,36 @@ export default function ExamResultPage() {
   const [protocol, setProtocol] = useState<SignedProtocol | null>(null);
   const [actionError, setActionError] = useState("");
   const [signing, setSigning] = useState(false);
+  const [loadingProtocol, setLoadingProtocol] = useState(false);
+
+  const tid = Number(testId);
+  const hasTestId = Number.isFinite(tid) && tid > 0;
+
+  useEffect(() => {
+    if (!result?.protocol_signed || !hasTestId) return;
+    let cancelled = false;
+    setLoadingProtocol(true);
+    void api
+      .getSignedProtocol(tid, result.attempt_id)
+      .then((p) => {
+        if (!cancelled) setProtocol(p);
+      })
+      .catch(() => {
+        /* PDF доступен и без метаданных */
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProtocol(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [result?.protocol_signed, result?.attempt_id, hasTestId, tid]);
 
   if (!result) {
     return (
       <DashboardLayout active="exam">
         <p className="dash-card-note">Нет данных результата.</p>
-        <Link to={`/exam/${testId}`}>Вернуться к экзамену</Link>
+        <Link to={hasTestId ? `/exam/${tid}` : "/exam"}>Вернуться к экзамену</Link>
       </DashboardLayout>
     );
   }
@@ -27,15 +53,14 @@ export default function ExamResultPage() {
     result.passed_exam && (user?.role === "admin" || user?.role === "ezh")
   );
   const isSigned = result.protocol_signed || Boolean(protocol);
+  const pdfUrl = hasTestId ? api.signedProtocolPdfUrl(tid, result.attempt_id) : null;
 
   async function onSign() {
-    if (!testId) return;
+    if (!hasTestId) return;
     setSigning(true);
     setActionError("");
     try {
-      const signed = await postReact<SignedProtocol>(
-        `/tests/${testId}/exam/attempts/${result.attempt_id}/protocol/sign`
-      );
+      const signed = await api.signProtocol(tid, result.attempt_id);
       setProtocol(signed);
     } catch (e) {
       setActionError(axiosErrorMessage(e));
@@ -45,15 +70,16 @@ export default function ExamResultPage() {
   }
 
   async function onLoadProtocol() {
-    if (!testId) return;
+    if (!hasTestId) return;
+    setLoadingProtocol(true);
     setActionError("");
     try {
-      const p = await getReact<SignedProtocol>(
-        `/tests/${testId}/exam/attempts/${result.attempt_id}/protocol`
-      );
+      const p = await api.getSignedProtocol(tid, result.attempt_id);
       setProtocol(p);
     } catch (e) {
       setActionError(axiosErrorMessage(e));
+    } finally {
+      setLoadingProtocol(false);
     }
   }
 
@@ -78,43 +104,62 @@ export default function ExamResultPage() {
           В кабинет
         </Link>
       </section>
-      <section className="dash-page-card">
-        {canSign && !isSigned && (
-          <button
-            type="button"
-            className="dash-exam-btn"
-            onClick={onSign}
-            disabled={signing}
-            style={{ border: "none", cursor: "pointer" }}
-          >
-            {signing ? "Подписание..." : "Подписать"}
-          </button>
-        )}
-        {!protocol && (
-          <button
-            type="button"
-            className="dash-card-link"
-            onClick={onLoadProtocol}
-            style={{ border: "none", background: "transparent", cursor: "pointer" }}
-          >
-            Проверить статус протокола
-          </button>
-        )}
-        {protocol && (
-          <div className="dash-card-note">
-            Подписал: <strong>{protocol.signer_username}</strong>, экзаменуемый:{" "}
-            <strong>{protocol.examinee_full_name}</strong>
-            <br />
-            <a
+
+      {result.passed_exam && (
+        <section className="dash-page-card">
+          <h2 className="dash-section-title" style={{ marginTop: 0 }}>
+            Протокол экзамена
+          </h2>
+          {canSign && !isSigned && (
+            <button
+              type="button"
               className="dash-exam-btn"
-              href={`/api/tests/${testId}/exam/attempts/${result.attempt_id}/protocol.pdf`}
+              onClick={() => void onSign()}
+              disabled={signing}
+              style={{ border: "none", cursor: "pointer", marginBottom: "var(--spacing-3)" }}
             >
-              Скачать .pdf
-            </a>
-          </div>
-        )}
-        {actionError && <p className="auth-error">{actionError}</p>}
-      </section>
+              {signing ? "Подписание…" : "Подписать"}
+            </button>
+          )}
+          {result.passed_exam && !isSigned && user?.role === "kot" && (
+            <p className="dash-card-note">
+              Протокол будет доступен для скачивания после подписи контролирующим лицом (Еж или
+              Администратор).
+            </p>
+          )}
+          {isSigned && pdfUrl && (
+            <div className="dash-card-note">
+              {loadingProtocol && !protocol && <p>Загрузка данных протокола…</p>}
+              {protocol && (
+                <>
+                  Подписал: <strong>{protocol.signer_username}</strong>
+                  <br />
+                  Экзаменуемый: <strong>{protocol.examinee_full_name}</strong>
+                  <br />
+                  Дата подписи: {formatDateRu(protocol.signed_at)}
+                  <br />
+                </>
+              )}
+              <a className="dash-exam-btn" href={pdfUrl} style={{ display: "inline-block", marginTop: "var(--spacing-3)" }}>
+                Скачать подписанный протокол (.pdf)
+              </a>
+            </div>
+          )}
+          {!isSigned && result.passed_exam && user?.role === "kot" && (
+            <button
+              type="button"
+              className="dash-card-link"
+              onClick={() => void onLoadProtocol()}
+              disabled={loadingProtocol}
+              style={{ border: "none", background: "transparent", cursor: "pointer", marginTop: "var(--spacing-2)" }}
+            >
+              {loadingProtocol ? "Проверка…" : "Обновить статус подписи"}
+            </button>
+          )}
+          {actionError && <p className="auth-error">{actionError}</p>}
+        </section>
+      )}
+
       {result.ticket_rows.length > 0 && (
         <div className="dash-table-wrap">
           <table className="dash-table">

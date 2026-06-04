@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { TestListItem } from "../types/api";
+import { EXAM_TICKET_MINUTES } from "../utils/exam";
 
 export default function ExamPage() {
   const { data, error, loading } = useGetReact<{ items: TestListItem[] }>("/tests");
@@ -14,7 +15,7 @@ export default function ExamPage() {
       <div className="dash-page-card">
         <h1>Экзамен</h1>
         <p className="dash-card-note">
-          На каждый билет — {10} минут. Тренировка без ограничения по времени — в разделе «Обучение».
+          На каждый билет — {EXAM_TICKET_MINUTES} минут. Тренировка без ограничения по времени — в разделе «Обучение».
         </p>
         {firstReady && (
           <Link to={`/exam/${firstReady.id}`} className="dash-exam-btn">

@@ -20,15 +20,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
   active: "home" | "manuals" | "training" | "exam";
 }) {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { open, toggle, close } = useMobileNav();
 
   const logout = async () => {
-    await api.logout();
-    navigate("/login");
-    window.location.reload();
+    try {
+      await api.logout();
+    } finally {
+      setUser(null);
+      navigate("/login");
+    }
   };
 
   const isActive = (to: string, key: string) =>

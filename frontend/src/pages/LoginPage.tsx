@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { axiosErrorMessage } from "../api/getReact";
 import { useAuth } from "../auth/AuthContext";
 
 export default function LoginPage() {
@@ -22,7 +23,7 @@ export default function LoginPage() {
       setUser(user);
       navigate("/cabinet");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка входа");
+      setError(axiosErrorMessage(err));
     } finally {
       setLoading(false);
     }

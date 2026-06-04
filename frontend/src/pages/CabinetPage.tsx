@@ -1,9 +1,11 @@
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import { axiosErrorMessage } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { Dashboard } from "../types/api";
+import { EXAM_TICKET_MINUTES } from "../utils/exam";
 import { formatDateRu, parseNextCheck } from "../utils/format";
 
 const InfoIcon = () => (
@@ -57,7 +59,7 @@ export default function CabinetPage() {
       setProfileSaved("Данные сохранены");
       await reload();
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : "Ошибка сохранения");
+      setProfileError(axiosErrorMessage(err));
     } finally {
       setSavingProfile(false);
     }
@@ -72,7 +74,10 @@ export default function CabinetPage() {
           <p className="dash-card-note">Роль: {data.user.role_label}</p>
           <div className="info-box info-box-default">
             <InfoIcon />
-            <span>Экзамен сдается в присутствии контролирующего лица</span>
+            <span>
+              Экзамен сдается в присутствии контролирующего лица. На каждый билет —{" "}
+              {EXAM_TICKET_MINUTES} минут.
+            </span>
           </div>
         </div>
         <img src={mascot} alt="" className="dashboard-hero-mascot" />
@@ -103,8 +108,8 @@ export default function CabinetPage() {
               <button type="submit" className="btn btn-primary" disabled={savingProfile}>
                 {savingProfile ? "Сохранение…" : "Сохранить"}
               </button>
-              <a href={api.protocolPdfUrl()} className="btn btn-outline">
-                Скачать протокол PDF
+              <a href={api.profileProtocolPdfUrl()} className="btn btn-outline">
+                Скачать черновик протокола
               </a>
             </div>
           </form>
@@ -120,10 +125,15 @@ export default function CabinetPage() {
             Результат: <strong>{data.signed_protocol.result_percent}%</strong>
             <br />
             Подписал: <strong>{data.signed_protocol.signer_username}</strong>
+            <br />
+            Дата подписи: {formatDateRu(data.signed_protocol.signed_at)}
           </p>
           <a
             className="btn btn-outline"
-            href={`/api/tests/${data.signed_protocol.test_id}/exam/attempts/${data.signed_protocol.attempt_id}/protocol.pdf`}
+            href={api.signedProtocolPdfUrl(
+              data.signed_protocol.test_id,
+              data.signed_protocol.attempt_id
+            )}
           >
             Скачать подписанный протокол (.pdf)
           </a>
@@ -153,18 +163,21 @@ export default function CabinetPage() {
 
         <div className="dashboard-widget widget-protocol">
           <div className="dashboard-widget-header">
-            <div className="dashboard-widget-title">Протокол проверки знаний в PDF</div>
+            <div className="dashboard-widget-title">Черновик протокола (PDF)</div>
           </div>
           {isKot ? (
-            <a href={api.protocolPdfUrl()} className="btn btn-outline">
-              Скачать
+            <a href={api.profileProtocolPdfUrl()} className="btn btn-outline">
+              Скачать черновик
             </a>
           ) : (
             <span className="dash-card-note">Доступно для роли Кот</span>
           )}
           <div className="info-box info-box-default" style={{ marginTop: "var(--spacing-4)" }}>
             <InfoIcon />
-            <span>Протокол формируется автоматически из данных личного кабинета</span>
+            <span>
+              Черновик из данных профиля. После сдачи экзамена подписанный протокол появится в блоке
+              выше или на странице результата.
+            </span>
           </div>
         </div>
 

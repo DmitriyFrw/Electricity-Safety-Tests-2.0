@@ -1,8 +1,7 @@
 import type {
   Dashboard,
-  ExamPaper,
-  ExamResult,
   Manual,
+  SignedProtocol,
   TestEdit,
   TestListItem,
   User,
@@ -35,13 +34,6 @@ export const api = {
 
   getTestEdit: (testId: number) => getReact<TestEdit>(`/tests/${testId}`),
 
-  getExamPaper: (testId: number) => getReact<ExamPaper>(`/tests/${testId}/exam`),
-
-  submitExam: (
-    testId: number,
-    answers: { question_id: number; value: string }[]
-  ) => postReact<ExamResult>(`/tests/${testId}/exam`, { answers }),
-
   addTicket: (testId: number) => postReact<TestEdit>(`/tests/${testId}/tickets`),
 
   saveTicket: (testId: number, ticketId: number, questions: QuestionSave[]) =>
@@ -55,5 +47,16 @@ export const api = {
 
   listManuals: () => getReact<Manual[]>("/manuals"),
 
-  protocolPdfUrl: () => "/api/profile/protocol.pdf",
+  /** Черновик протокола из данных профиля (роль Кот). */
+  profileProtocolPdfUrl: () => "/api/profile/protocol.pdf",
+
+  /** Подписанный протокол сданного экзамена. */
+  signedProtocolPdfUrl: (testId: number, attemptId: number) =>
+    `/api/tests/${testId}/exam/attempts/${attemptId}/protocol.pdf`,
+
+  getSignedProtocol: (testId: number, attemptId: number) =>
+    getReact<SignedProtocol>(`/tests/${testId}/exam/attempts/${attemptId}/protocol`),
+
+  signProtocol: (testId: number, attemptId: number) =>
+    postReact<SignedProtocol>(`/tests/${testId}/exam/attempts/${attemptId}/protocol/sign`),
 };

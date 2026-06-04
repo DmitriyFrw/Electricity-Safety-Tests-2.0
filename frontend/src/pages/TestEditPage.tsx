@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { deleteReact, postReact, putReact } from "../api/getReact";
+import { axiosErrorMessage, deleteReact, postReact, putReact } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { QuestionSave, TestEdit } from "../types/api";
@@ -25,7 +25,7 @@ export default function TestEditPage() {
       setTest(await postReact<TestEdit>(`/tests/${id}/tickets`));
       setActionError("");
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Ошибка");
+      setActionError(axiosErrorMessage(e));
     }
   };
 
@@ -35,7 +35,7 @@ export default function TestEditPage() {
       setTest(await deleteReact<TestEdit>(`/tests/${id}/tickets/${ticketId}`));
       setActionError("");
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Ошибка");
+      setActionError(axiosErrorMessage(e));
     }
   };
 
@@ -60,7 +60,7 @@ export default function TestEditPage() {
       setTest(await putReact<TestEdit>(`/tests/${id}/tickets/${ticketId}`, { questions }));
       setActionError("");
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Ошибка сохранения");
+      setActionError(axiosErrorMessage(err));
     } finally {
       setSaving(false);
     }

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from sqlalchemy import event
 
+from app.cqrs import get_command_bus, get_query_bus
+from app.cqrs.messages.exports import CreateExamResultsExportCommand, GetExportTaskQuery
 from app.dto import ExportRequestDTO
 from app.models import Attempt, Question, Test, Ticket, User
 from app.repositories import TestRepository
-from app.services.exports import ExportService
 
 
 def test_export_service_creates_exam_csv(db_session):
@@ -18,9 +19,10 @@ def test_export_service_creates_exam_csv(db_session):
     db_session.add(Attempt(user_id=user.id, test_id=test.id, mode="exam"))
     db_session.commit()
 
-    task_id = ExportService.create_exam_results_export(ExportRequestDTO(user_id=user.id))
+    req = ExportRequestDTO.model_validate({"user_id": user.id, "kind": "exam_results"})
+    task_id = get_command_bus().dispatch(CreateExamResultsExportCommand(request=req))
     for _ in range(50):
-        task = ExportService.get_task(task_id)
+        task = get_query_bus().dispatch(GetExportTaskQuery(task_id=task_id))
         if task and task.status == "done":
             assert task.payload is not None
             assert b"attempt_id,test_id,mode" in task.payload
@@ -52,7 +54,14 @@ def test_repository_avoids_n_plus_one(db_session):
 
     queries: list[str] = []
 
-    def _before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+    def _before_cursor_execute(
+        conn: object,
+        cursor: object,
+        statement: str,
+        parameters: object,
+        context: object,
+        executemany: bool,
+    ) -> None:
         queries.append(statement)
 
     event.listen(db_session.bind, "before_cursor_execute", _before_cursor_execute)

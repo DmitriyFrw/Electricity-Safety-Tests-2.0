@@ -109,6 +109,40 @@ async def test_exam_ticket_timeout(async_client: AsyncClient, db_session):
 
 
 @pytest.mark.asyncio
+async def test_admin_can_delete_test_without_attempts(async_client: AsyncClient, db_session):
+    admin = User(username="admin_del", password_hash=hash_password("password123"), role="admin")
+    db_session.add(admin)
+    db_session.commit()
+
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    login = await async_client.post(
+        "/api/auth/login",
+        json={"username": "admin_del", "password": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    login.raise_for_status()
+
+    csrf_create = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    created = await async_client.post(
+        "/api/tests",
+        json={"title": "To Delete", "description": None},
+        headers={"X-CSRF-Token": csrf_create},
+    )
+    created.raise_for_status()
+    test_id = created.json()["id"]
+
+    csrf_del = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    deleted = await async_client.delete(
+        f"/api/tests/{test_id}",
+        headers={"X-CSRF-Token": csrf_del},
+    )
+    assert deleted.status_code == 204
+
+    missing = await async_client.get(f"/api/tests/{test_id}")
+    assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_kot_cannot_create_test(async_client: AsyncClient):
     csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
     reg = await async_client.post(
@@ -169,7 +203,12 @@ async def test_async_profile_exports(async_client: AsyncClient):
     csrf_upd = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
     upd = await async_client.put(
         "/api/profile",
-        json={"full_name": "Test User", "birth_date": "2000-01-01", "job_title": "Engineer"},
+        json={
+            "full_name": "Test User",
+            "birth_date": "2000-01-01",
+            "job_title": "Engineer",
+            "business_unit": "ДЦ MOZ",
+        },
         headers={"X-CSRF-Token": csrf_upd},
     )
     upd.raise_for_status()
@@ -201,7 +240,7 @@ async def test_async_profile_exports(async_client: AsyncClient):
     assert done_csv is not None
 
     # Another logged-in user must not access чужую export-задачу.
-    transport = ASGITransport(app=app, lifespan="on")
+    transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client2:
         csrf_other = (await client2.get("/api/auth/csrf")).json()["csrf_token"]
         reg_other = await client2.post(
@@ -233,6 +272,7 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
         kot.full_name = "Кот Тестовый"
         kot.birth_date = dt.date(2000, 1, 1)
         kot.job_title = "Электромонтер"
+        kot.business_unit = "ДЦ KLG"
         # add ready test with one ticket
         t = Test(author_id=kot_user_id, title="Signed Exam", description=None)
         ticket = Ticket(position=1)
@@ -300,6 +340,18 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
     )
     login_admin.raise_for_status()
 
+    draft_pdf = await async_client.get(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol-draft.pdf"
+    )
+    assert draft_pdf.status_code == 200
+    assert draft_pdf.headers.get("content-type", "").startswith("application/pdf")
+
+    form_pdf = await async_client.get(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol-form.pdf"
+    )
+    assert form_pdf.status_code == 200
+    assert form_pdf.headers.get("content-type", "").startswith("application/pdf")
+
     csrf_sign = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
     sign = await async_client.post(
         f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol/sign",
@@ -310,6 +362,12 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
     pdf = await async_client.get(f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol.pdf")
     assert pdf.status_code == 200
     assert pdf.headers.get("content-type", "").startswith("application/pdf")
+
+    dash_admin = await async_client.get("/api/dashboard")
+    dash_admin.raise_for_status()
+    exports = dash_admin.json().get("staff_protocol_exports", [])
+    assert len(exports) >= 1
+    assert exports[0]["attempt_id"] == attempt_id
 
     # kot sees signed protocol block data in dashboard
     csrf_logout2 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
@@ -324,4 +382,98 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
     dash = await async_client.get("/api/dashboard")
     dash.raise_for_status()
     assert dash.json()["signed_protocol"] is not None
+
+    form_kot = await async_client.get(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol-form.pdf"
+    )
+    assert form_kot.status_code == 403
+    draft_kot = await async_client.get(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol-draft.pdf"
+    )
+    assert draft_kot.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_update_user_role(async_client: AsyncClient, db_session):
+    kot = User(
+        username="kot_role",
+        password_hash=hash_password("password123"),
+        role="kot",
+        full_name="Кот Роль",
+        birth_date=dt.date(1990, 5, 5),
+        job_title="Инженер",
+        business_unit="ДЦ KLG",
+    )
+    admin = User(username="admin_role", password_hash=hash_password("password123"), role="admin")
+    db_session.add_all([kot, admin])
+    db_session.commit()
+
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    login = await async_client.post(
+        "/api/auth/login",
+        json={"username": "admin_role", "password": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    login.raise_for_status()
+
+    users = await async_client.get("/api/admin/users")
+    assert users.status_code == 200
+    assert len(users.json()) >= 2
+    kot_row = next(u for u in users.json() if u["id"] == kot.id)
+    assert kot_row["profile_complete"] is True
+
+    dash_admin = await async_client.get("/api/dashboard")
+    dash_admin.raise_for_status()
+    drafts = dash_admin.json().get("admin_protocol_drafts", [])
+    assert any(d["user_id"] == kot.id for d in drafts)
+
+    draft_pdf = await async_client.get(f"/api/admin/users/{kot.id}/protocol-draft.pdf")
+    assert draft_pdf.status_code == 200
+    assert draft_pdf.headers.get("content-type", "").startswith("application/pdf")
+
+    csrf2 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    upd = await async_client.put(
+        f"/api/admin/users/{kot.id}/role",
+        json={"role": "ezh"},
+        headers={"X-CSRF-Token": csrf2},
+    )
+    assert upd.status_code == 200
+    assert upd.json()["role"] == "ezh"
+
+    csrf3 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    self_upd = await async_client.put(
+        f"/api/admin/users/{admin.id}/role",
+        json={"role": "kot"},
+        headers={"X-CSRF-Token": csrf3},
+    )
+    assert self_upd.status_code == 400
+
+    await async_client.post("/api/auth/logout", headers={"X-CSRF-Token": csrf3})
+    csrf_kot = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    forbidden = await async_client.get("/api/admin/users", headers={"X-CSRF-Token": csrf_kot})
+    # kot not logged in for GET without login - need login kot first
+    login_kot = await async_client.post(
+        "/api/auth/login",
+        json={"username": "kot_role", "password": "password123"},
+        headers={"X-CSRF-Token": csrf_kot},
+    )
+    login_kot.raise_for_status()
+    forbidden = await async_client.get("/api/admin/users")
+    assert forbidden.status_code == 403
+
+    csrf_out = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    await async_client.post("/api/auth/logout", headers={"X-CSRF-Token": csrf_out})
+    csrf4 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    await async_client.post(
+        "/api/auth/login",
+        json={"username": "admin_role", "password": "password123"},
+        headers={"X-CSRF-Token": csrf4},
+    )
+    csrf5 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    bad_role = await async_client.put(
+        f"/api/admin/users/{kot.id}/role",
+        json={"role": "superuser"},
+        headers={"X-CSRF-Token": csrf5},
+    )
+    assert bad_role.status_code == 422
 

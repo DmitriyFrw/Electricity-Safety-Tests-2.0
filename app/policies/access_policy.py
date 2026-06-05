@@ -16,3 +16,11 @@ class AccessPolicy:
     @staticmethod
     def can_manage_profile_pdf(user: User) -> bool:
         return user.role == ROLE_KOT
+
+    @staticmethod
+    def can_manage_users(user: User) -> bool:
+        return user.role == ROLE_ADMIN
+
+    @staticmethod
+    def can_export_user_protocol_draft(user: User) -> bool:
+        return user.role == ROLE_ADMIN

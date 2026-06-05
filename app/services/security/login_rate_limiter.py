@@ -6,8 +6,8 @@ from app.config import get_settings
 
 
 class LoginRateLimiter:
-    _cache = TTLCache(maxsize=50_000, ttl=300)
-    _current_ttl = 300
+    _cache: TTLCache[str, int] = TTLCache(maxsize=50_000, ttl=300)
+    _current_ttl: int = 300
 
     @classmethod
     def _ttl(cls) -> int:

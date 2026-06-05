@@ -9,9 +9,9 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.dto import ExportRequestDTO, ExportTaskDTO
-from app.models import Attempt
+from app.models import Attempt, User
 from app.config import get_settings
-from app.pdf_service import build_protocol_pdf
+from app.services.pdf.protocol import build_protocol_pdf
 from app.services.exports.task_store import ExportTaskStore
 
 
@@ -28,12 +28,12 @@ class ExportService:
         return task_id
 
     @classmethod
-    def create_protocol_export(cls, user) -> str:
+    def create_protocol_export(cls, user_id: int) -> str:
         task_id = str(uuid.uuid4())
         ExportTaskStore.put(
-            ExportTaskDTO(task_id=task_id, owner_user_id=user.id, status="pending")
+            ExportTaskDTO(task_id=task_id, owner_user_id=user_id, status="pending")
         )
-        cls._executor.submit(cls._run_protocol_export, task_id, user)
+        cls._executor.submit(cls._run_protocol_export, task_id, user_id)
         return task_id
 
     @classmethod
@@ -80,10 +80,18 @@ class ExportService:
             db.close()
 
     @classmethod
-    def _run_protocol_export(cls, task_id: str, user) -> None:
+    def _run_protocol_export(cls, task_id: str, user_id: int) -> None:
+        from app.database import SessionLocal
+        from app.support.profile import require_profile_complete
+
         ExportTaskStore.patch(task_id, status="running")
+        db = SessionLocal()
         try:
-            payload = build_protocol_pdf(user)
+            user = db.get(User, user_id)
+            if user is None:
+                raise ValueError("Пользователь не найден")
+            require_profile_complete(user)
+            payload = build_protocol_pdf(db, user)
             ExportTaskStore.patch(
                 task_id,
                 payload=payload,
@@ -93,3 +101,5 @@ class ExportService:
             )
         except Exception as exc:  # pragma: no cover
             ExportTaskStore.patch(task_id, status="failed", error=str(exc))
+        finally:
+            db.close()

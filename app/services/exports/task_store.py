@@ -49,7 +49,17 @@ def _encode_meta(task: ExportTaskDTO) -> dict[str, str]:
     }
 
 
-def _decode_meta(task_id: str, raw: dict[bytes, bytes], payload: bytes | None) -> ExportTaskDTO:
+def _payload_as_bytes(payload: bytes | str | None) -> bytes | None:
+    if payload is None:
+        return None
+    return payload if isinstance(payload, bytes) else payload.encode()
+
+
+def _decode_meta(
+    task_id: str,
+    raw: dict[bytes | str, bytes | str],
+    payload: bytes | str | None,
+) -> ExportTaskDTO:
     def _s(key: str) -> str:
         val = raw.get(key.encode(), b"")
         return val.decode() if isinstance(val, bytes) else str(val)
@@ -69,7 +79,7 @@ def _decode_meta(task_id: str, raw: dict[bytes, bytes], payload: bytes | None) -
         status=_s("status") or "pending",
         content_type=content_type,
         filename=filename,
-        payload=payload,
+        payload=_payload_as_bytes(payload),
         error=error,
         created_at=created_at,
     )

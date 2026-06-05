@@ -2,13 +2,35 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.api.deps import login_required, test_editor_required
+from app.cqrs.bus import dispatch_command, dispatch_query
+from app.cqrs.deps import get_command_bus
+from app.cqrs.messages import (
+    AddTicketCommand,
+    CreateTestCommand,
+    DeleteTestCommand,
+    DeleteTicketCommand,
+    FinishExamCommand,
+    GetExamSessionQuery,
+    GetAttemptProtocolDraftPdfQuery,
+    GetAttemptProtocolFormPdfQuery,
+    GetSignedProtocolPdfQuery,
+    GetSignedProtocolQuery,
+    GetTestForEditQuery,
+    GetTrainingPaperQuery,
+    ListTestsQuery,
+    OpenExamTicketCommand,
+    SaveTicketCommand,
+    SignProtocolCommand,
+    StartExamSessionCommand,
+    SubmitExamTicketAnswersCommand,
+    SubmitTrainingCommand,
+)
 from app.database import get_db
-from app.deps import login_required, test_editor_required
-from app.exceptions import AppError
 from app.form_requests.tests import SubmitExamRequest, TestCreateRequest, TicketSaveRequest
 from app.models import User
 from app.schemas import (
@@ -16,29 +38,21 @@ from app.schemas import (
     ExamResultOut,
     ExamSessionOut,
     ExamTicketPaperOut,
+    SignedProtocolOut,
     TestCreateOut,
     TestEditOut,
     TestListOut,
-    SignedProtocolOut,
 )
-from app.services.test_service import TestService
 
 router = APIRouter(prefix="/tests", tags=["tests"])
-
-
-def _handle(fn):
-    try:
-        return fn()
-    except AppError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
 @router.get("", response_model=TestListOut)
 def list_tests(
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return TestService.list_tests(db, user)
+) -> TestListOut:
+    return dispatch_query(ListTestsQuery(db=db, user=user), TestListOut)
 
 
 @router.post("", response_model=TestCreateOut, status_code=201)
@@ -46,8 +60,8 @@ def create_test(
     form: TestCreateRequest,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(test_editor_required)],
-):
-    return _handle(lambda: TestService.create_test(db, user, form))
+) -> TestCreateOut:
+    return dispatch_command(CreateTestCommand(db=db, user=user, form=form), TestCreateOut)
 
 
 @router.get("/{test_id}", response_model=TestEditOut)
@@ -55,8 +69,20 @@ def get_test_for_edit(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(test_editor_required)],
-):
-    return _handle(lambda: TestService.get_test_for_edit(db, test_id, user))
+) -> TestEditOut:
+    return dispatch_query(GetTestForEditQuery(db=db, test_id=test_id, user=user), TestEditOut)
+
+
+@router.delete("/{test_id}", status_code=204)
+def delete_test(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(test_editor_required)],
+) -> Response:
+    get_command_bus().dispatch(
+        DeleteTestCommand(db=db, test_id=test_id, user=user)
+    )
+    return Response(status_code=204)
 
 
 @router.get("/{test_id}/training", response_model=ExamPaperOut)
@@ -64,8 +90,10 @@ def get_training_paper(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.get_training_paper(db, test_id, user))
+) -> ExamPaperOut:
+    return dispatch_query(
+        GetTrainingPaperQuery(db=db, test_id=test_id, user=user), ExamPaperOut
+    )
 
 
 @router.post("/{test_id}/training", response_model=ExamResultOut)
@@ -74,8 +102,10 @@ def submit_training(
     form: SubmitExamRequest,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.submit_training(db, test_id, user, form))
+) -> ExamResultOut:
+    return dispatch_command(
+        SubmitTrainingCommand(db=db, test_id=test_id, user=user, form=form), ExamResultOut
+    )
 
 
 @router.post("/{test_id}/exam/session", response_model=ExamSessionOut)
@@ -83,8 +113,10 @@ def start_exam_session(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.start_exam_session(db, test_id, user))
+) -> ExamSessionOut:
+    return dispatch_command(
+        StartExamSessionCommand(db=db, test_id=test_id, user=user), ExamSessionOut
+    )
 
 
 @router.get("/{test_id}/exam/session", response_model=ExamSessionOut)
@@ -92,8 +124,8 @@ def get_exam_session(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.get_exam_session(db, test_id, user))
+) -> ExamSessionOut:
+    return dispatch_query(GetExamSessionQuery(db=db, test_id=test_id, user=user), ExamSessionOut)
 
 
 @router.get("/{test_id}/exam/tickets/{ticket_id}", response_model=ExamTicketPaperOut)
@@ -102,8 +134,11 @@ def get_exam_ticket(
     ticket_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.get_exam_ticket(db, test_id, ticket_id, user))
+) -> ExamTicketPaperOut:
+    return dispatch_command(
+        OpenExamTicketCommand(db=db, test_id=test_id, ticket_id=ticket_id, user=user),
+        ExamTicketPaperOut,
+    )
 
 
 @router.post("/{test_id}/exam/tickets/{ticket_id}", response_model=ExamSessionOut)
@@ -113,9 +148,12 @@ def submit_exam_ticket_answers(
     form: SubmitExamRequest,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(
-        lambda: TestService.submit_exam_ticket_answers(db, test_id, ticket_id, user, form)
+) -> ExamSessionOut:
+    return dispatch_command(
+        SubmitExamTicketAnswersCommand(
+            db=db, test_id=test_id, ticket_id=ticket_id, user=user, form=form
+        ),
+        ExamSessionOut,
     )
 
 
@@ -124,8 +162,8 @@ def finish_exam(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.finish_exam(db, test_id, user))
+) -> ExamResultOut:
+    return dispatch_command(FinishExamCommand(db=db, test_id=test_id, user=user), ExamResultOut)
 
 
 @router.post(
@@ -137,8 +175,11 @@ def sign_protocol(
     attempt_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(test_editor_required)],
-):
-    return _handle(lambda: TestService.sign_protocol(db, test_id, attempt_id, user))
+) -> SignedProtocolOut:
+    return dispatch_command(
+        SignProtocolCommand(db=db, test_id=test_id, attempt_id=attempt_id, signer=user),
+        SignedProtocolOut,
+    )
 
 
 @router.get(
@@ -150,8 +191,55 @@ def get_signed_protocol(
     attempt_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    return _handle(lambda: TestService.get_signed_protocol(db, test_id, attempt_id))
+) -> SignedProtocolOut:
+    return dispatch_query(
+        GetSignedProtocolQuery(db=db, test_id=test_id, attempt_id=attempt_id),
+        SignedProtocolOut,
+    )
+
+
+@router.get("/{test_id}/exam/attempts/{attempt_id}/protocol-draft.pdf")
+def get_attempt_protocol_draft_pdf(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(test_editor_required)],
+) -> Response:
+    pdf_bytes = dispatch_query(
+        GetAttemptProtocolDraftPdfQuery(
+            db=db, test_id=test_id, attempt_id=attempt_id, requester=user
+        ),
+        bytes,
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="protocol_draft_{attempt_id}.pdf"'
+        },
+    )
+
+
+@router.get("/{test_id}/exam/attempts/{attempt_id}/protocol-form.pdf")
+def get_attempt_protocol_form_pdf(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(test_editor_required)],
+) -> Response:
+    pdf_bytes = dispatch_query(
+        GetAttemptProtocolFormPdfQuery(
+            db=db, test_id=test_id, attempt_id=attempt_id, requester=user
+        ),
+        bytes,
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="protocol_form_{attempt_id}.pdf"'
+        },
+    )
 
 
 @router.get("/{test_id}/exam/attempts/{attempt_id}/protocol.pdf")
@@ -160,8 +248,10 @@ def get_signed_protocol_pdf(
     attempt_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(login_required)],
-):
-    pdf_bytes = _handle(lambda: TestService.get_signed_protocol_pdf(db, test_id, attempt_id))
+) -> Response:
+    pdf_bytes = dispatch_query(
+        GetSignedProtocolPdfQuery(db=db, test_id=test_id, attempt_id=attempt_id), bytes
+    )
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -174,8 +264,8 @@ def add_ticket(
     test_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(test_editor_required)],
-):
-    return _handle(lambda: TestService.add_ticket(db, test_id, user))
+) -> TestEditOut:
+    return dispatch_command(AddTicketCommand(db=db, test_id=test_id, user=user), TestEditOut)
 
 
 @router.put("/{test_id}/tickets/{ticket_id}", response_model=TestEditOut)
@@ -185,8 +275,11 @@ def save_ticket(
     form: TicketSaveRequest,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(test_editor_required)],
-):
-    return _handle(lambda: TestService.save_ticket(db, test_id, ticket_id, user, form))
+) -> TestEditOut:
+    return dispatch_command(
+        SaveTicketCommand(db=db, test_id=test_id, ticket_id=ticket_id, user=user, form=form),
+        TestEditOut,
+    )
 
 
 @router.delete("/{test_id}/tickets/{ticket_id}", response_model=TestEditOut)
@@ -195,5 +288,7 @@ def delete_ticket(
     ticket_id: int,
     db: Annotated[Session, Depends(get_db)],
     user: Annotated[User, Depends(test_editor_required)],
-):
-    return _handle(lambda: TestService.delete_ticket(db, test_id, ticket_id, user))
+) -> TestEditOut:
+    return dispatch_command(
+        DeleteTicketCommand(db=db, test_id=test_id, ticket_id=ticket_id, user=user), TestEditOut
+    )

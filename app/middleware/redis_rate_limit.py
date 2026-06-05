@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Optional
 
 from fastapi import Request
-try:
-    from redis.asyncio import Redis
-except Exception:  # pragma: no cover
-    Redis = None  # type: ignore[assignment]
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
 from app.config import get_settings
+
+if TYPE_CHECKING:
+    from redis.asyncio import Redis as AsyncRedis
+else:
+    try:
+        from redis.asyncio import Redis as AsyncRedis
+    except Exception:  # pragma: no cover
+        AsyncRedis = None  # type: ignore[misc, assignment]
 
 logger = logging.getLogger("redis-rate-limit")
 
@@ -23,14 +28,19 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
     - expire на window_seconds при первом увеличении
     """
 
-    def __init__(self, app, *, redis_url: str):
+    def __init__(self, app: Any, *, redis_url: str):
         super().__init__(app)
-        if Redis is None:
+        if AsyncRedis is None:
             raise RuntimeError("Redis package is not installed")
-        # redis.asyncio использует lazy connect.
-        self.redis = Redis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+        self.redis: AsyncRedis = AsyncRedis.from_url(
+            redis_url, encoding="utf-8", decode_responses=True
+        )
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         settings = get_settings()
         if not settings.rate_limit_enabled or not settings.redis_url:
             return await call_next(request)
@@ -52,7 +62,6 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
             if current == 1:
                 await self.redis.expire(key, window)
         except Exception:
-            # Не ломаем приложение, если Redis недоступен.
             logger.exception("Rate limit failed (corr=%s)", corr_id)
             return await call_next(request)
 
@@ -74,4 +83,3 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-RateLimit-Limit", str(limit))
         response.headers.setdefault("X-RateLimit-Remaining", str(remaining))
         return response
-

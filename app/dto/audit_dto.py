@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Literal
+
+from pydantic import Field
+
+from app.dto.base import ValidatedDTO
+
+AuditAction = Literal["login", "register", "logout", "test_edit_forbidden"]
 
 
-@dataclass(slots=True)
-class AuditEventDTO:
-    action: str
-    actor_id: int | None
-    actor_username: str | None
+class AuditEventDTO(ValidatedDTO):
+    action: AuditAction
+    actor_id: int | None = Field(default=None, ge=1)
+    actor_username: str | None = Field(default=None, max_length=64)
     success: bool
-    ip: str | None = None
-    details: str | None = None
+    ip: str | None = Field(default=None, max_length=45)
+    details: str | None = Field(default=None, max_length=500)

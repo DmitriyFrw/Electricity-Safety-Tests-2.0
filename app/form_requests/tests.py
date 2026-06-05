@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pydantic import Field, field_validator, model_validator
 
-from app.constants import QUESTIONS_PER_TICKET
+from app.constants import MAX_OPTION_COUNT, MIN_OPTION_COUNT, QUESTIONS_PER_TICKET
+from app.support.question_options import OPTION_LABELS, normalize_option_count
 from app.form_requests.base import FormRequest
 
 
@@ -29,25 +30,48 @@ class TestCreateRequest(FormRequest):
 
 class QuestionSaveRequest(FormRequest):
     position: int = Field(ge=1, le=QUESTIONS_PER_TICKET)
-    text: str = Field(max_length=5000)
-    option_a: str = Field(max_length=2000)
-    option_b: str = Field(max_length=2000)
-    option_c: str = Field(max_length=2000)
-    option_d: str = Field(max_length=2000)
+    text: str = Field(max_length=20000)
+    option_a: str = Field(max_length=20000)
+    option_b: str = Field(max_length=20000)
+    option_c: str = Field(max_length=20000)
+    option_d: str = Field(max_length=20000)
     correct: str = Field(min_length=1, max_length=1)
 
 
 class TicketSaveRequest(FormRequest):
+    title: str | None = Field(default=None, max_length=200)
+    option_count: int = Field(default=MAX_OPTION_COUNT, ge=MIN_OPTION_COUNT, le=MAX_OPTION_COUNT)
     questions: list[QuestionSaveRequest]
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = v.strip()
+        return s or None
+
+    @field_validator("option_count")
+    @classmethod
+    def validate_option_count(cls, v: int) -> int:
+        return normalize_option_count(v)
 
     @model_validator(mode="after")
     def exact_question_count(self) -> TicketSaveRequest:
-        if len(self.questions) != QUESTIONS_PER_TICKET:
-            raise ValueError(f"Нужно ровно {QUESTIONS_PER_TICKET} вопросов")
-        positions = {q.position for q in self.questions}
-        expected = set(range(1, QUESTIONS_PER_TICKET + 1))
+        n = len(self.questions)
+        if n < 1 or n > QUESTIONS_PER_TICKET:
+            raise ValueError(f"Нужно от 1 до {QUESTIONS_PER_TICKET} вопросов")
+        positions = sorted(q.position for q in self.questions)
+        expected = list(range(1, n + 1))
         if positions != expected:
-            raise ValueError(f"Позиции вопросов должны быть 1..{QUESTIONS_PER_TICKET}")
+            raise ValueError(f"Позиции вопросов должны быть 1..{n} без пропусков")
+        allowed = set(OPTION_LABELS[: self.option_count])
+        for q in self.questions:
+            label = (q.correct or "").strip().upper()
+            if label not in allowed:
+                raise ValueError(
+                    f"Верный ответ должен быть одним из {', '.join(sorted(allowed))}"
+                )
         return self
 
 

@@ -39,8 +39,13 @@
         padding: 0 var(--spacing-6);
     }
 
+    .header-logo-mascot,
     .header-logo-img {
         height: 50px;
+    }
+
+    .header-logo-mark {
+        font-size: var(--font-size-xl);
     }
 
     .header-logo-title {
@@ -264,10 +269,12 @@
         --header-height: 70px;
     }
 
+    .header-logo-mascot,
     .header-logo-img {
         height: 40px;
     }
 
+    .header-logo-mark,
     .header-logo-title {
         font-size: var(--font-size-lg);
     }

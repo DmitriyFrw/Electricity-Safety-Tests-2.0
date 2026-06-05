@@ -1,161 +1,146 @@
 /* ============================================
-   CSS VARIABLES — Развивайся
-   Образовательная платформа по электробезопасности
+   Design tokens — Apple Human Interface style
    ============================================ */
 
 :root {
-    /* ===== COLORS ===== */
-    
-    /* Primary */
-    --color-primary: #4DA6E8;
-    --color-primary-hover: #3A95D7;
-    --color-primary-light: #E8F4FC;
-    
+    /* Primary (System Blue) */
+    --color-primary: #007aff;
+    --color-primary-hover: #0066d6;
+    --color-primary-light: rgba(0, 122, 255, 0.12);
+
     /* Secondary */
-    --color-secondary: #2D2D2D;
-    --color-secondary-hover: #1A1A1A;
-    
-    /* Accent */
-    --color-accent-red: #E85D5D;
-    --color-accent-red-light: #FDECEC;
-    --color-accent-red-bg: #F5D0D0;
-    
-    --color-accent-yellow: #F5D78E;
-    --color-accent-yellow-light: #FFF8E7;
-    
-    --color-accent-green: #5DC887;
-    --color-accent-green-light: #E8F8EF;
-    
+    --color-secondary: #1d1d1f;
+    --color-secondary-hover: #000000;
+
+    /* Brand accent (логотип 209AO) */
+    --color-accent-red: #ff3b30;
+    --color-accent-red-light: rgba(255, 59, 48, 0.12);
+    --color-accent-red-bg: rgba(255, 59, 48, 0.08);
+
+    --color-accent-yellow: #ffcc00;
+    --color-accent-yellow-light: rgba(255, 204, 0, 0.15);
+
+    --color-accent-green: #34c759;
+    --color-accent-green-light: rgba(52, 199, 89, 0.12);
+
     /* Neutrals */
-    --color-white: #FFFFFF;
-    --color-gray-50: #F9FAFB;
-    --color-gray-100: #F3F4F6;
-    --color-gray-200: #E5E7EB;
-    --color-gray-300: #D1D5DB;
-    --color-gray-400: #9CA3AF;
-    --color-gray-500: #6B7280;
-    --color-gray-600: #4B5563;
-    --color-gray-700: #374151;
-    --color-gray-800: #1F2937;
-    --color-gray-900: #111827;
-    
-    /* Background */
-    --color-bg-main: #E8E8E8;
-    --color-bg-sidebar: #D9D9D9;
-    --color-bg-card: #FFFFFF;
-    --color-bg-card-hover: #F9FAFB;
-    
+    --color-white: #ffffff;
+    --color-gray-50: #f5f5f7;
+    --color-gray-100: #ebebf0;
+    --color-gray-200: #e5e5ea;
+    --color-gray-300: #d1d1d6;
+    --color-gray-400: #aeaeb2;
+    --color-gray-500: #8e8e93;
+    --color-gray-600: #636366;
+    --color-gray-700: #48484a;
+    --color-gray-800: #3a3a3c;
+    --color-gray-900: #1d1d1f;
+
+    /* Surfaces */
+    --color-bg-main: #f5f5f7;
+    --color-bg-sidebar: rgba(255, 255, 255, 0.72);
+    --color-bg-card: #ffffff;
+    --color-bg-card-hover: #fafafa;
+    --color-bg-elevated: rgba(255, 255, 255, 0.88);
+
     /* Text */
-    --color-text-primary: #2D2D2D;
-    --color-text-secondary: #6B7280;
-    --color-text-muted: #9CA3AF;
-    --color-text-inverse: #FFFFFF;
-    
-    /* Borders */
-    --color-border: #E5E7EB;
-    --color-border-light: #F3F4F6;
-    
-    /* Status */
-    --color-success: #5DC887;
-    --color-success-bg: #E8F8EF;
-    --color-error: #E85D5D;
-    --color-error-bg: #F5D0D0;
-    --color-warning: #F5D78E;
-    --color-warning-bg: #FFF8E7;
-    --color-info: #4DA6E8;
-    --color-info-bg: #E8F4FC;
-    
-    
-    /* ===== TYPOGRAPHY ===== */
-    
-    --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-family-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    
-    /* Font Sizes */
-    --font-size-xs: 0.75rem;      /* 12px */
-    --font-size-sm: 0.875rem;     /* 14px */
-    --font-size-base: 1rem;       /* 16px */
-    --font-size-lg: 1.125rem;     /* 18px */
-    --font-size-xl: 1.25rem;      /* 20px */
-    --font-size-2xl: 1.5rem;      /* 24px */
-    --font-size-3xl: 1.875rem;    /* 30px */
-    --font-size-4xl: 2.25rem;     /* 36px */
-    --font-size-5xl: 3rem;        /* 48px */
-    
-    /* Font Weights */
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #6e6e73;
+    --color-text-muted: #aeaeb2;
+    --color-text-inverse: #ffffff;
+
+    /* Borders & separators */
+    --color-border: rgba(0, 0, 0, 0.08);
+    --color-border-light: rgba(0, 0, 0, 0.04);
+    --separator: rgba(60, 60, 67, 0.12);
+
+    /* Status (Apple system colors) */
+    --color-success: #34c759;
+    --color-success-bg: rgba(52, 199, 89, 0.12);
+    --color-error: #ff3b30;
+    --color-error-bg: rgba(255, 59, 48, 0.1);
+    --color-warning: #ff9500;
+    --color-warning-bg: rgba(255, 149, 0, 0.12);
+    --color-info: #007aff;
+    --color-info-bg: rgba(0, 122, 255, 0.1);
+
+    /* Typography */
+    --font-family-primary: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    --font-family-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.8125rem;
+    --font-size-base: 0.9375rem;
+    --font-size-lg: 1.0625rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.125rem;
+    --font-size-5xl: 2.75rem;
+
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    
-    /* Line Heights */
-    --line-height-tight: 1.25;
-    --line-height-normal: 1.5;
-    --line-height-relaxed: 1.75;
-    
-    
-    /* ===== SPACING ===== */
-    
+
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.47;
+    --line-height-relaxed: 1.55;
+
+    /* Spacing */
     --spacing-0: 0;
-    --spacing-1: 0.25rem;    /* 4px */
-    --spacing-2: 0.5rem;     /* 8px */
-    --spacing-3: 0.75rem;    /* 12px */
-    --spacing-4: 1rem;       /* 16px */
-    --spacing-5: 1.25rem;    /* 20px */
-    --spacing-6: 1.5rem;     /* 24px */
-    --spacing-8: 2rem;       /* 32px */
-    --spacing-10: 2.5rem;    /* 40px */
-    --spacing-12: 3rem;      /* 48px */
-    --spacing-16: 4rem;      /* 64px */
-    --spacing-20: 5rem;      /* 80px */
-    --spacing-24: 6rem;      /* 96px */
-    
-    
-    /* ===== BORDERS ===== */
-    
-    --border-radius-sm: 4px;
-    --border-radius-md: 8px;
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.25rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+    --spacing-10: 2.5rem;
+    --spacing-12: 3rem;
+    --spacing-16: 4rem;
+    --spacing-20: 5rem;
+    --spacing-24: 6rem;
+
+    /* Radius */
+    --border-radius-sm: 6px;
+    --border-radius-md: 10px;
     --border-radius-lg: 12px;
-    --border-radius-xl: 16px;
-    --border-radius-2xl: 24px;
+    --border-radius-xl: 14px;
+    --border-radius-2xl: 20px;
     --border-radius-full: 9999px;
-    
-    --border-width-thin: 1px;
-    --border-width-medium: 2px;
-    --border-width-thick: 3px;
-    
-    
-    /* ===== SHADOWS ===== */
-    
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
-    
-    
-    /* ===== TRANSITIONS ===== */
-    
-    --transition-fast: 150ms ease;
-    --transition-normal: 250ms ease;
-    --transition-slow: 350ms ease;
-    
-    
-    /* ===== LAYOUT ===== */
-    
-    --sidebar-width: 280px;
-    --header-height: 100px;
+
+    --border-width-thin: 0.5px;
+    --border-width-medium: 1px;
+    --border-width-thick: 2px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.12);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+
+    /* Motion */
+    --transition-fast: 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-normal: 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-slow: 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+
+    /* Layout */
+    --sidebar-width: 260px;
+    --header-height: 64px;
     --container-max-width: 1440px;
     --content-max-width: 1100px;
-    
-    
-    /* ===== Z-INDEX ===== */
-    
+
+    /* Z-index */
     --z-dropdown: 100;
     --z-sticky: 200;
     --z-fixed: 300;
     --z-modal-backdrop: 400;
     --z-modal: 500;
     --z-tooltip: 600;
+
+    /* Glass */
+    --blur-surface: saturate(180%) blur(20px);
 }

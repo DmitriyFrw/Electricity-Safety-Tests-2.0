@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import CabinetPage from "./pages/CabinetPage";
 import ExamPage from "./pages/ExamPage";
@@ -10,15 +10,29 @@ import TakeExamPage from "./pages/TakeExamPage";
 import TakeTrainingPage from "./pages/TakeTrainingPage";
 import TrainingResultPage from "./pages/TrainingResultPage";
 import ManualsPage from "./pages/ManualsPage";
-import TestEditPage from "./pages/TestEditPage";
 import TestNewPage from "./pages/TestNewPage";
 import TrainingPage from "./pages/TrainingPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import TicketConstructorPage from "./pages/TicketConstructorPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <p className="dash-card-note">Загрузка…</p>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <p className="dash-card-note">Загрузка…</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin") return <Navigate to="/cabinet" replace />;
+  return <>{children}</>;
+}
+
+function RedirectTestEditToConstructor() {
+  const { testId } = useParams();
+  return <Navigate to={`/constructor/${testId ?? ""}`} replace />;
 }
 
 function EditorRoute({ children }: { children: React.ReactNode }) {
@@ -101,6 +115,30 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminUsersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/constructor"
+          element={
+            <EditorRoute>
+              <TicketConstructorPage />
+            </EditorRoute>
+          }
+        />
+        <Route
+          path="/constructor/:testId"
+          element={
+            <EditorRoute>
+              <TicketConstructorPage />
+            </EditorRoute>
+          }
+        />
+        <Route
           path="/tests/new"
           element={
             <EditorRoute>
@@ -112,7 +150,7 @@ export default function App() {
           path="/tests/:testId/edit"
           element={
             <EditorRoute>
-              <TestEditPage />
+              <RedirectTestEditToConstructor />
             </EditorRoute>
           }
         />

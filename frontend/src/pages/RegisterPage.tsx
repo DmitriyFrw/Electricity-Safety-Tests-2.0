@@ -37,11 +37,12 @@ export default function RegisterPage() {
         {error && <p className="auth-error">{error}</p>}
         <form onSubmit={onSubmit}>
           <label htmlFor="username">Логин</label>
-          <input id="username" name="username" required />
+          <input id="username" name="username" required minLength={3} />
+          <p className="dash-card-note">Пароль не короче 6 символов</p>
           <label htmlFor="password">Пароль</label>
-          <input id="password" name="password" type="password" required />
+          <input id="password" name="password" type="password" required minLength={6} />
           <label htmlFor="password2">Пароль ещё раз</label>
-          <input id="password2" name="password2" type="password" required />
+          <input id="password2" name="password2" type="password" required minLength={6} />
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "…" : "Зарегистрироваться"}
           </button>

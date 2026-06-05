@@ -38,7 +38,7 @@ export default function TrainingPage() {
                   {t.can_edit && (
                     <>
                       {" "}
-                      <Link to={`/tests/${t.id}/edit`}>Редактировать</Link>
+                      <Link to={`/constructor/${t.id}`}>Редактировать</Link>
                     </>
                   )}
                 </td>

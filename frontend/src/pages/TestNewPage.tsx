@@ -16,14 +16,14 @@ export default function TestNewPage() {
         String(fd.get("title")),
         String(fd.get("description") || "")
       );
-      navigate(`/tests/${t.id}/edit`);
+      navigate(`/constructor/${t.id}`);
     } catch (err) {
       setError(axiosErrorMessage(err));
     }
   };
 
   return (
-    <DashboardLayout active="home">
+    <DashboardLayout active="constructor">
       <div className="dash-page-card dash-form">
         <h1>Новый тест</h1>
         {error && <p className="auth-error">{error}</p>}

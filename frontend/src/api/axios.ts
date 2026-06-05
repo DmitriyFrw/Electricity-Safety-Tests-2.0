@@ -10,11 +10,28 @@ export const apiClient = axios.create({
   },
 });
 
+type ValidationIssue = { loc?: (string | number)[]; msg?: string };
+
+function formatApiDetail(detail: unknown): string | null {
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (!Array.isArray(detail)) return null;
+  const lines = detail
+    .map((item: ValidationIssue) => {
+      if (!item || typeof item !== "object" || typeof item.msg !== "string") return null;
+      const loc = (item.loc ?? []).filter((x) => x !== "body" && x !== "query");
+      const where = loc.length ? `${loc.map(String).join(".")}: ` : "";
+      return `${where}${item.msg}`;
+    })
+    .filter((line): line is string => Boolean(line));
+  return lines.length ? lines.join("; ") : null;
+}
+
 export function axiosErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
-    const ax = err as AxiosError<{ detail?: string }>;
-    const detail = ax.response?.data?.detail;
-    if (typeof detail === "string") return detail;
+    const ax = err as AxiosError<{ detail?: unknown }>;
+    const formatted = formatApiDetail(ax.response?.data?.detail);
+    if (formatted) return formatted;
+    if (ax.response?.status === 422) return "Проверьте введённые данные (ошибка валидации)";
     return ax.message;
   }
   if (err instanceof Error) return err.message;

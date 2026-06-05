@@ -1,3 +1,13 @@
+export interface UserAdmin {
+  id: number;
+  username: string;
+  display_name: string;
+  role: string;
+  role_label: string;
+  created_at: string | null;
+  profile_complete: boolean;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -10,6 +20,8 @@ export interface User {
   full_name: string | null;
   birth_date: string | null;
   job_title: string | null;
+  business_unit: string | null;
+  profile_complete: boolean;
 }
 
 export interface Manual {
@@ -38,6 +50,22 @@ export interface CreatedTest {
   created_at: string;
 }
 
+export interface StaffProtocolExport {
+  attempt_id: number;
+  test_id: number;
+  test_title: string;
+  examinee_full_name: string;
+  percent: number;
+  profile_complete: boolean;
+}
+
+export interface AdminProtocolDraftUser {
+  user_id: number;
+  username: string;
+  display_name: string;
+  profile_complete: boolean;
+}
+
 export interface Dashboard {
   user: User;
   can_create_tests: boolean;
@@ -54,6 +82,8 @@ export interface Dashboard {
   last_test_date: string | null;
   next_check_date: string;
   signed_protocol: SignedProtocol | null;
+  staff_protocol_exports: StaffProtocolExport[];
+  admin_protocol_drafts: AdminProtocolDraftUser[];
   created_tests: CreatedTest[];
   attempts: AttemptRow[];
 }
@@ -82,6 +112,8 @@ export interface QuestionExam {
 export interface TicketExam {
   id: number;
   position: number;
+  title: string | null;
+  option_count: number;
   questions: QuestionExam[];
 }
 
@@ -168,6 +200,8 @@ export interface QuestionEdit {
 export interface TicketEdit {
   id: number;
   position: number;
+  title: string | null;
+  option_count: number;
   complete: boolean;
   questions: QuestionEdit[];
 }
@@ -190,4 +224,10 @@ export interface QuestionSave {
   option_c: string;
   option_d: string;
   correct: string;
+}
+
+export interface TicketSavePayload {
+  title?: string | null;
+  option_count: number;
+  questions: QuestionSave[];
 }

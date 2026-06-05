@@ -5,6 +5,7 @@ import type {
   TestEdit,
   TestListItem,
   User,
+  UserAdmin,
 } from "../types/api";
 import type { QuestionSave } from "../types/api";
 import { deleteReact, getReact, postReact, putReact } from "./getReact";
@@ -34,6 +35,8 @@ export const api = {
 
   getTestEdit: (testId: number) => getReact<TestEdit>(`/tests/${testId}`),
 
+  deleteTest: (testId: number) => deleteReact<void>(`/tests/${testId}`),
+
   addTicket: (testId: number) => postReact<TestEdit>(`/tests/${testId}/tickets`),
 
   saveTicket: (testId: number, ticketId: number, questions: QuestionSave[]) =>
@@ -42,13 +45,34 @@ export const api = {
   deleteTicket: (testId: number, ticketId: number) =>
     deleteReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`),
 
-  updateProfile: (body: { full_name: string; birth_date: string; job_title: string }) =>
-    putReact<User>("/profile", body),
+  updateProfile: (body: {
+    full_name: string;
+    birth_date: string;
+    job_title: string;
+    business_unit: string;
+  }) => putReact<User>("/profile", body),
 
   listManuals: () => getReact<Manual[]>("/manuals"),
 
+  listAdminUsers: () => getReact<UserAdmin[]>("/admin/users"),
+
+  updateUserRole: (userId: number, role: string) =>
+    putReact<UserAdmin>(`/admin/users/${userId}/role`, { role }),
+
+  /** Черновик протокола из профиля пользователя (только admin). */
+  adminUserProtocolDraftPdfUrl: (userId: number) =>
+    `/api/admin/users/${userId}/protocol-draft.pdf`,
+
   /** Черновик протокола из данных профиля (роль Кот). */
   profileProtocolPdfUrl: () => "/api/profile/protocol.pdf",
+
+  /** Черновик из профиля экзаменуемого (admin / Еж). */
+  attemptProtocolDraftPdfUrl: (testId: number, attemptId: number) =>
+    `/api/tests/${testId}/exam/attempts/${attemptId}/protocol-draft.pdf`,
+
+  /** Форма протокола по попытке (admin / Еж, после успешной сдачи). */
+  attemptProtocolFormPdfUrl: (testId: number, attemptId: number) =>
+    `/api/tests/${testId}/exam/attempts/${attemptId}/protocol-form.pdf`,
 
   /** Подписанный протокол сданного экзамена. */
   signedProtocolPdfUrl: (testId: number, attemptId: number) =>

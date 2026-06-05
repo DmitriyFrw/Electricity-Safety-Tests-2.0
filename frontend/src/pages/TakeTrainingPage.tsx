@@ -1,11 +1,11 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { axiosErrorMessage, postReact } from "../api/getReact";
+import RichHtml from "../components/RichHtml";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { ExamPaper, ExamResult } from "../types/api";
-
-const LABELS = ["A", "B", "C", "D"] as const;
+import { labelsForCount, optionFieldsForQuestion } from "../utils/questionOptions";
 
 export default function TakeTrainingPage() {
   const { testId } = useParams();
@@ -64,25 +64,26 @@ export default function TakeTrainingPage() {
       <form onSubmit={onSubmit}>
         {paper.tickets.map((ticket, ti) => (
           <div key={ticket.id} className="test-question-card dash-no-copy">
-            <h2>Билет {ti + 1}</h2>
-            {ticket.questions.map((q) => (
+            <h2>{ticket.title?.trim() || `Билет ${ti + 1}`}</h2>
+            {ticket.questions.map((q) => {
+              const fields = optionFieldsForQuestion(q, ticket.option_count);
+              const labels = labelsForCount(ticket.option_count);
+              return (
               <div key={q.id} className="dash-question">
                 <p>
-                  <strong>Вопрос {q.position}.</strong> {q.text}
+                  <strong>Вопрос {q.position}.</strong> <RichHtml html={q.text} />
                 </p>
                 <div className="dash-radio-line">
-                  {LABELS.map((letter, i) => {
-                    const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-                    return (
-                      <label key={letter}>
-                        <input type="radio" name={`q_${q.id}`} value={letter} required={i === 0} />
-                        {letter} — {opts[i]}
+                  {fields.map(({ label, field }, i) => (
+                      <label key={label}>
+                        <input type="radio" name={`q_${q.id}`} value={labels[i]} required={i === 0} />
+                        {label} — <RichHtml html={q[field]} />
                       </label>
-                    );
-                  })}
+                  ))}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ))}
         {submitError && <p className="auth-error">{submitError}</p>}

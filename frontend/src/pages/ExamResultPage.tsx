@@ -7,25 +7,26 @@ import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult, SignedProtocol } from "../types/api";
 import { formatDateRu } from "../utils/format";
 
-export default function ExamResultPage() {
-  const { testId } = useParams();
-  const location = useLocation();
+type ExamResultViewProps = {
+  testId: number;
+  result: ExamResult;
+};
+
+function ExamResultView({ testId, result }: ExamResultViewProps) {
   const { user } = useAuth();
-  const result = location.state?.result as ExamResult | undefined;
   const [protocol, setProtocol] = useState<SignedProtocol | null>(null);
   const [actionError, setActionError] = useState("");
   const [signing, setSigning] = useState(false);
   const [loadingProtocol, setLoadingProtocol] = useState(false);
 
-  const tid = Number(testId);
-  const hasTestId = Number.isFinite(tid) && tid > 0;
+  const attemptId = result.attempt_id;
 
   useEffect(() => {
-    if (!result?.protocol_signed || !hasTestId) return;
+    if (!result.protocol_signed) return;
     let cancelled = false;
     setLoadingProtocol(true);
     void api
-      .getSignedProtocol(tid, result.attempt_id)
+      .getSignedProtocol(testId, attemptId)
       .then((p) => {
         if (!cancelled) setProtocol(p);
       })
@@ -38,29 +39,21 @@ export default function ExamResultPage() {
     return () => {
       cancelled = true;
     };
-  }, [result?.protocol_signed, result?.attempt_id, hasTestId, tid]);
-
-  if (!result) {
-    return (
-      <DashboardLayout active="exam">
-        <p className="dash-card-note">Нет данных результата.</p>
-        <Link to={hasTestId ? `/exam/${tid}` : "/exam"}>Вернуться к экзамену</Link>
-      </DashboardLayout>
-    );
-  }
+  }, [result.protocol_signed, attemptId, testId]);
 
   const canSign = Boolean(
     result.passed_exam && (user?.role === "admin" || user?.role === "ezh")
   );
   const isSigned = result.protocol_signed || Boolean(protocol);
-  const pdfUrl = hasTestId ? api.signedProtocolPdfUrl(tid, result.attempt_id) : null;
+  const draftPdfUrl = api.attemptProtocolDraftPdfUrl(testId, attemptId);
+  const formPdfUrl = api.attemptProtocolFormPdfUrl(testId, attemptId);
+  const signedPdfUrl = api.signedProtocolPdfUrl(testId, attemptId);
 
   async function onSign() {
-    if (!hasTestId) return;
     setSigning(true);
     setActionError("");
     try {
-      const signed = await api.signProtocol(tid, result.attempt_id);
+      const signed = await api.signProtocol(testId, attemptId);
       setProtocol(signed);
     } catch (e) {
       setActionError(axiosErrorMessage(e));
@@ -70,11 +63,10 @@ export default function ExamResultPage() {
   }
 
   async function onLoadProtocol() {
-    if (!hasTestId) return;
     setLoadingProtocol(true);
     setActionError("");
     try {
-      const p = await api.getSignedProtocol(tid, result.attempt_id);
+      const p = await api.getSignedProtocol(testId, attemptId);
       setProtocol(p);
     } catch (e) {
       setActionError(axiosErrorMessage(e));
@@ -110,24 +102,45 @@ export default function ExamResultPage() {
           <h2 className="dash-section-title" style={{ marginTop: 0 }}>
             Протокол экзамена
           </h2>
-          {canSign && !isSigned && (
-            <button
-              type="button"
-              className="dash-exam-btn"
-              onClick={() => void onSign()}
-              disabled={signing}
-              style={{ border: "none", cursor: "pointer", marginBottom: "var(--spacing-3)" }}
+          {canSign && (
+            <div
+              className="constructor-page-actions"
+              style={{ marginBottom: "var(--spacing-3)" }}
             >
-              {signing ? "Подписание…" : "Подписать"}
-            </button>
+              <a
+                className="btn btn-outline"
+                href={draftPdfUrl}
+                style={{ textDecoration: "none" }}
+              >
+                Черновик из профиля (.pdf)
+              </a>
+              <a
+                className="dash-exam-btn"
+                href={formPdfUrl}
+                style={{ textDecoration: "none" }}
+              >
+                Форма протокола (.pdf)
+              </a>
+              {!isSigned && (
+                <button
+                  type="button"
+                  className="dash-exam-btn"
+                  onClick={() => void onSign()}
+                  disabled={signing}
+                  style={{ border: "none", cursor: "pointer" }}
+                >
+                  {signing ? "Подписание…" : "Подписать"}
+                </button>
+              )}
+            </div>
           )}
-          {result.passed_exam && !isSigned && user?.role === "kot" && (
+          {!isSigned && user?.role === "kot" && (
             <p className="dash-card-note">
               Протокол будет доступен для скачивания после подписи контролирующим лицом (Еж или
               Администратор).
             </p>
           )}
-          {isSigned && pdfUrl && (
+          {isSigned && (
             <div className="dash-card-note">
               {loadingProtocol && !protocol && <p>Загрузка данных протокола…</p>}
               {protocol && (
@@ -140,18 +153,27 @@ export default function ExamResultPage() {
                   <br />
                 </>
               )}
-              <a className="dash-exam-btn" href={pdfUrl} style={{ display: "inline-block", marginTop: "var(--spacing-3)" }}>
+              <a
+                className="dash-exam-btn"
+                href={signedPdfUrl}
+                style={{ display: "inline-block", marginTop: "var(--spacing-3)" }}
+              >
                 Скачать подписанный протокол (.pdf)
               </a>
             </div>
           )}
-          {!isSigned && result.passed_exam && user?.role === "kot" && (
+          {!isSigned && user?.role === "kot" && (
             <button
               type="button"
               className="dash-card-link"
               onClick={() => void onLoadProtocol()}
               disabled={loadingProtocol}
-              style={{ border: "none", background: "transparent", cursor: "pointer", marginTop: "var(--spacing-2)" }}
+              style={{
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                marginTop: "var(--spacing-2)",
+              }}
             >
               {loadingProtocol ? "Проверка…" : "Обновить статус подписи"}
             </button>
@@ -188,4 +210,33 @@ export default function ExamResultPage() {
       )}
     </DashboardLayout>
   );
+}
+
+export default function ExamResultPage() {
+  const { testId } = useParams();
+  const location = useLocation();
+  const result = location.state?.result as ExamResult | undefined;
+
+  const tid = Number(testId);
+  const hasTestId = Number.isFinite(tid) && tid > 0;
+
+  if (!result) {
+    return (
+      <DashboardLayout active="exam">
+        <p className="dash-card-note">Нет данных результата.</p>
+        <Link to={hasTestId ? `/exam/${tid}` : "/exam"}>Вернуться к экзамену</Link>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasTestId) {
+    return (
+      <DashboardLayout active="exam">
+        <p className="dash-card-note">Некорректный идентификатор теста.</p>
+        <Link to="/exam">Вернуться к экзамену</Link>
+      </DashboardLayout>
+    );
+  }
+
+  return <ExamResultView testId={tid} result={result} />;
 }

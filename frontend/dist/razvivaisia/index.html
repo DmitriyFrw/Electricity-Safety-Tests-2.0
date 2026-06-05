@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Личный кабинет платформы Развивайся для подготовки и сдачи экзамена по электробезопасности">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Личный кабинет — Развивайся">
+    <meta property="og:description" content="Платформа для подготовки и сдачи экзамена по электробезопасности">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16x16.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <title>Личный кабинет — Развивайся</title>
+</head>
+<body>
+    <div class="page-wrapper">
+        
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <div class="header-logo">
+                <!-- Burger Menu (mobile) -->
+                <button class="burger-menu" id="burgerMenu" aria-label="Открыть меню">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                
+                <a href="index.html">
+                    <!-- TODO: Заменить на реальный логотип из Figma -->
+                    <img src="assets/images/logo.svg" alt="Развивайся" class="header-logo-img">
+                </a>
+            </div>
+            
+            <!-- User Info — данные подтягиваются из API -->
+            <div class="header-user">
+                <img src="assets/images/hedgehog-avatar.png" alt="Аватар пользователя" class="header-user-avatar">
+                <div class="header-user-info">
+                    <!-- Backend: user.fullName -->
+                    <div class="header-user-name">Бродягин С.В.</div>
+                    <!-- Backend: user.group -->
+                    <div class="header-user-group"><span>IV группа</span> до и выше 1000 В</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- ===== MAIN LAYOUT ===== -->
+        <div class="main-layout">
+            
+            <!-- Sidebar Overlay (mobile) -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <!-- ===== SIDEBAR ===== -->
+            <aside class="sidebar" id="sidebar">
+                <nav class="sidebar-nav">
+                    <ul class="sidebar-menu">
+                        <li>
+                            <a href="index.html" class="sidebar-menu-item active">Главная</a>
+                        </li>
+                        <li>
+                            <a href="training.html" class="sidebar-menu-item">Тренировка</a>
+                        </li>
+                        <li>
+                            <a href="exam.html" class="sidebar-menu-item">Экзамен</a>
+                        </li>
+                        <li>
+                            <a href="documents.html" class="sidebar-menu-item">Нормативные документы</a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <!-- Support Block -->
+                <div class="sidebar-support">
+                    <div class="sidebar-support-title">Служба поддержки</div>
+                    <a href="tel:88005553535" class="sidebar-support-phone">8-800-555-35-35</a>
+                    <a href="mailto:support@ivan.ru" class="sidebar-support-email">support@ivan.ru</a>
+                    <div class="sidebar-support-hours">Пн - Пт с 9:00 - 00:00</div>
+                </div>
+            </aside>
+            
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+                <div class="content-wrapper">
+                    
+                    <!-- Hero Card -->
+                    <div class="dashboard-hero">
+                        <div class="dashboard-hero-content">
+                            <h1>Личный кабинет</h1>
+                            <p>платформы для подготовки и сдачи экзамена по электробезопасности</p>
+                            
+                            <!-- Info Box -->
+                            <div class="info-box info-box-default">
+                                <svg class="info-box-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Экзамен сдается в присутствии контролирующего лица</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Mascot Image -->
+                        <img src="assets/images/hedgehog-helmet.png" alt="Маскот" class="dashboard-hero-mascot">
+                        
+                        <!-- Action Button -->
+                        <div class="dashboard-hero-action">
+                            <a href="exam.html" class="btn btn-primary btn-lg">Сдать экзамен</a>
+                            
+                            <div class="info-box info-box-default">
+                                <svg class="info-box-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>для успешной сдачи экзамена необходимо набрать не менее 70% правильных ответов</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Row 1 -->
+                    <div class="dashboard-stats">
+                        
+                        <!-- Widget: Количество билетов -->
+                        <div class="dashboard-widget widget-tickets">
+                            <div class="dashboard-widget-header">
+                                <svg class="dashboard-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <div>
+                                    <div class="dashboard-widget-title">Количество доступных билетов</div>
+                                    <div class="dashboard-widget-subtitle">для изучения материалов необходимых для успешной сдачи экзамена по электробезопасности</div>
+                                </div>
+                            </div>
+                            <!-- Backend: tickets.count -->
+                            <div class="dashboard-widget-value">227</div>
+                            <!-- Backend: tickets.lastUpdate -->
+                            <div class="dashboard-widget-footer">последняя редакция 25.05.2026</div>
+                        </div>
+                        
+                        <!-- Widget: Протокол PDF -->
+                        <div class="dashboard-widget widget-protocol">
+                            <div class="dashboard-widget-header">
+                                <svg class="dashboard-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                <div>
+                                    <div class="dashboard-widget-title">Протокол проверки знаний в PDF</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Backend: protocol.downloadUrl -->
+                            <a href="#" class="btn btn-outline" id="downloadProtocol">Скачать</a>
+                            
+                            <div class="info-box info-box-default" style="margin-top: var(--spacing-4);">
+                                <svg class="info-box-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Протокол формируется автоматически</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Widget: Текущая группа -->
+                        <div class="dashboard-widget widget-group">
+                            <div class="dashboard-widget-header">
+                                <div class="dashboard-widget-title">Текущая группа по ЭБ</div>
+                            </div>
+                            <!-- Backend: user.groupNumber -->
+                            <div class="dashboard-widget-value">IV</div>
+                            <!-- Backend: user.groupDescription -->
+                            <div class="dashboard-widget-footer">до и выше 1000 В</div>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Stats Row 2 -->
+                    <div class="dashboard-bottom-stats">
+                        
+                        <!-- Widget: Следующая проверка -->
+                        <div class="dashboard-widget widget-date">
+                            <div class="dashboard-widget-header">
+                                <svg class="dashboard-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <div class="dashboard-widget-title">Следующая проверка знаний</div>
+                            </div>
+                            <div class="dashboard-widget-subtitle">назначена на:</div>
+                            <!-- Backend: nextExam.date -->
+                            <div style="display: flex; align-items: baseline; justify-content: center; gap: var(--spacing-4); margin: var(--spacing-4) 0;">
+                                <div>
+                                    <div class="widget-date-day">14</div>
+                                    <div class="widget-date-month">Августа</div>
+                                </div>
+                                <div>
+                                    <div class="widget-date-weekday">Пятница</div>
+                                    <div class="widget-date-full">14.08.26</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Widget: Последний экзамен -->
+                        <div class="dashboard-widget">
+                            <div class="dashboard-widget-header">
+                                <svg class="dashboard-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                </svg>
+                                <div class="dashboard-widget-title">Последний экзамен</div>
+                            </div>
+                            <!-- Backend: lastExam -->
+                            <div class="widget-result">
+                                <div class="widget-result-percentage">80%</div>
+                                <div class="widget-result-details">
+                                    <div>по результатам прошлого экзамена количество верных ответов:</div>
+                                    <div style="margin-top: var(--spacing-2);">за тест от: <strong>13.08.25</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Widget: Количество ошибок -->
+                        <div class="dashboard-widget">
+                            <div class="dashboard-widget-header">
+                                <svg class="dashboard-widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                <div>
+                                    <div class="dashboard-widget-title">Количество ошибок</div>
+                                    <div class="dashboard-widget-subtitle">за прошлый тест:</div>
+                                </div>
+                            </div>
+                            <!-- Backend: lastExam.errors -->
+                            <div class="widget-errors">
+                                <div class="widget-errors-count">2</div>
+                                <div class="widget-errors-details">
+                                    <div class="widget-errors-allowed">Допустимое количество ошибок не более <strong>3</strong></div>
+                                    <div class="widget-errors-grade">оценка: удовлетворительно</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+            </main>
+            
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+</body>
+</html>

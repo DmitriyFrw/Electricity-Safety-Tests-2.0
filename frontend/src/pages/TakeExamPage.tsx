@@ -1,10 +1,10 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getReact, postReact, axiosErrorMessage } from "../api/getReact";
+import RichHtml from "../components/RichHtml";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult, ExamSession, ExamTicketPaper } from "../types/api";
-
-const LABELS = ["A", "B", "C", "D"] as const;
+import { labelsForCount, optionFieldsForQuestion } from "../utils/questionOptions";
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -170,31 +170,32 @@ export default function TakeExamPage() {
       </div>
       <form onSubmit={onSubmit}>
         <div className="test-question-card dash-no-copy">
-          <h2>Билет {paper.ticket_index}</h2>
-          {paper.ticket.questions.map((q) => (
+          <h2>{paper.ticket.title?.trim() || `Билет ${paper.ticket_index}`}</h2>
+          {paper.ticket.questions.map((q) => {
+            const fields = optionFieldsForQuestion(q, paper.ticket.option_count);
+            const labels = labelsForCount(paper.ticket.option_count);
+            return (
             <div key={q.id} className="dash-question">
               <p>
-                <strong>Вопрос {q.position}.</strong> {q.text}
+                <strong>Вопрос {q.position}.</strong> <RichHtml html={q.text} />
               </p>
               <div className="dash-radio-line">
-                {LABELS.map((letter, i) => {
-                  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-                  return (
-                    <label key={letter}>
+                {fields.map(({ label, field }, i) => (
+                    <label key={label}>
                       <input
                         type="radio"
                         name={`q_${q.id}`}
-                        value={letter}
+                        value={labels[i]}
                         required={i === 0 && !timedOut}
                         disabled={timedOut || submitting}
                       />
-                      {letter} — {opts[i]}
+                      {label} — <RichHtml html={q[field]} />
                     </label>
-                  );
-                })}
+                ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
         {submitError && <p className="auth-error">{submitError}</p>}
         <button

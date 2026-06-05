@@ -1,12 +1,14 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { Dashboard } from "../types/api";
+import { BUSINESS_UNITS } from "../constants/businessUnits";
 import { EXAM_TICKET_MINUTES } from "../utils/exam";
 import { formatDateRu, parseNextCheck } from "../utils/format";
+import { isProfileFieldsComplete, profileMissingLabels } from "../utils/profile";
 
 const InfoIcon = () => (
   <svg className="info-box-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -19,10 +21,16 @@ const InfoIcon = () => (
 );
 
 export default function CabinetPage() {
-  const { data, error, loading, reload } = useGetReact<Dashboard>("/dashboard");
+  const { data, setData, error, loading, reload } = useGetReact<Dashboard>("/dashboard");
   const [profileError, setProfileError] = useState("");
   const [profileSaved, setProfileSaved] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [downloadingProtocol, setDownloadingProtocol] = useState(false);
+  const [businessUnit, setBusinessUnit] = useState("");
+
+  useEffect(() => {
+    setBusinessUnit(data?.user.business_unit ?? "");
+  }, [data?.user.business_unit, data?.user?.id]);
 
   if (error) {
     return (
@@ -42,6 +50,18 @@ export default function CabinetPage() {
   const examHref = data.exam_test_id ? `/exam/${data.exam_test_id}` : "/exam";
   const next = parseNextCheck(data.next_check_date);
   const isKot = data.user.role === "kot";
+  const isAdmin = data.user.role === "admin";
+  const canExportStaffProtocol = data.can_create_tests;
+  const staffExports = data.staff_protocol_exports ?? [];
+  const adminDrafts = data.admin_protocol_drafts ?? [];
+  const profileUser = {
+    ...data.user,
+    business_unit: businessUnit.trim() || data.user.business_unit,
+  };
+  const profileReady =
+    data.user.profile_complete === true || isProfileFieldsComplete(profileUser);
+  const missingProfile = profileMissingLabels(profileUser);
+  const businessUnitSaved = Boolean(data.user.business_unit?.trim());
   const mascot = "/razvivaisia/assets/images/hedgehog-helmet.svg";
 
   const onProfileSubmit = async (e: FormEvent) => {
@@ -50,18 +70,68 @@ export default function CabinetPage() {
     setProfileSaved("");
     setSavingProfile(true);
     const fd = new FormData(e.target as HTMLFormElement);
+    const full_name = String(fd.get("full_name") ?? "").trim();
+    const birth_date = String(fd.get("birth_date") ?? "").trim();
+    const job_title = String(fd.get("job_title") ?? "").trim();
+    const business_unit = String(fd.get("business_unit") ?? "").trim();
+    if (!full_name || !birth_date || !job_title || !business_unit) {
+      setProfileError("Заполните ФИО, дату рождения, должность и юридическое лицо");
+      setSavingProfile(false);
+      return;
+    }
     try {
-      await api.updateProfile({
-        full_name: String(fd.get("full_name")),
-        birth_date: String(fd.get("birth_date")),
-        job_title: String(fd.get("job_title")),
-      });
+      const updated = await api.updateProfile({ full_name, birth_date, job_title, business_unit });
+      setBusinessUnit(updated.business_unit ?? business_unit);
+      setData((prev) => (prev ? { ...prev, user: { ...prev.user, ...updated } } : prev));
       setProfileSaved("Данные сохранены");
       await reload();
     } catch (err) {
       setProfileError(axiosErrorMessage(err));
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const downloadProtocolDraft = async () => {
+    setProfileError("");
+    if (!isProfileFieldsComplete(profileUser)) {
+      const missing = profileMissingLabels(profileUser);
+      setProfileError(
+        missing.length
+          ? `Заполните профиль. Не заполнено: ${missing.join(", ")}.`
+          : "Заполните профиль перед выгрузкой протокола."
+      );
+      return;
+    }
+    if (!businessUnitSaved) {
+      setProfileError("Выберите бизнес-юнит и нажмите «Сохранить» перед скачиванием протокола.");
+      return;
+    }
+    setDownloadingProtocol(true);
+    try {
+      const res = await fetch(api.profileProtocolPdfUrl(), { credentials: "include" });
+      if (!res.ok) {
+        let detail = "Не удалось скачать протокол";
+        try {
+          const body = (await res.json()) as { detail?: string };
+          if (typeof body.detail === "string") detail = body.detail;
+        } catch {
+          /* ignore */
+        }
+        setProfileError(detail);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "protocol.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setProfileError("Не удалось скачать протокол");
+    } finally {
+      setDownloadingProtocol(false);
     }
   };
 
@@ -97,20 +167,70 @@ export default function CabinetPage() {
           <div className="dashboard-widget-title">Данные для протокола PDF</div>
           {profileError && <p className="auth-error">{profileError}</p>}
           {profileSaved && <p className="dash-card-note">{profileSaved}</p>}
+          {!profileReady && (
+            <div className="info-box info-box-default" style={{ marginBottom: "var(--spacing-3)" }}>
+              <InfoIcon />
+              <span>
+                Для выгрузки протокола заполните все поля, выберите бизнес-юнит и нажмите «Сохранить».
+                {missingProfile.length > 0 && (
+                  <> Не заполнено: {missingProfile.join(", ")}.</>
+                )}
+              </span>
+            </div>
+          )}
           <form onSubmit={onProfileSubmit} className="dash-form">
             <label htmlFor="full_name">ФИО</label>
             <input id="full_name" name="full_name" required maxLength={200} defaultValue={data.user.full_name ?? ""} />
             <label htmlFor="birth_date">Дата рождения</label>
             <input id="birth_date" name="birth_date" type="date" required defaultValue={data.user.birth_date ?? ""} />
-            <label htmlFor="job_title">Занимаемая должность</label>
-            <input id="job_title" name="job_title" required maxLength={200} defaultValue={data.user.job_title ?? ""} />
+            <div className="dash-form-row">
+              <div className="dash-form-field">
+                <label htmlFor="job_title">Занимаемая должность</label>
+                <input
+                  id="job_title"
+                  name="job_title"
+                  required
+                  maxLength={200}
+                  defaultValue={data.user.job_title ?? ""}
+                />
+              </div>
+              <div className="dash-form-field">
+                <label htmlFor="business_unit">Бизнес-юнит</label>
+                <select
+                  id="business_unit"
+                  name="business_unit"
+                  required
+                  value={businessUnit}
+                  onChange={(e) => setBusinessUnit(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Выберите ДЦ
+                  </option>
+                  {BUSINESS_UNITS.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div style={{ marginTop: "var(--spacing-4)", display: "flex", gap: "var(--spacing-3)", flexWrap: "wrap" }}>
               <button type="submit" className="btn btn-primary" disabled={savingProfile}>
                 {savingProfile ? "Сохранение…" : "Сохранить"}
               </button>
-              <a href={api.profileProtocolPdfUrl()} className="btn btn-outline">
-                Скачать черновик протокола
-              </a>
+              <button
+                type="button"
+                className="btn btn-outline"
+                disabled={downloadingProtocol}
+                title={
+                  profileReady
+                    ? undefined
+                    : "Сначала сохраните профиль с бизнес-юнитом"
+                }
+                onClick={() => void downloadProtocolDraft()}
+              >
+                {downloadingProtocol ? "Формирование…" : "Скачать черновик протокола"}
+              </button>
             </div>
           </form>
         </div>
@@ -166,17 +286,142 @@ export default function CabinetPage() {
             <div className="dashboard-widget-title">Черновик протокола (PDF)</div>
           </div>
           {isKot ? (
-            <a href={api.profileProtocolPdfUrl()} className="btn btn-outline">
-              Скачать черновик
-            </a>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={downloadingProtocol}
+              onClick={() => void downloadProtocolDraft()}
+            >
+              {downloadingProtocol ? "Формирование…" : "Скачать черновик"}
+            </button>
+          ) : isAdmin ? (
+            <>
+              {adminDrafts.length > 0 ? (
+                <>
+                  <p className="dash-card-note" style={{ marginBottom: "var(--spacing-2)" }}>
+                    Черновик из профиля пользователя (без сдачи экзамена):
+                  </p>
+                  <ul className="constructor-drafts-list" style={{ marginTop: 0 }}>
+                    {adminDrafts.map((u) => (
+                      <li key={u.user_id}>
+                        <div>
+                          <strong>{u.display_name}</strong>
+                          <div className="dash-card-meta">{u.username}</div>
+                        </div>
+                        <a
+                          className="btn btn-outline btn-sm"
+                          href={api.adminUserProtocolDraftPdfUrl(u.user_id)}
+                          style={{ textDecoration: "none", flexShrink: 0 }}
+                        >
+                          Черновик PDF
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="dash-card-note">
+                  Нет пользователей с заполненным профилем.{" "}
+                  <Link to="/admin/users" className="dash-card-link">
+                    Открыть «Пользователи»
+                  </Link>
+                </p>
+              )}
+              {staffExports.length > 0 && (
+                <>
+                  <p
+                    className="dash-card-note"
+                    style={{ marginTop: "var(--spacing-4)", marginBottom: "var(--spacing-2)" }}
+                  >
+                    После сданных экзаменов:
+                  </p>
+                  <ul className="constructor-drafts-list" style={{ marginTop: 0 }}>
+                    {staffExports.map((row) => (
+                      <li key={row.attempt_id}>
+                        <div>
+                          <strong>{row.examinee_full_name || "Экзаменуемый"}</strong>
+                          <div className="dash-card-meta">
+                            {row.test_title} · {row.percent}%
+                          </div>
+                        </div>
+                        <div className="constructor-page-actions" style={{ flexShrink: 0 }}>
+                          <a
+                            className="btn btn-outline btn-sm"
+                            href={api.attemptProtocolDraftPdfUrl(row.test_id, row.attempt_id)}
+                            style={{ textDecoration: "none" }}
+                          >
+                            Черновик
+                          </a>
+                          <a
+                            className="btn btn-outline btn-sm"
+                            href={api.attemptProtocolFormPdfUrl(row.test_id, row.attempt_id)}
+                            style={{ textDecoration: "none" }}
+                          >
+                            Форма
+                          </a>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          ) : canExportStaffProtocol ? (
+            staffExports.length > 0 ? (
+              <ul className="constructor-drafts-list" style={{ marginTop: 0 }}>
+                {staffExports.map((row) => (
+                  <li key={row.attempt_id}>
+                    <div>
+                      <strong>{row.examinee_full_name || "Экзаменуемый"}</strong>
+                      <div className="dash-card-meta">
+                        {row.test_title} · {row.percent}%
+                        {!row.profile_complete && (
+                          <> · <span className="grade-bad">профиль не заполнен</span></>
+                        )}
+                      </div>
+                    </div>
+                    <div className="constructor-page-actions" style={{ flexShrink: 0 }}>
+                      <a
+                        className="btn btn-outline btn-sm"
+                        href={api.attemptProtocolDraftPdfUrl(row.test_id, row.attempt_id)}
+                        title={
+                          row.profile_complete
+                            ? undefined
+                            : "Профиль экзаменуемого не заполнен"
+                        }
+                        style={row.profile_complete ? undefined : { opacity: 0.55 }}
+                      >
+                        Черновик
+                      </a>
+                      <a
+                        className="btn btn-outline btn-sm"
+                        href={api.attemptProtocolFormPdfUrl(row.test_id, row.attempt_id)}
+                      >
+                        Форма
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="dash-card-note">
+                Пока нет успешно сданных экзаменов. После сдачи здесь появятся ссылки на выгрузку
+                протокола.
+              </p>
+            )
           ) : (
             <span className="dash-card-note">Доступно для роли Кот</span>
           )}
           <div className="info-box info-box-default" style={{ marginTop: "var(--spacing-4)" }}>
             <InfoIcon />
             <span>
-              Черновик из данных профиля. После сдачи экзамена подписанный протокол появится в блоке
-              выше или на странице результата.
+              {isKot
+                ? "Черновик из данных профиля. После сдачи экзамена подписанный протокол появится в блоке выше или на странице результата."
+                : isAdmin
+                  ? "Администратор может скачать черновик по любому пользователю с заполненным профилем. После экзамена — также черновик и форма по попытке."
+                  : canExportStaffProtocol
+                    ? "Черновик — из профиля экзаменуемого; форма — с результатом конкретной попытки. Также доступно на странице результата экзамена."
+                    : "Черновик из данных профиля."}
             </span>
           </div>
         </div>
@@ -260,7 +505,7 @@ export default function CabinetPage() {
                     <td>{t.title}</td>
                     <td>{t.ticket_count}</td>
                     <td>
-                      <Link to={`/tests/${t.id}/edit`}>Редактировать</Link>
+                      <Link to={`/constructor/${t.id}`}>Редактировать</Link>
                     </td>
                   </tr>
                 ))}

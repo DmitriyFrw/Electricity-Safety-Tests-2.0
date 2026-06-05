@@ -6,15 +6,11 @@
   align-items: center;
   justify-content: center;
   padding: var(--spacing-6);
-  background: var(--color-bg-main);
 }
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
-  background: var(--color-white);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-card);
+  max-width: 400px;
   padding: var(--spacing-8);
 }
 
@@ -69,20 +65,11 @@ a.dash-exam-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-3) var(--spacing-6);
+  padding: 10px var(--spacing-6);
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  border-radius: var(--border-radius-lg);
-  background-color: var(--color-primary);
   color: var(--color-white);
-  border: 2px solid var(--color-primary);
   text-decoration: none;
   cursor: pointer;
-}
-
-.dash-exam-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
 }
 
 .dash-card-link {
@@ -102,6 +89,38 @@ a.dash-exam-btn {
   color: var(--color-primary);
   cursor: pointer;
   font: inherit;
+}
+
+.dash-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.dash-btn-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dash-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.03em;
+}
+
+.dash-logo-mark {
+  font-weight: var(--font-weight-bold);
+}
+
+.dash-logo-text {
+  color: var(--color-text-primary);
 }
 
 .header-user-actions {
@@ -157,9 +176,6 @@ a.dash-exam-btn {
 }
 
 .dash-page-card {
-  background: var(--color-white);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-card);
   padding: var(--spacing-6);
   margin-bottom: var(--spacing-4);
 }
@@ -169,12 +185,38 @@ a.dash-exam-btn {
   margin: var(--spacing-3) 0 var(--spacing-1);
   font-size: var(--font-size-sm);
 }
+.dash-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  align-items: start;
+}
+.dash-form-row .dash-form-field > label {
+  margin-top: var(--spacing-3);
+}
+@media (max-width: 640px) {
+  .dash-form-row {
+    grid-template-columns: 1fr;
+  }
+}
 .dash-form input,
-.dash-form textarea {
+.dash-form textarea,
+.dash-form select {
   width: 100%;
   padding: var(--spacing-3);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
+  font: inherit;
+  background: var(--color-white);
+  box-sizing: border-box;
+}
+
+/* Селекты панели форматирования — не наследуют поля формы */
+.dash-form .rich-editor select.rich-editor-select {
+  width: auto;
+  padding: 7px 22px 7px 8px;
+  background-color: transparent;
+  border: none;
 }
 
 .documents-link {

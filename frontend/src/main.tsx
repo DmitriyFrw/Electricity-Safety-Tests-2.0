@@ -12,6 +12,8 @@ import "./styles/razvivaisia/layout.css";
 import "./styles/razvivaisia/pages.css";
 import "./styles/razvivaisia/responsive.css";
 import "./styles/react-bridge.css";
+import "./styles/constructor.css";
+import "./styles/apple-theme.css";
 
 setupCsrfInterceptor();
 

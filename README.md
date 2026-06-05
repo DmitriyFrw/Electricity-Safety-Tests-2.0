@@ -3,6 +3,8 @@
 **Backend:** FastAPI + PostgreSQL (JSON API)  
 **Frontend:** React 18 + TypeScript + Vite
 
+Архитектура: [ARCHITECTURE.md](ARCHITECTURE.md) · Деплой: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · Бизнес-правила: [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) · API: `/docs` (OpenAPI)
+
 ## Быстрый старт (разработка)
 
 ### 1. База и backend
@@ -40,12 +42,18 @@ UI: http://127.0.0.1:5173 — запросы `/api/*` проксируются �
 
 ## Docker
 
+Корень репозитория должен содержать `compose.yaml`. Если Docker Desktop показывает **«no configuration file provided: not found»**, запускайте команды из этого каталога или см. [docs/DOCKER.md](docs/DOCKER.md).
+
 ```bash
+cd exam_tests   # каталог с compose.yaml
 docker compose up -d db redis
 docker compose build backend
 docker compose run --rm backend pytest   # тесты
 docker compose up backend                # API на :8000
 ```
+
+- **UI в том же контейнере:** после `docker compose build backend` откройте http://127.0.0.1:8000/ (не только `/docs`).
+- **UI с hot-reload:** `docker compose up -d frontend` → http://127.0.0.1:5173 (см. [docs/DOCKER.md](docs/DOCKER.md)).
 
 `Dockerfile` собирает frontend из корректного `WORKDIR /app/frontend`.
 
@@ -63,7 +71,9 @@ GitHub Actions (`.github/workflows/ci.yml`):
 
 | Job | Когда | Действие |
 |-----|-------|----------|
-| **test** | push / PR | `docker compose up db redis`, pytest |
+| **lint** | push / PR | `ruff check` |
+| **test** | push / PR | `docker compose up db redis`, pytest + coverage |
+| **frontend** | push / PR | `npm run build` |
 | **deploy** | push в `main` | сборка prod-образа, smoke-deploy, healthcheck |
 
 Опционально: секрет `GHCR_TOKEN` — публикация образа в GitHub Container Registry.
@@ -139,6 +149,30 @@ alembic revision --autogenerate -m "описание"   # новая ревиз�
 | POST | `/api/profile/attempts/export` | Асинхронный экспорт результатов (CSV) |
 | GET | `/api/profile/exports/{task_id}` | Статус/скачивание результата фоновой задачи |
 | GET | `/api/manuals` | Список мануалов (кэш TTL) |
+| GET | `/api/admin/users` | Список пользователей (**только admin**) |
+| PUT | `/api/admin/users/{user_id}/role` | Смена роли (**только admin**) |
+
+### Смена роли через API
+
+1. Войти под пользователем с ролью `admin` (`POST /api/auth/login` + cookie сессии).
+2. Получить CSRF: `GET /api/auth/csrf` → заголовок `X-CSRF-Token` на мутирующих запросах.
+3. Список пользователей: `GET /api/admin/users`.
+4. Смена роли: `PUT /api/admin/users/{user_id}/role` с телом `{"role": "ezh"}` (допустимо: `admin`, `ezh`, `kot`).
+
+Ограничения: нельзя изменить **свою** роль; без роли `admin` — ответ `403`.
+
+Пример (curl, после логина cookie сохранён в `cookies.txt`):
+
+```bash
+CSRF=$(curl -s -b cookies.txt -c cookies.txt http://127.0.0.1:8000/api/auth/csrf | jq -r .csrf_token)
+curl -s -b cookies.txt -c cookies.txt \
+  -X PUT "http://127.0.0.1:8000/api/admin/users/2/role" \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF" \
+  -d '{"role":"admin"}'
+```
+
+Первого администратора при пустой БД можно задать SQL: `UPDATE users SET role = 'admin' WHERE username = '...';`
 
 ## Архитектура backend
 
@@ -194,7 +228,7 @@ exam_tests/
 ├── frontend/
 ├── tests/
 ├── scripts/
-├── docker-compose.yml
+├── compose.yaml
 ├── docker-compose.prod.yml
 └── .github/workflows/ci.yml
 ```

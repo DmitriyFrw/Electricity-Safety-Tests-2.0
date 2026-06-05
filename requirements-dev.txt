@@ -1,3 +1,9 @@
 pytest
 pytest-asyncio
+pytest-cov
 httpx
+ruff
+mypy
+types-cachetools
+types-passlib
+types-reportlab

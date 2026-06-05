@@ -1,0 +1,12 @@
+target-version = "py312"
+line-length = 100
+src = ["app", "tests", "alembic"]
+
+[lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+"app/exam_service.py" = ["F403"]
+"app/attempt_service.py" = ["F403"]
+"app/api_serializers.py" = ["F403"]

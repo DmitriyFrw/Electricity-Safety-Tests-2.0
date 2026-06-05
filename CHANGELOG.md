@@ -7,6 +7,15 @@
 
 ### Added
 
+- **CQRS**: `CommandBus` / `QueryBus`, сообщения (`app/cqrs/messages/`), обработчики (`app/cqrs/handlers/`), регистрация в `registry.py`; API вызывает `dispatch`. Документация: `docs/CQRS.md`.
+- Порты и адаптеры HTTP: `SessionStore`, `HttpContext` (отвязка `AuthService` от `fastapi.Request`).
+- Валидация внутренних DTO через Pydantic (`ValidatedDTO`).
+- **mypy strict** в CI (`pyproject.toml`, stub-пакеты `types-*`).
+- Рефакторинг слоёв: `app/services/{tests,users,exams,attempts,pdf}/`, `app/support/`, `app/api/{deps,mappers,handlers}`, репозитории по сущностям.
+- Разделение `TestService` на Catalog / Editor / Training / Exam / Protocols (фасад сохранён).
+- Кэш списка тестов (`TEST_LIST_CACHE_TTL_SECONDS`), глобальный handler `AppError`.
+- Документация: `ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/BUSINESS_RULES.md`, `docs/CODE_REVIEW.md`.
+- CI: ruff, **mypy strict** (`pyproject.toml`), pytest-cov, сборка frontend.
 - DejaVu TTF в `app/static/fonts/` и `scripts/fetch-dejavu-fonts.sh`; Docker: `fonts-dejavu-core` + копирование шрифтов при сборке.
 - Alembic: `alembic/`, начальная ревизия `001_initial_schema`, `scripts/migrate.sh`, entrypoint с `alembic upgrade head` в production.
 - Асинхронный экспорт тяжёлых операций:
@@ -24,6 +33,9 @@
 
 ### Changed
 
+- `TestService` и остальные фасады сервисов делегируют в CQRS-шину; логика use case — в `CommandHandler` / `QueryHandler`.
+- CI job `lint`: проверка типов `mypy` (режим `strict`) после `ruff`; конфиг в `pyproject.toml`, scope — `app/` (legacy `routes.py`, `services/tests/` исключены).
+- Типизация middleware, CQRS bus, DTO (`ExportTaskDTO.task_id` ≥ 8 символов).
 - Время на экзаменационный билет увеличено с 10 до 20 минут (`EXAM_TICKET_TIME_LIMIT_SECONDS`).
 - Сервисный слой разложен по подпапкам модулей в `app/services/*`.
 - `LoginRateLimiter` исправлен: TTL кэша больше не мутируется на лету, кэш пересоздаётся при изменении TTL-конфига.

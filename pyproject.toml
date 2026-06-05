@@ -1,0 +1,27 @@
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["app"]
+exclude = [
+    "app/routes.py",
+    "app/web.py",
+    "app/services/tests/",
+]
+warn_unused_ignores = true
+show_error_codes = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+[[tool.mypy.overrides]]
+module = "redis.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pypdf.*"
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

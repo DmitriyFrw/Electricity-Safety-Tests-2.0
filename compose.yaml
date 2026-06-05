@@ -1,0 +1,69 @@
+# Docker Compose v2 / Docker Desktop (единственный файл конфигурации в корне).
+name: exam_tests
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: exam_tests
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/exam_tests
+      SECRET_KEY: dev-change-me-in-production
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      SESSION_COOKIE_SECURE: "false"
+      SESSION_COOKIE_HTTPONLY: "true"
+      SESSION_COOKIE_SAMESITE: "lax"
+      REDIS_URL: redis://redis:6379/0
+      RATE_LIMIT_ENABLED: "false"
+      RATE_LIMIT_REQUESTS: "60"
+      RATE_LIMIT_WINDOW_SECONDS: "60"
+      BCRYPT_ROUNDS: "12"
+      CACHE_TTL_SECONDS: "300"
+      LOGIN_RATE_LIMIT_ATTEMPTS: "5"
+      LOGIN_RATE_LIMIT_WINDOW_SECONDS: "300"
+      AUTO_CREATE_SCHEMA: "true"
+      RUN_MIGRATIONS: "false"
+      EXPORT_TASK_TTL_SECONDS: "3600"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  # Dev UI с hot-reload (Docker Desktop → порт 5173). API — контейнер backend :8000.
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_PROXY: http://host.docker.internal:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  frontend_node_modules:

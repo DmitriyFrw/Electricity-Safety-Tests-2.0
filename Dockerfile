@@ -12,7 +12,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends fonts-dejavu-core unzip curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-dev.txt ./
+COPY requirements.txt requirements-dev.txt pyproject.toml ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 
 COPY scripts/fetch-dejavu-fonts.sh ./scripts/fetch-dejavu-fonts.sh

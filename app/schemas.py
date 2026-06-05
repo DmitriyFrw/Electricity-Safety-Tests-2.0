@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Optional
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -18,12 +20,31 @@ class UserOut(BaseModel):
     full_name: Optional[str] = None
     birth_date: Optional[date] = None
     job_title: Optional[str] = None
+    business_unit: Optional[str] = None
+    profile_complete: bool = False
+
+
+class UserAdminOut(BaseModel):
+    id: int
+    username: str
+    display_name: str
+    role: str
+    role_label: str
+    created_at: Optional[datetime] = None
+    profile_complete: bool = False
+
+
+class UpdateUserRoleIn(BaseModel):
+    """Тело PUT /api/admin/users/{user_id}/role (только роль admin)."""
+
+    role: Literal["admin", "ezh", "kot"]
 
 
 class ProfileUpdateIn(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     birth_date: date
     job_title: str = Field(min_length=1, max_length=200)
+    business_unit: str = Field(min_length=1, max_length=32)
 
 
 class ManualOut(BaseModel):
@@ -86,6 +107,22 @@ class CreatedTestOut(BaseModel):
     created_at: datetime
 
 
+class StaffProtocolExportOut(BaseModel):
+    attempt_id: int
+    test_id: int
+    test_title: str
+    examinee_full_name: str
+    percent: float
+    profile_complete: bool
+
+
+class AdminProtocolDraftUserOut(BaseModel):
+    user_id: int
+    username: str
+    display_name: str
+    profile_complete: bool
+
+
 class DashboardOut(BaseModel):
     user: UserOut
     can_create_tests: bool
@@ -102,6 +139,8 @@ class DashboardOut(BaseModel):
     last_test_date: Optional[datetime]
     next_check_date: date
     signed_protocol: "SignedProtocolOut | None" = None
+    staff_protocol_exports: list[StaffProtocolExportOut] = []
+    admin_protocol_drafts: list[AdminProtocolDraftUserOut] = []
     created_tests: list[CreatedTestOut]
     attempts: list[AttemptRowOut]
 
@@ -144,6 +183,8 @@ class QuestionExamOut(BaseModel):
 class TicketExamOut(BaseModel):
     id: int
     position: int
+    title: Optional[str] = None
+    option_count: int = 4
     questions: list[QuestionExamOut]
 
 
@@ -239,6 +280,8 @@ class QuestionEditOut(BaseModel):
 class TicketEditOut(BaseModel):
     id: int
     position: int
+    title: Optional[str] = None
+    option_count: int = 4
     complete: bool
     questions: list[QuestionEditOut]
 
@@ -264,4 +307,6 @@ class QuestionSaveIn(BaseModel):
 
 
 class TicketSaveIn(BaseModel):
+    title: Optional[str] = None
+    option_count: int = 4
     questions: list[QuestionSaveIn]

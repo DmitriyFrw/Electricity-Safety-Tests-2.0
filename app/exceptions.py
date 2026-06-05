@@ -1,10 +1,5 @@
 from __future__ import annotations
 
+from app.support.errors import AppError
 
-class AppError(Exception):
-    """Бизнес-ошибка с HTTP-кодом для маппинга в контроллерах."""
-
-    def __init__(self, message: str, *, status_code: int = 400) -> None:
-        super().__init__(message)
-        self.message = message
-        self.status_code = status_code
+__all__ = ["AppError"]

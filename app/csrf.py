@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import secrets
 
+import uuid
+
+from collections.abc import Awaitable, Callable
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 CSRF_SESSION_KEY = "csrf_token"
 CSRF_HEADER = "X-CSRF-Token"
@@ -52,12 +56,18 @@ def _path_exempt(path: str) -> bool:
 class CSRFMiddleware(BaseHTTPMiddleware):
     """Проверка заголовка X-CSRF-Token для POST/PUT/PATCH/DELETE (токен в сессии)."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
         if _path_exempt(request.url.path) or request.method in SAFE_METHODS:
             return await call_next(request)
         if not validate_csrf(request):
+            corr_id = getattr(request.state, "correlation_id", None) or uuid.uuid4().hex
             return JSONResponse(
                 status_code=403,
                 content={"detail": "Неверный или отсутствующий CSRF-токен"},
+                headers={"X-Correlation-ID": corr_id},
             )
         return await call_next(request)

@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session, selectinload
 
-from app.attempt_service import score_attempt
+from app.services.attempts.scoring import score_attempt
 from app.constants import (
     DEFAULT_SAFETY_GROUP,
     DEFAULT_SAFETY_GROUP_DESC,

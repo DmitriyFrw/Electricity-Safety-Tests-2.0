@@ -32,6 +32,7 @@ class User(Base):
     full_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     birth_date: Mapped[Optional[dt.date]] = mapped_column(Date, nullable=True)
     job_title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    business_unit: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc)
     )
@@ -66,6 +67,8 @@ class Ticket(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"), nullable=False, index=True)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    option_count: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
 
     test: Mapped[Test] = relationship("Test", back_populates="tickets")
     questions: Mapped[list[Question]] = relationship(

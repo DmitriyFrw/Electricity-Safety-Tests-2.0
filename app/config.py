@@ -4,9 +4,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings.sources import NoDecode
+from typing import Annotated
 
 
 def _normalize_db_url(url: str) -> str:
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
         default="lax", alias="SESSION_COOKIE_SAMESITE"
     )
 
-    cors_origins: list[str] = Field(
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://127.0.0.1:5173", "http://localhost:5173"],
         alias="CORS_ORIGINS",
     )
@@ -55,6 +56,9 @@ class Settings(BaseSettings):
     # Безопасность и производительность
     bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS", ge=4, le=31)
     cache_ttl_seconds: int = Field(default=300, alias="CACHE_TTL_SECONDS", ge=0)
+    test_list_cache_ttl_seconds: int = Field(
+        default=3600, alias="TEST_LIST_CACHE_TTL_SECONDS", ge=0
+    )
     login_rate_limit_attempts: int = Field(default=5, alias="LOGIN_RATE_LIMIT_ATTEMPTS", ge=1)
     login_rate_limit_window_seconds: int = Field(
         default=300, alias="LOGIN_RATE_LIMIT_WINDOW_SECONDS", ge=1

@@ -2,6 +2,8 @@
 
 MAX_TICKETS_PER_TEST = 500
 QUESTIONS_PER_TICKET = 10
+MIN_OPTION_COUNT = 2
+MAX_OPTION_COUNT = 4
 
 # Порог «сдан» на экзамене (подсказка в UI)
 MIN_PASS_PERCENT = 70
@@ -31,3 +33,16 @@ ROLE_LABELS: dict[str, str] = {
 }
 
 ROLES_CAN_EDIT_TESTS = frozenset({ROLE_ADMIN, ROLE_EZH})
+
+# Юридические лица (бизнес-юниты) для профиля и строки «место работы» в протоколе PDF.
+BUSINESS_UNITS: tuple[str, ...] = (
+    "ДЦ MOZ",
+    "ДЦ KLG",
+    "ДЦ VLA",
+    "ДЦ NRG",
+    "ДЦ SAS",
+)
+ALLOWED_BUSINESS_UNITS = frozenset(BUSINESS_UNITS)
+
+ASSIGNABLE_ROLES: tuple[str, ...] = (ROLE_ADMIN, ROLE_EZH, ROLE_KOT)
+ALLOWED_ROLES = frozenset(ASSIGNABLE_ROLES)

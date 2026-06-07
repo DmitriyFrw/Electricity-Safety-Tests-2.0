@@ -19,6 +19,7 @@ from app.cqrs.messages.tests import (
     DeleteTestCommand,
     DeleteTicketCommand,
     FinishExamCommand,
+    GetExamAttemptResultQuery,
     GetExamSessionQuery,
     GetAttemptProtocolDraftPdfQuery,
     GetAttemptProtocolFormPdfQuery,
@@ -33,6 +34,8 @@ from app.cqrs.messages.tests import (
     StartExamSessionCommand,
     SubmitExamTicketAnswersCommand,
     SubmitTrainingCommand,
+    PublishTestCommand,
+    UpdateTestSettingsCommand,
 )
 
 __all__ = [
@@ -45,6 +48,7 @@ __all__ = [
     "DeleteTicketCommand",
     "FinishExamCommand",
     "GetDashboardQuery",
+    "GetExamAttemptResultQuery",
     "GetExamSessionQuery",
     "GetExportTaskQuery",
     "GetManualPathQuery",
@@ -68,4 +72,6 @@ __all__ = [
     "SubmitExamTicketAnswersCommand",
     "SubmitTrainingCommand",
     "UpdateProfileCommand",
+    "PublishTestCommand",
+    "UpdateTestSettingsCommand",
 ]

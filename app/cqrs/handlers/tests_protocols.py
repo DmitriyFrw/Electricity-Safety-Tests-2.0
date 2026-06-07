@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.constants import MIN_PASS_PERCENT
+from app.support.grading import exam_is_passed
 from app.cqrs.messages.tests import (
     GetAttemptProtocolDraftPdfQuery,
     GetAttemptProtocolFormPdfQuery,
@@ -62,6 +62,17 @@ def _protocol_out(protocol: SignedProtocol) -> SignedProtocolOut:
     )
 
 
+def _require_signed_protocol_reader(protocol: SignedProtocol, requester: User) -> None:
+    """Экзаменуемый, подписант или admin/ezh."""
+    if requester.id == protocol.examinee_id:
+        return
+    if requester.id == protocol.signer_id:
+        return
+    if AccessPolicy.can_create_tests(requester):
+        return
+    raise AppError("Нет доступа к протоколу", status_code=403)
+
+
 class SignProtocolHandler:
     def handle(self, command: SignProtocolCommand) -> SignedProtocolOut:
         if not AccessPolicy.can_create_tests(command.signer):
@@ -85,7 +96,7 @@ class SignProtocolHandler:
         require_profile_complete(examinee)
 
         summary = score_attempt(command.db, attempt)
-        if summary.percent < MIN_PASS_PERCENT:
+        if not exam_is_passed(summary.percent):
             raise AppError(
                 "Протокол можно подписать только после успешной сдачи экзамена",
                 status_code=400,
@@ -114,6 +125,7 @@ class GetSignedProtocolHandler:
             raise AppError("Протокол ещё не подписан", status_code=404)
         if protocol.attempt is None or protocol.attempt.test_id != query.test_id:
             raise AppError("Протокол не найден", status_code=404)
+        _require_signed_protocol_reader(protocol, query.requester)
         return _protocol_out(protocol)
 
 
@@ -124,6 +136,7 @@ class GetSignedProtocolPdfHandler:
             raise AppError("Протокол ещё не подписан", status_code=404)
         if protocol.attempt is None or protocol.attempt.test_id != query.test_id:
             raise AppError("Протокол не найден", status_code=404)
+        _require_signed_protocol_reader(protocol, query.requester)
         return build_signed_protocol_pdf(query.db, protocol)
 
 
@@ -141,7 +154,7 @@ class GetAttemptProtocolFormPdfHandler:
             raise AppError("Недостаточно данных для формирования протокола", status_code=400)
 
         summary = score_attempt(query.db, attempt)
-        if summary.percent < MIN_PASS_PERCENT:
+        if not exam_is_passed(summary.percent):
             raise AppError(
                 "Форму протокола можно выгрузить только после успешной сдачи экзамена",
                 status_code=400,

@@ -5,14 +5,23 @@ QUESTIONS_PER_TICKET = 10
 MIN_OPTION_COUNT = 2
 MAX_OPTION_COUNT = 4
 
-# Порог «сдан» на экзамене (подсказка в UI)
-MIN_PASS_PERCENT = 70
+# Порог «сдан» на экзамене: удовлетворительно и выше (см. grade_for_percent, ≥ 75%)
+MIN_PASS_PERCENT = 75
 
 # Отображение в карточке «Количество ошибок» (как в макете)
 MAX_ERRORS_DISPLAY = 3
 
-DEFAULT_SAFETY_GROUP = "IV"
-DEFAULT_SAFETY_GROUP_DESC = "до и выше 1000 В"
+SAFETY_GROUPS: tuple[str, ...] = ("I", "II", "III", "IV")
+DEFAULT_KOT_SAFETY_GROUP = "II"
+SAFETY_GROUP_DESCRIPTIONS: dict[str, str] = {
+    "I": "",
+    "II": "",
+    "III": "",
+    "IV": "",
+}
+# Обратная совместимость (старые импорты)
+DEFAULT_SAFETY_GROUP = DEFAULT_KOT_SAFETY_GROUP
+DEFAULT_SAFETY_GROUP_DESC = ""
 KNOWLEDGE_CHECK_INTERVAL_DAYS = 365
 
 # Лимит на один экзаменационный билет (секунды)

@@ -8,17 +8,20 @@ from sqlalchemy.orm import Session
 from app.services.attempts.scoring import AttemptScore, score_attempt
 
 from app.constants import (
-    DEFAULT_SAFETY_GROUP,
-    DEFAULT_SAFETY_GROUP_DESC,
     EXAM_TICKET_TIME_LIMIT_SECONDS,
     MAX_TICKETS_PER_TEST,
     MIN_PASS_PERCENT,
     QUESTIONS_PER_TICKET,
     ROLE_ADMIN,
+    ROLE_KOT,
 )
+from app.support.grading import exam_is_passed
+from app.support.answers import question_allows_multiple, question_correct_indices
+from app.support.question_options import question_option_count
+from app.support.safety_groups import effective_safety_group, safety_group_description
 from app.dashboard_stats import build_dashboard_context, display_name
 from app.models import Attempt, SignedProtocol, Test, Ticket, User
-from app.roles import can_create_tests, can_edit_test, role_label
+from app.roles import can_create_tests, can_edit_test, can_edit_wiki, role_label
 from app.support.profile import is_profile_complete
 
 from app.schemas import (
@@ -29,6 +32,7 @@ from app.schemas import (
     StaffProtocolExportOut,
     ExamPaperOut,
     ExamResultOut,
+    QuestionResultOut,
     ExamSessionOut,
     ExamTicketPaperOut,
     QuestionEditOut,
@@ -45,11 +49,17 @@ from app.schemas import (
 )
 from app.services.attempts.scoring import attempt_to_row
 from app.support.profile import is_profile_complete
-from app.support.validation import test_is_ready_to_take, ticket_is_complete
+from app.support.validation import (
+    complete_tickets_sorted,
+    test_is_available,
+    test_is_ready_to_take,
+    ticket_is_complete,
+)
 
 
 def user_out(user: User) -> UserOut:
     dn = display_name(user)
+    group = effective_safety_group(user)
     return UserOut(
         id=user.id,
         username=user.username,
@@ -57,8 +67,9 @@ def user_out(user: User) -> UserOut:
         role=user.role,
         role_label=role_label(user.role),
         can_create_tests=can_create_tests(user),
-        safety_group=DEFAULT_SAFETY_GROUP,
-        safety_group_desc=DEFAULT_SAFETY_GROUP_DESC,
+        can_edit_wiki=can_edit_wiki(user),
+        safety_group=group,
+        safety_group_desc=safety_group_description(group),
         full_name=user.full_name,
         birth_date=user.birth_date,
         job_title=user.job_title,
@@ -68,13 +79,29 @@ def user_out(user: User) -> UserOut:
 
 
 def user_admin_out(user: User) -> UserAdminOut:
+    group = effective_safety_group(user) if user.role == ROLE_KOT else user.safety_group
     return UserAdminOut(
         id=user.id,
         username=user.username,
         display_name=display_name(user),
         role=user.role,
         role_label=role_label(user.role),
+        safety_group=group,
         created_at=user.created_at,
+        profile_complete=is_profile_complete(user),
+    )
+
+
+def kot_user_out(user: User) -> "KotUserOut":
+    from app.schemas import KotUserOut
+
+    group = effective_safety_group(user)
+    return KotUserOut(
+        id=user.id,
+        username=user.username,
+        display_name=display_name(user),
+        safety_group=group,
+        safety_group_desc=safety_group_description(group),
         profile_complete=is_profile_complete(user),
     )
 
@@ -110,7 +137,7 @@ def _staff_protocol_exports(db: Session, user: User, *, limit: int = 15) -> list
     rows: list[StaffProtocolExportOut] = []
     for attempt in AttemptRepository.list_finished_exam_for_staff(db, user, limit=limit * 4):
         summary = score_attempt(db, attempt)
-        if summary.percent < MIN_PASS_PERCENT:
+        if not exam_is_passed(summary.percent):
             continue
         examinee = attempt.user
         if examinee is None:
@@ -172,6 +199,9 @@ def dashboard_out(
         last_grade_class=base["last_grade_class"],
         last_test_title=base["last_test_title"],
         last_test_date=base["last_test_date"],
+        last_passed_exam_date=base.get("last_passed_exam_date"),
+        last_passed_exam_percent=base.get("last_passed_exam_percent"),
+        last_passed_exam_grade=base.get("last_passed_exam_grade"),
         next_check_date=base["next_check_date"],
         signed_protocol=(
             SignedProtocolOut(
@@ -213,40 +243,54 @@ def test_list_out(db: Session, tests: list[Test], current_user: User) -> TestLis
                 id=t.id,
                 title=t.title,
                 description=t.description,
+                safety_group=t.safety_group,
                 author_id=t.author_id,
                 author_username=t.author.username if t.author else "",
                 ticket_count=len(t.tickets),
-                ready=test_is_ready_to_take(db, t),
+                ready=test_is_available(db, t),
                 can_edit=can_edit_test(current_user, t),
             )
         )
     return TestListOut(items=items)
 
 
-def _ticket_exam_out(ticket: Ticket) -> TicketExamOut:
+def _ticket_exam_out(ticket: Ticket, questions: list | None = None) -> TicketExamOut:
+    source_questions = questions if questions is not None else sorted(
+        ticket.questions, key=lambda x: x.position
+    )
+    option_count = ticket.option_count
+    if questions is not None:
+        counts = [
+            getattr(getattr(q, "ticket", None), "option_count", None) or ticket.option_count
+            for q in source_questions
+        ]
+        if counts:
+            option_count = max(counts)
     qs = [
         QuestionExamOut(
             id=q.id,
-            position=q.position,
+            position=pos,
             text=q.text,
             option_a=q.option_a,
             option_b=q.option_b,
             option_c=q.option_c,
             option_d=q.option_d,
+            option_count=question_option_count(q),
+            multiple_choice=question_allows_multiple(q),
         )
-        for q in sorted(ticket.questions, key=lambda x: x.position)
+        for pos, q in enumerate(source_questions, start=1)
     ]
     return TicketExamOut(
         id=ticket.id,
-        position=ticket.position,
+        position=1,
         title=ticket.title,
-        option_count=ticket.option_count,
+        option_count=option_count,
         questions=qs,
     )
 
 
 def exam_paper_out(test: Test) -> ExamPaperOut:
-    tickets = [_ticket_exam_out(ticket) for ticket in sorted(test.tickets, key=lambda x: x.position)]
+    tickets = [_ticket_exam_out(ticket) for ticket in complete_tickets_sorted(test)]
     return ExamPaperOut(
         id=test.id,
         title=test.title,
@@ -261,15 +305,17 @@ def exam_session_out(
     test: Test,
     completed_ticket_ids: list[int],
     next_ticket_id: int | None,
+    random_ticket_order: bool = False,
 ) -> ExamSessionOut:
     return ExamSessionOut(
         attempt_id=attempt_id,
         test_id=test.id,
         test_title=test.title,
-        ticket_count=len(test.tickets),
+        ticket_count=1,
         completed_ticket_ids=completed_ticket_ids,
         next_ticket_id=next_ticket_id,
         time_limit_seconds=EXAM_TICKET_TIME_LIMIT_SECONDS,
+        random_ticket_order=random_ticket_order,
     )
 
 
@@ -281,14 +327,15 @@ def exam_ticket_paper_out(
     ticket_index: int,
     seconds_remaining: int,
     deadline_at: datetime,
+    questions: list | None = None,
 ) -> ExamTicketPaperOut:
     return ExamTicketPaperOut(
         test_id=test.id,
         test_title=test.title,
         attempt_id=attempt_id,
-        ticket=_ticket_exam_out(ticket),
+        ticket=_ticket_exam_out(ticket, questions=questions),
         ticket_index=ticket_index,
-        ticket_count=len(test.tickets),
+        ticket_count=1,
         min_pass_percent=MIN_PASS_PERCENT,
         time_limit_seconds=EXAM_TICKET_TIME_LIMIT_SECONDS,
         seconds_remaining=seconds_remaining,
@@ -303,6 +350,7 @@ def exam_result_out(
     *,
     attempt_id: int,
     protocol_signed: bool = False,
+    question_rows: list[dict[str, Any]] | None = None,
 ) -> ExamResultOut:
     return ExamResultOut(
         attempt_id=attempt_id,
@@ -314,7 +362,7 @@ def exam_result_out(
         errors=summary.errors,
         grade=summary.grade,
         grade_class=summary.grade_class,
-        passed_exam=summary.percent >= MIN_PASS_PERCENT,
+        passed_exam=exam_is_passed(summary.percent),
         protocol_signed=protocol_signed,
         min_pass_percent=MIN_PASS_PERCENT,
         ticket_rows=[
@@ -328,6 +376,27 @@ def exam_result_out(
             )
             for r in ticket_rows
         ],
+        question_results=[
+            QuestionResultOut(
+                question_id=int(r["question_id"]),
+                ticket_id=int(r["ticket_id"]),
+                ticket_position=int(r["ticket_position"]),
+                ticket_title=r.get("ticket_title"),
+                question_position=int(r["question_position"]),
+                question_text=str(r["question_text"]),
+                option_a=str(r["option_a"]),
+                option_b=str(r["option_b"]),
+                option_c=str(r["option_c"]),
+                option_d=str(r["option_d"]),
+                option_count=int(r.get("option_count", 4)),
+                correct_index=int(r["correct_index"]),
+                correct_indexes=[int(i) for i in r.get("correct_indexes", [r["correct_index"]])],
+                selected_index=r.get("selected_index"),
+                selected_indexes=[int(i) for i in r.get("selected_indexes", [])],
+                is_correct=bool(r["is_correct"]),
+            )
+            for r in (question_rows or [])
+        ],
     )
 
 
@@ -340,6 +409,8 @@ def test_edit_out(db: Session, test: Test) -> TestEditOut:
                 position=q.position,
                 text=q.text,
                 correct_index=q.correct_index,
+                correct_indexes=question_correct_indices(q),
+                option_count=question_option_count(q),
                 option_a=q.option_a,
                 option_b=q.option_b,
                 option_c=q.option_c,
@@ -357,12 +428,17 @@ def test_edit_out(db: Session, test: Test) -> TestEditOut:
                 questions=qs,
             )
         )
+    content_complete = test_is_ready_to_take(db, test)
     return TestEditOut(
         id=test.id,
         title=test.title,
         description=test.description,
-        ready=test_is_ready_to_take(db, test),
+        safety_group=test.safety_group,
+        published=test.published,
+        content_complete=content_complete,
+        ready=test.published and content_complete,
         max_tickets=MAX_TICKETS_PER_TEST,
         questions_per_ticket=QUESTIONS_PER_TICKET,
+        random_ticket_order=test.random_ticket_order,
         tickets=tickets,
     )

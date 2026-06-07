@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.api.mappers import user_out
-from app.constants import ROLE_KOT
+from app.constants import DEFAULT_KOT_SAFETY_GROUP, ROLE_KOT
 from app.cqrs.messages.auth import LoginUserCommand, RegisterUserCommand
 from app.dto import AuditEventDTO
 from app.models import User
@@ -32,6 +32,7 @@ class RegisterUserHandler:
             username=form.username,
             password_hash=hash_password(form.password),
             role=ROLE_KOT,
+            safety_group=DEFAULT_KOT_SAFETY_GROUP,
         )
         db.add(user)
         db.commit()

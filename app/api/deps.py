@@ -43,11 +43,29 @@ def admin_required(user: Annotated[User, Depends(login_required)]) -> User:
     return user
 
 
+def staff_required(user: Annotated[User, Depends(login_required)]) -> User:
+    if not AccessPolicy.can_manage_safety_groups(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Раздел доступен только ролям admin и Еж",
+        )
+    return user
+
+
 def test_editor_required(user: Annotated[User, Depends(login_required)]) -> User:
     if not AccessPolicy.can_create_tests(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Создание и редактирование тестов доступно только ролям Еж и admin",
+        )
+    return user
+
+
+def wiki_editor_required(user: Annotated[User, Depends(login_required)]) -> User:
+    if not AccessPolicy.can_edit_wiki(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Редактирование вики доступно только ролям admin и Еж",
         )
     return user
 

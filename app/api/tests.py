@@ -15,6 +15,7 @@ from app.cqrs.messages import (
     DeleteTestCommand,
     DeleteTicketCommand,
     FinishExamCommand,
+    GetExamAttemptResultQuery,
     GetExamSessionQuery,
     GetAttemptProtocolDraftPdfQuery,
     GetAttemptProtocolFormPdfQuery,
@@ -26,6 +27,8 @@ from app.cqrs.messages import (
     OpenExamTicketCommand,
     SaveTicketCommand,
     SignProtocolCommand,
+    PublishTestCommand,
+    UpdateTestSettingsCommand,
     StartExamSessionCommand,
     SubmitExamTicketAnswersCommand,
     SubmitTrainingCommand,
@@ -42,6 +45,7 @@ from app.schemas import (
     TestCreateOut,
     TestEditOut,
     TestListOut,
+    TestSettingsIn,
 )
 
 router = APIRouter(prefix="/tests", tags=["tests"])
@@ -71,6 +75,31 @@ def get_test_for_edit(
     user: Annotated[User, Depends(test_editor_required)],
 ) -> TestEditOut:
     return dispatch_query(GetTestForEditQuery(db=db, test_id=test_id, user=user), TestEditOut)
+
+
+@router.put("/{test_id}/settings", response_model=TestEditOut)
+def update_test_settings(
+    test_id: int,
+    form: TestSettingsIn,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(test_editor_required)],
+) -> TestEditOut:
+    return dispatch_command(
+        UpdateTestSettingsCommand(db=db, test_id=test_id, user=user, form=form),
+        TestEditOut,
+    )
+
+
+@router.post("/{test_id}/publish", response_model=TestEditOut)
+def publish_test(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(test_editor_required)],
+) -> TestEditOut:
+    return dispatch_command(
+        PublishTestCommand(db=db, test_id=test_id, user=user),
+        TestEditOut,
+    )
 
 
 @router.delete("/{test_id}", status_code=204)
@@ -166,6 +195,24 @@ def finish_exam(
     return dispatch_command(FinishExamCommand(db=db, test_id=test_id, user=user), ExamResultOut)
 
 
+@router.get(
+    "/{test_id}/exam/attempts/{attempt_id}/result",
+    response_model=ExamResultOut,
+)
+def get_exam_attempt_result(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+) -> ExamResultOut:
+    return dispatch_query(
+        GetExamAttemptResultQuery(
+            db=db, test_id=test_id, attempt_id=attempt_id, user=user
+        ),
+        ExamResultOut,
+    )
+
+
 @router.post(
     "/{test_id}/exam/attempts/{attempt_id}/protocol/sign",
     response_model=SignedProtocolOut,
@@ -193,7 +240,9 @@ def get_signed_protocol(
     user: Annotated[User, Depends(login_required)],
 ) -> SignedProtocolOut:
     return dispatch_query(
-        GetSignedProtocolQuery(db=db, test_id=test_id, attempt_id=attempt_id),
+        GetSignedProtocolQuery(
+            db=db, test_id=test_id, attempt_id=attempt_id, requester=user
+        ),
         SignedProtocolOut,
     )
 
@@ -250,7 +299,10 @@ def get_signed_protocol_pdf(
     user: Annotated[User, Depends(login_required)],
 ) -> Response:
     pdf_bytes = dispatch_query(
-        GetSignedProtocolPdfQuery(db=db, test_id=test_id, attempt_id=attempt_id), bytes
+        GetSignedProtocolPdfQuery(
+            db=db, test_id=test_id, attempt_id=attempt_id, requester=user
+        ),
+        bytes,
     )
     return Response(
         content=pdf_bytes,

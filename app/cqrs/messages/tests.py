@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.cqrs.base import Command, Query
 from app.form_requests.tests import SubmitExamRequest, TestCreateRequest, TicketSaveRequest
+from app.schemas import TestSettingsIn
 from app.models import User
 
 
@@ -55,6 +56,21 @@ class DeleteTicketCommand(Command):
 
 @dataclass(frozen=True, slots=True)
 class DeleteTestCommand(Command):
+    db: Session
+    test_id: int
+    user: User
+
+
+@dataclass(frozen=True, slots=True)
+class UpdateTestSettingsCommand(Command):
+    db: Session
+    test_id: int
+    user: User
+    form: TestSettingsIn
+
+
+@dataclass(frozen=True, slots=True)
+class PublishTestCommand(Command):
     db: Session
     test_id: int
     user: User
@@ -116,6 +132,14 @@ class FinishExamCommand(Command):
 
 
 @dataclass(frozen=True, slots=True)
+class GetExamAttemptResultQuery(Query):
+    db: Session
+    test_id: int
+    attempt_id: int
+    user: User
+
+
+@dataclass(frozen=True, slots=True)
 class SignProtocolCommand(Command):
     db: Session
     test_id: int
@@ -128,6 +152,7 @@ class GetSignedProtocolQuery(Query):
     db: Session
     test_id: int
     attempt_id: int
+    requester: User
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +160,7 @@ class GetSignedProtocolPdfQuery(Query):
     db: Session
     test_id: int
     attempt_id: int
+    requester: User
 
 
 @dataclass(frozen=True, slots=True)

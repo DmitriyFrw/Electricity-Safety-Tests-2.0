@@ -19,6 +19,7 @@
 
 - [ ] Мутирующие запросы с CSRF (`X-CSRF-Token`)
 - [ ] Export task: проверка `owner_user_id`
+- [ ] Подписанный протокол: `examinee_id` / `signer_id` / staff (`…/protocol`, `…/protocol.pdf`)
 - [ ] Пароли только через `support/passwords`
 - [ ] Секреты не в репозитории
 

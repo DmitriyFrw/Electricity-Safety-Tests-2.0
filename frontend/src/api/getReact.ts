@@ -27,4 +27,12 @@ export async function deleteReact<T>(path: string): Promise<T> {
   return data;
 }
 
+/** POST multipart/form-data */
+export async function postFormReact<T>(path: string, body: FormData): Promise<T> {
+  const { data } = await apiClient.post<T>(path, body, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
 export { axiosErrorMessage };

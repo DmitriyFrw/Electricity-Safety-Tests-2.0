@@ -9,11 +9,14 @@ import RegisterPage from "./pages/RegisterPage";
 import TakeExamPage from "./pages/TakeExamPage";
 import TakeTrainingPage from "./pages/TakeTrainingPage";
 import TrainingResultPage from "./pages/TrainingResultPage";
+import TrainingQuestionReviewPage from "./pages/TrainingQuestionReviewPage";
 import ManualsPage from "./pages/ManualsPage";
 import TestNewPage from "./pages/TestNewPage";
 import TrainingPage from "./pages/TrainingPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import KotSafetyGroupsPage from "./pages/KotSafetyGroupsPage";
 import TicketConstructorPage from "./pages/TicketConstructorPage";
+import WikiPage from "./pages/WikiPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -33,6 +36,14 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 function RedirectTestEditToConstructor() {
   const { testId } = useParams();
   return <Navigate to={`/constructor/${testId ?? ""}`} replace />;
+}
+
+function StaffRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <p className="dash-card-note">Загрузка…</p>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin" && user.role !== "ezh") return <Navigate to="/cabinet" replace />;
+  return <>{children}</>;
 }
 
 function EditorRoute({ children }: { children: React.ReactNode }) {
@@ -55,6 +66,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <CabinetPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/wiki"
+          element={
+            <PrivateRoute>
+              <WikiPage />
             </PrivateRoute>
           }
         />
@@ -99,10 +118,26 @@ export default function App() {
           }
         />
         <Route
+          path="/training/:testId/result/q/:questionId"
+          element={
+            <PrivateRoute>
+              <TrainingQuestionReviewPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/exam/:testId"
           element={
             <PrivateRoute>
               <TakeExamPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/exam/:testId/result/:attemptId"
+          element={
+            <PrivateRoute>
+              <ExamResultPage />
             </PrivateRoute>
           }
         />
@@ -115,11 +150,27 @@ export default function App() {
           }
         />
         <Route
+          path="/exam/:testId/result/q/:questionId"
+          element={
+            <PrivateRoute>
+              <TrainingQuestionReviewPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/admin/users"
           element={
             <AdminRoute>
               <AdminUsersPage />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/staff/safety-groups"
+          element={
+            <StaffRoute>
+              <KotSafetyGroupsPage />
+            </StaffRoute>
           }
         />
         <Route
@@ -132,6 +183,14 @@ export default function App() {
         />
         <Route
           path="/constructor/:testId"
+          element={
+            <EditorRoute>
+              <TicketConstructorPage />
+            </EditorRoute>
+          }
+        />
+        <Route
+          path="/constructor/:testId/tickets/:ticketId"
           element={
             <EditorRoute>
               <TicketConstructorPage />

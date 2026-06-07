@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
+import { SAFETY_GROUPS } from "../constants/safetyGroups";
 import DashboardLayout from "../layout/DashboardLayout";
 
 export default function TestNewPage() {
@@ -14,7 +15,8 @@ export default function TestNewPage() {
     try {
       const t = await api.createTest(
         String(fd.get("title")),
-        String(fd.get("description") || "")
+        String(fd.get("description") || ""),
+        String(fd.get("safety_group") || "II")
       );
       navigate(`/constructor/${t.id}`);
     } catch (err) {
@@ -32,6 +34,14 @@ export default function TestNewPage() {
           <input id="title" name="title" required maxLength={200} />
           <label htmlFor="description">Описание</label>
           <textarea id="description" name="description" />
+          <label htmlFor="safety_group">Группа по электробезопасности</label>
+          <select id="safety_group" name="safety_group" defaultValue="II">
+            {SAFETY_GROUPS.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.label}
+              </option>
+            ))}
+          </select>
           <button type="submit" className="dash-exam-btn" style={{ border: "none", cursor: "pointer", marginTop: "1rem" }}>
             Создать
           </button>

@@ -2,19 +2,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorMessage, deleteReact, postReact, putReact } from "../api/getReact";
+import { safetyGroupLabel } from "../constants/safetyGroups";
 import RichTextEditor from "../components/RichTextEditor";
 import SidebarPortal from "../components/SidebarPortal";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { QuestionSave, TestEdit, TestListItem } from "../types/api";
 import {
-  clampCorrectLetter,
+  clampCorrectLetters,
+  formatCorrectLetters,
   indexToLetter,
   labelsForCount,
   MAX_OPTION_COUNT,
   MIN_OPTION_COUNT,
   normalizeOptionCount,
   optionFieldsForQuestion,
+  toggleCorrectLetter,
 } from "../utils/questionOptions";
 import {
   importedRowsToDrafts,
@@ -22,6 +25,11 @@ import {
   TICKET_IMPORT_ACCEPT,
   type QuestionDraft,
 } from "../utils/ticketImport";
+import {
+  exportTicketToFile,
+  TICKET_EXPORT_FORMATS,
+  type TicketExportFormat,
+} from "../utils/ticketExport";
 
 const MAX_QUESTIONS = 10;
 
@@ -37,45 +45,62 @@ function renumberQuestions(questions: QuestionDraft[]): QuestionDraft[] {
   return questions.map((q, index) => ({ ...q, position: index + 1 }));
 }
 
+function questionCorrectLetters(
+  q: { correct_index: number; correct_indexes?: number[] },
+  optionCount: number
+): string[] {
+  const letters =
+    q.correct_indexes && q.correct_indexes.length
+      ? q.correct_indexes.map((i) => indexToLetter(i))
+      : [indexToLetter(q.correct_index)];
+  return clampCorrectLetters(letters, optionCount);
+}
+
 function emptyQuestion(position: number, optionCount: number): QuestionDraft {
+  const option_count = normalizeOptionCount(optionCount);
   return {
     position,
+    option_count,
     text: "",
     option_a: "",
     option_b: "",
     option_c: "",
     option_d: "",
-    correct: clampCorrectLetter("A", optionCount),
+    correct: ["A"],
   };
 }
 
 function testToDrafts(test: TestEdit): TicketDraft[] {
   return test.tickets.map((t) => {
-    const option_count = normalizeOptionCount(t.option_count);
+    const ticketDefault = normalizeOptionCount(t.option_count);
     const questions =
       t.questions.length > 0
-        ? t.questions.map((q) => ({
-            position: q.position,
-            text: q.text,
-            option_a: q.option_a,
-            option_b: q.option_b,
-            option_c: q.option_c,
-            option_d: q.option_d,
-            correct: clampCorrectLetter(indexToLetter(q.correct_index), option_count),
-          }))
-        : [emptyQuestion(1, option_count)];
+        ? t.questions.map((q) => {
+            const option_count = normalizeOptionCount(q.option_count ?? ticketDefault);
+            return {
+              position: q.position,
+              option_count,
+              text: q.text,
+              option_a: q.option_a,
+              option_b: q.option_b,
+              option_c: q.option_c,
+              option_d: q.option_d,
+              correct: questionCorrectLetters(q, option_count),
+            };
+          })
+        : [emptyQuestion(1, ticketDefault)];
     return {
       id: t.id,
       position: t.position,
       title: t.title ?? "",
-      option_count,
+      option_count: ticketDefault,
       questions,
     };
   });
 }
 
-function questionHasContent(q: QuestionDraft, optionCount: number): boolean {
-  const fields = optionFieldsForQuestion(q, optionCount);
+function questionHasContent(q: QuestionDraft): boolean {
+  const fields = optionFieldsForQuestion(q);
   if (q.text.replace(/<[^>]+>/g, "").trim()) return true;
   return fields.some((f) => f.field && q[f.field].replace(/<[^>]+>/g, "").trim());
 }
@@ -83,7 +108,7 @@ function questionHasContent(q: QuestionDraft, optionCount: number): boolean {
 function defaultVisibleCount(draft: TicketDraft): number {
   let last = 1;
   draft.questions.forEach((q, idx) => {
-    if (questionHasContent(q, draft.option_count)) last = idx + 1;
+    if (questionHasContent(q)) last = idx + 1;
   });
   return Math.min(MAX_QUESTIONS, Math.max(1, last, draft.questions.length));
 }
@@ -92,6 +117,28 @@ function scrollToElement(id: string) {
   requestAnimationFrame(() => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
+}
+
+function TicketPencilIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm2.92 2.08H5v-.92l8.06-8.06.92.92L5.92 19.33zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+      />
+    </svg>
+  );
+}
+
+function TicketDeleteIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 1 0 5.7 7.11L10.59 12l-4.9 4.89a1 1 0 1 0 1.41 1.42L12 13.41l4.89 4.9a1 1 0 0 0 1.42-1.42L13.41 12l4.9-4.89a1 1 0 0 0-.01-1.4z"
+      />
+    </svg>
+  );
 }
 
 function NumberCircleNav({
@@ -176,9 +223,6 @@ function ConstructorTestList() {
 
   return (
     <>
-      <p className="dash-card-note" style={{ marginBottom: "var(--spacing-4)" }}>
-        Выберите тест для редактирования билетов с форматированием текста.
-      </p>
       {error && <p className="auth-error">{error}</p>}
       {loading ? (
         <p className="dash-card-note">Загрузка…</p>
@@ -196,7 +240,7 @@ function ConstructorTestList() {
               <div>
                 <strong>{t.title}</strong>
                 <div className="dash-card-meta">
-                  Билетов: {t.ticket_count}
+                  {safetyGroupLabel(t.safety_group)} · Билетов: {t.ticket_count}
                   {t.ready ? " · готов" : " · черновик"}
                 </div>
               </div>
@@ -221,9 +265,6 @@ function ConstructorTestList() {
           ))}
         </ul>
       )}
-      <Link to="/tests/new" className="dash-exam-btn" style={{ marginTop: "1.5rem", display: "inline-block" }}>
-        + Новый тест
-      </Link>
     </>
   );
 }
@@ -255,6 +296,8 @@ function TicketConfigurePanel({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState("");
+  const [exportFormat, setExportFormat] = useState<TicketExportFormat>("xlsx");
+  const [exportError, setExportError] = useState("");
   const [collapsedQuestions, setCollapsedQuestions] = useState<Record<number, boolean>>({});
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
 
@@ -266,6 +309,20 @@ function TicketConfigurePanel({
   const questionsShown = draft.questions.slice(0, visibleCount);
   const canAddQuestion = draft.questions.length < MAX_QUESTIONS;
 
+  const onExport = async () => {
+    setExportError("");
+    try {
+      const slice = draft.questions.slice(0, visibleCount);
+      await exportTicketToFile(
+        renumberQuestions(slice),
+        exportFormat,
+        draft.title.trim() || `Билет ${draft.position}`
+      );
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : "Не удалось выгрузить файл");
+    }
+  };
+
   const onImport = async (file: File) => {
     setImportError("");
     try {
@@ -274,7 +331,7 @@ function TicketConfigurePanel({
         setImportError("В файле не найдено вопросов");
         return;
       }
-      const imported = importedRowsToDrafts(rows, draft.option_count);
+      const imported = importedRowsToDrafts(rows);
       onUpdateDraft((d) => ({ ...d, questions: renumberQuestions(imported) }));
       onSetVisibleCount(imported.length);
     } catch (e) {
@@ -339,40 +396,13 @@ function TicketConfigurePanel({
           )}
         </h2>
         <button type="button" className="dash-link-btn" onClick={onClose}>
-          Свернуть
+          ← К списку билетов
         </button>
       </div>
 
-      <label htmlFor={`ticket-options-${ticketId}`}>Количество вариантов ответа</label>
-      <select
-        id={`ticket-options-${ticketId}`}
-        className="constructor-ticket-title-input constructor-option-count-select"
-        value={draft.option_count}
-        onChange={(e) => {
-          const option_count = normalizeOptionCount(Number(e.target.value));
-          onUpdateDraft((d) => ({
-            ...d,
-            option_count,
-            questions: d.questions.map((item) => ({
-              ...item,
-              correct: clampCorrectLetter(item.correct, option_count),
-            })),
-          }));
-        }}
-      >
-        {Array.from(
-          { length: MAX_OPTION_COUNT - MIN_OPTION_COUNT + 1 },
-          (_, i) => MIN_OPTION_COUNT + i
-        ).map((n) => (
-          <option key={n} value={n}>
-            {n}
-          </option>
-        ))}
-      </select>
-
-      <div className="constructor-questions-toolbar">
-        <h3 className="constructor-questions-toolbar-title">Список вопросов</h3>
-        <div className="constructor-page-actions">
+      <div className="constructor-questions-header">
+        <h3 className="constructor-questions-list-title">Список вопросов</h3>
+        <div className="constructor-file-actions">
           <input
             ref={fileRef}
             type="file"
@@ -390,12 +420,29 @@ function TicketConfigurePanel({
           >
             Загрузить из файла
           </button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => void onExport()}>
+            Выгрузить в файл
+          </button>
+          <select
+            className="constructor-ticket-title-input constructor-export-format-select"
+            value={exportFormat}
+            aria-label="Формат выгрузки"
+            onChange={(e) => setExportFormat(e.target.value as TicketExportFormat)}
+          >
+            {TICKET_EXPORT_FORMATS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       {importError && <p className="auth-error">{importError}</p>}
+      {exportError && <p className="auth-error">{exportError}</p>}
       <p className="dash-card-note constructor-import-hint">
         Поддерживаются TXT, CSV, TSV и Excel (.xlsx, .xls). Колонки: формулировка, варианты A–D,
-        верный ответ (необязательно).
+        верные ответы, кол-во вариантов (2–4, необязательно). У каждого вопроса можно задать своё
+        число вариантов.
       </p>
 
       <NumberCircleNav
@@ -403,7 +450,7 @@ function TicketConfigurePanel({
         items={draft.questions.map((q, qi) => ({
           key: qi,
           label: q.position,
-          filled: questionHasContent(q, draft.option_count),
+          filled: questionHasContent(q),
         }))}
         activeIndex={activeQuestionIndex}
         onSelect={goToQuestion}
@@ -412,8 +459,8 @@ function TicketConfigurePanel({
 
       {questionsShown.map((q, qi) => {
         const collapsed = Boolean(collapsedQuestions[qi]);
-        const optionFields = optionFieldsForQuestion(q, draft.option_count);
-        const correctLabels = labelsForCount(draft.option_count);
+        const optionFields = optionFieldsForQuestion(q);
+        const correctLabels = labelsForCount(q.option_count);
         return (
           <div
             key={`${ticketId}-q-${qi}`}
@@ -457,26 +504,69 @@ function TicketConfigurePanel({
                   }
                   minHeight={120}
                 />
-                <label htmlFor={`correct-${ticketId}-${q.position}`}>Верный ответ</label>
+                <label htmlFor={`question-options-${ticketId}-${q.position}`}>
+                  Количество вариантов ответа
+                </label>
                 <select
-                  id={`correct-${ticketId}-${q.position}`}
+                  id={`question-options-${ticketId}-${q.position}`}
                   className="constructor-ticket-title-input constructor-option-count-select"
-                  value={q.correct}
-                  onChange={(e) =>
+                  value={q.option_count}
+                  onChange={(e) => {
+                    const option_count = normalizeOptionCount(Number(e.target.value));
                     onUpdateDraft((d) => ({
                       ...d,
                       questions: d.questions.map((item, idx) =>
-                        idx === qi ? { ...item, correct: e.target.value } : item
+                        idx === qi
+                          ? {
+                              ...item,
+                              option_count,
+                              correct: clampCorrectLetters(item.correct, option_count),
+                            }
+                          : item
                       ),
-                    }))
-                  }
+                    }));
+                  }}
                 >
-                  {correctLabels.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
+                  {Array.from(
+                    { length: MAX_OPTION_COUNT - MIN_OPTION_COUNT + 1 },
+                    (_, i) => MIN_OPTION_COUNT + i
+                  ).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
                     </option>
                   ))}
                 </select>
+                <fieldset className="constructor-correct-fieldset">
+                  <legend>Верные ответы</legend>
+                  <div className="constructor-correct-options">
+                    {correctLabels.map((label) => (
+                      <label key={label} className="constructor-correct-option">
+                        <input
+                          type="checkbox"
+                          checked={q.correct.includes(label)}
+                          onChange={() =>
+                            onUpdateDraft((d) => ({
+                              ...d,
+                              questions: d.questions.map((item, idx) =>
+                                idx === qi
+                                  ? {
+                                      ...item,
+                                      correct: toggleCorrectLetter(
+                                        item.correct,
+                                        label,
+                                        item.option_count
+                                      ),
+                                    }
+                                  : item
+                              ),
+                            }))
+                          }
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
               </div>
               <div className="constructor-question-options">
                 {optionFields.map(({ key, label, field }) => (
@@ -532,15 +622,19 @@ function TicketConfigurePanel({
 
 function ConstructorEditor({ testId }: { testId: number }) {
   const navigate = useNavigate();
+  const { ticketId: ticketIdParam } = useParams();
+  const editingTicketId =
+    ticketIdParam && !Number.isNaN(Number(ticketIdParam)) ? Number(ticketIdParam) : null;
   const editPath = `/tests/${testId}`;
   const { data: test, setData: setTest, error, loading } = useGetReact<TestEdit>(editPath, true);
   const [drafts, setDrafts] = useState<TicketDraft[]>([]);
-  const [activeTicketId, setActiveTicketId] = useState<number | null>(null);
   const [visibleByTicket, setVisibleByTicket] = useState<Record<number, number>>({});
   const [actionError, setActionError] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (test) {
@@ -556,6 +650,27 @@ function ConstructorEditor({ testId }: { testId: number }) {
     }
   }, [test]);
 
+  useEffect(() => {
+    if (editingTicketId == null) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [editingTicketId]);
+
+  useEffect(() => {
+    if (!test || editingTicketId == null) return;
+    const exists = test.tickets.some((t) => t.id === editingTicketId);
+    if (!exists) {
+      navigate(`/constructor/${testId}`, { replace: true });
+      return;
+    }
+    const draft = drafts.find((d) => d.id === editingTicketId);
+    if (draft && visibleByTicket[editingTicketId] === undefined) {
+      setVisibleByTicket((v) => ({
+        ...v,
+        [editingTicketId]: defaultVisibleCount(draft),
+      }));
+    }
+  }, [test, editingTicketId, testId, navigate, drafts, visibleByTicket]);
+
   const updateDraft = useCallback((ticketId: number, updater: (d: TicketDraft) => TicketDraft) => {
     setDrafts((prev) => prev.map((d) => (d.id === ticketId ? updater(d) : d)));
   }, []);
@@ -567,8 +682,8 @@ function ConstructorEditor({ testId }: { testId: number }) {
       setActionError("");
       const last = updated.tickets[updated.tickets.length - 1];
       if (last) {
-        setActiveTicketId(last.id);
         setVisibleByTicket((v) => ({ ...v, [last.id]: 1 }));
+        navigate(`/constructor/${testId}/tickets/${last.id}`);
       }
     } catch (e) {
       setActionError(axiosErrorMessage(e));
@@ -585,7 +700,7 @@ function ConstructorEditor({ testId }: { testId: number }) {
     try {
       setTest(await deleteReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`));
       setMessage("Билет удалён");
-      if (activeTicketId === ticketId) setActiveTicketId(null);
+      if (editingTicketId === ticketId) navigate(`/constructor/${testId}`);
     } catch (e) {
       setActionError(axiosErrorMessage(e));
     } finally {
@@ -603,12 +718,13 @@ function ConstructorEditor({ testId }: { testId: number }) {
     setActionError("");
     const questions: QuestionSave[] = renumberQuestions(slice).map((q) => ({
       position: q.position,
+      option_count: q.option_count,
       text: q.text,
       option_a: q.option_a,
       option_b: q.option_b,
       option_c: q.option_c,
       option_d: q.option_d,
-      correct: q.correct,
+      correct: formatCorrectLetters(q.correct),
     }));
     try {
       setTest(
@@ -631,14 +747,13 @@ function ConstructorEditor({ testId }: { testId: number }) {
   }
 
   const displayError = actionError || error;
-  const activeDraft = activeTicketId ? drafts.find((d) => d.id === activeTicketId) : null;
-  const activeTicket = activeTicketId ? test.tickets.find((t) => t.id === activeTicketId) : null;
+  const activeDraft = editingTicketId ? drafts.find((d) => d.id === editingTicketId) : null;
+  const activeTicket = editingTicketId ? test.tickets.find((t) => t.id === editingTicketId) : null;
   const activeTicketIndex =
-    activeTicketId != null ? test.tickets.findIndex((t) => t.id === activeTicketId) : -1;
+    editingTicketId != null ? test.tickets.findIndex((t) => t.id === editingTicketId) : -1;
+  const isEditingTicket = editingTicketId != null && activeDraft != null && activeTicket != null;
 
-  const activateTicket = (ticketId: number, scrollToPanel = false) => {
-    const opening = activeTicketId !== ticketId;
-    setActiveTicketId(ticketId);
+  const openTicket = (ticketId: number) => {
     const draft = drafts.find((d) => d.id === ticketId);
     if (draft && visibleByTicket[ticketId] === undefined) {
       setVisibleByTicket((v) => ({
@@ -646,13 +761,42 @@ function ConstructorEditor({ testId }: { testId: number }) {
         [ticketId]: defaultVisibleCount(draft),
       }));
     }
-    scrollToElement(`constructor-ticket-${ticketId}`);
-    if (scrollToPanel || opening) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToElement(`constructor-panel-${ticketId}`);
-        });
-      });
+    navigate(`/constructor/${testId}/tickets/${ticketId}`);
+  };
+
+  const closeTicket = () => navigate(`/constructor/${testId}`);
+
+  const toggleRandomTicketOrder = async () => {
+    if (!test) return;
+    setSettingsSaving(true);
+    setActionError("");
+    try {
+      const updated = await api.updateTestSettings(testId, !test.random_ticket_order);
+      setTest(updated);
+      setMessage(
+        updated.random_ticket_order
+          ? "В экзамене билеты будут выдаваться в случайном порядке"
+          : "В экзамене билеты будут выдаваться по порядку"
+      );
+    } catch (e) {
+      setActionError(axiosErrorMessage(e));
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const publishTest = async () => {
+    if (!test) return;
+    setPublishing(true);
+    setActionError("");
+    try {
+      const updated = await api.publishTest(testId);
+      setTest(updated);
+      setMessage("Тест опубликован — доступен для экзамена и тренировки");
+    } catch (e) {
+      setActionError(axiosErrorMessage(e));
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -674,14 +818,14 @@ function ConstructorEditor({ testId }: { testId: number }) {
                     ticket.complete ||
                     Boolean(
                       draft &&
-                        draft.questions.some((q) => questionHasContent(q, draft.option_count))
+                        draft.questions.some((q) => questionHasContent(q))
                     ),
                 };
               })}
               activeIndex={activeTicketIndex >= 0 ? activeTicketIndex : null}
               onSelect={(index) => {
                 const ticket = test.tickets[index];
-                if (ticket) activateTicket(ticket.id, true);
+                if (ticket) openTicket(ticket.id);
               }}
               showTrailingEllipsis={test.tickets.length < test.max_tickets}
             />
@@ -692,52 +836,98 @@ function ConstructorEditor({ testId }: { testId: number }) {
       <div className="dash-page-card">
         <h1>{test.title}</h1>
         <p className="dash-card-meta">
-          Билетов {test.tickets.length}/{test.max_tickets}
-          {test.ready ? " · готов к сдаче" : " · заполните все билеты (по 10 вопросов в каждом)"}
+          {safetyGroupLabel(test.safety_group)}
+          {" · "}Билетов {test.tickets.length}/{test.max_tickets}
+          {test.ready
+            ? " · готов к сдаче"
+            : test.published
+              ? " · опубликован, добавьте билет с 10 вопросами"
+              : " · черновик — достаточно одного билета с 10 вопросами, затем «Тест готов»"}
+          {test.random_ticket_order ? " · случайный порядок билетов в экзамене" : ""}
         </p>
+        <div className="constructor-page-actions" style={{ marginBottom: "var(--spacing-4)" }}>
+          <button
+            type="button"
+            className={`constructor-random-order-btn${
+              test.random_ticket_order ? " constructor-random-order-btn-active" : ""
+            }`}
+            disabled={settingsSaving}
+            onClick={() => void toggleRandomTicketOrder()}
+          >
+            {settingsSaving
+              ? "Сохранение…"
+              : test.random_ticket_order
+                ? "Случайный порядок билетов: вкл"
+                : "Случайный порядок билетов: выкл"}
+          </button>
+          <button
+            type="button"
+            className={`constructor-random-order-btn${
+              test.published ? " constructor-random-order-btn-active" : ""
+            }`}
+            disabled={publishing || test.published || !test.content_complete}
+            title={
+              test.published
+                ? "Тест уже опубликован"
+                : !test.content_complete
+                  ? "Добавьте хотя бы один билет с 10 вопросами"
+                  : undefined
+            }
+            onClick={() => void publishTest()}
+          >
+            {publishing ? "Публикация…" : test.published ? "Тест опубликован" : "Тест готов"}
+          </button>
+        </div>
         {displayError && <p className="auth-error">{displayError}</p>}
         {message && <p className="dash-card-note">{message}</p>}
-        <Link to="/constructor" className="dash-card-link" style={{ display: "inline-block", marginBottom: "var(--spacing-4)" }}>
-          ← К списку тестов
-        </Link>
+        {isEditingTicket ? (
+          <button type="button" className="dash-link-btn" onClick={closeTicket}>
+            ← К списку билетов
+          </button>
+        ) : (
+          <Link to="/constructor" className="dash-card-link" style={{ display: "inline-block" }}>
+            ← К списку тестов
+          </Link>
+        )}
       </div>
 
+      {!isEditingTicket && (
       <div className="dash-page-card constructor-tickets-card">
-        <ul className="constructor-ticket-rows">
+        <ul className="constructor-ticket-grid">
           {test.tickets.map((ticket) => {
             const draft = drafts.find((d) => d.id === ticket.id);
             const label = draft?.title.trim() || `Билет ${ticket.position}`;
-            const isActive = activeTicketId === ticket.id;
             return (
               <li
                 key={ticket.id}
                 id={`constructor-ticket-${ticket.id}`}
-                className={isActive ? "constructor-ticket-row-active" : ""}
+                className="constructor-ticket-tile"
               >
-                <div className="constructor-ticket-row-main">
-                  <strong>{label}</strong>
-                  {ticket.complete ? (
-                    <span className="dash-pill-ok">заполнен</span>
-                  ) : (
-                    <span className="dash-pill-draft">черновик</span>
-                  )}
-                </div>
-                <div className="constructor-page-actions">
+                <div className="constructor-ticket-tile-title">{label}</div>
+                {ticket.complete ? (
+                  <span className="constructor-ticket-tile-status dash-pill-ok">заполнен</span>
+                ) : (
+                  <span className="constructor-ticket-tile-status dash-pill-draft">черновик</span>
+                )}
+                <div className="constructor-ticket-tile-actions">
                   <button
                     type="button"
-                    className={isActive ? "dash-exam-btn" : "btn btn-outline btn-sm"}
-                    style={isActive ? { border: "none", cursor: "pointer" } : undefined}
-                    onClick={() => activateTicket(ticket.id, true)}
+                    className="constructor-ticket-icon-btn constructor-ticket-icon-btn-edit"
+                    title="Редактировать билет"
+                    aria-label={`Редактировать ${label}`}
+                    onClick={() => openTicket(ticket.id)}
                   >
-                    {isActive ? "Настраивается…" : "Настроить"}
+                    <TicketPencilIcon />
                   </button>
                   <button
                     type="button"
-                    className="dash-btn-danger btn-sm"
+                    className="constructor-ticket-icon-btn constructor-ticket-icon-btn-delete"
+                    title="Удалить билет"
+                    aria-label={`Удалить ${label}`}
                     disabled={deletingId === ticket.id}
                     onClick={() => void deleteTicket(ticket.id)}
                   >
-                    Удалить
+                    <TicketDeleteIcon />
                   </button>
                 </div>
               </li>
@@ -754,14 +944,15 @@ function ConstructorEditor({ testId }: { testId: number }) {
           Добавить билет
         </button>
       </div>
+      )}
 
-      {activeDraft && activeTicket && (
+      {isEditingTicket && (
         <TicketConfigurePanel
           ticketId={activeTicket.id}
           draft={activeDraft}
           ticketComplete={activeTicket.complete}
           visibleCount={visibleByTicket[activeTicket.id] ?? defaultVisibleCount(activeDraft)}
-          onClose={() => setActiveTicketId(null)}
+          onClose={closeTicket}
           onUpdateDraft={(updater) => updateDraft(activeTicket.id, updater)}
           onSetVisibleCount={(n) =>
             setVisibleByTicket((v) => ({ ...v, [activeTicket.id]: n }))
@@ -773,13 +964,15 @@ function ConstructorEditor({ testId }: { testId: number }) {
         />
       )}
 
-      <button
-        type="button"
-        className="dash-link-btn"
-        onClick={() => navigate("/constructor")}
-      >
-        Закрыть редактор
-      </button>
+      {!isEditingTicket && (
+        <button
+          type="button"
+          className="dash-link-btn"
+          onClick={() => navigate("/constructor")}
+        >
+          Закрыть редактор
+        </button>
+      )}
     </>
   );
 }
@@ -790,8 +983,22 @@ export default function TicketConstructorPage() {
 
   return (
     <DashboardLayout active="constructor">
-      <h1 className="dash-section-title">Конструктор билетов</h1>
-      {id && !Number.isNaN(id) ? <ConstructorEditor testId={id} /> : <ConstructorTestList />}
+      {id && !Number.isNaN(id) ? (
+        <ConstructorEditor testId={id} />
+      ) : (
+        <>
+          <div className="dash-page-intro">
+            <h1 className="dash-section-title">Конструктор билетов</h1>
+            <p className="dash-card-note">
+              Выберите тест для редактирования билетов с форматированием текста.
+            </p>
+            <Link to="/tests/new" className="btn btn-primary dash-page-intro-btn">
+              Новый тест
+            </Link>
+          </div>
+          <ConstructorTestList />
+        </>
+      )}
     </DashboardLayout>
   );
 }

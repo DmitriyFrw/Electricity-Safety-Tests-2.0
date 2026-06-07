@@ -53,11 +53,13 @@ export default function AdminUsersPage() {
 
   return (
     <DashboardLayout active="admin">
-      <h1 className="dash-section-title">Пользователи</h1>
-      <p className="dash-card-note" style={{ marginBottom: "var(--spacing-4)" }}>
-        Назначение ролей: администратор, Еж (редактор тестов), Кот (экзамен и протокол). Свою роль
-        изменить нельзя.
-      </p>
+      <div className="dash-page-intro">
+        <h1 className="dash-section-title">Пользователи</h1>
+        <p className="dash-card-note">
+          Назначение ролей: администратор, Еж (редактор тестов), Кот (экзамен и протокол). Свою роль
+          изменить нельзя.
+        </p>
+      </div>
       {error && <p className="auth-error">{error}</p>}
       {message && <p className="dash-card-note">{message}</p>}
       {loading ? (

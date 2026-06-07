@@ -4,6 +4,8 @@ import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import { useAuth } from "../auth/AuthContext";
 
+const LOGO_MASCOT = "/razvivaisia/assets/images/logo-mascot.gif";
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -30,17 +32,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
+    <div className="auth-page auth-page--login">
       <div className="auth-card">
-        <h1>Вход</h1>
+        <div className="auth-brand">
+          <img src={LOGO_MASCOT} alt="" className="auth-brand-mascot" />
+          <h1 className="auth-brand-title">
+            Развивайс<span className="auth-brand-accent">я</span>
+          </h1>
+          <p className="auth-brand-subtitle">образовательная платформа</p>
+        </div>
         {error && <p className="auth-error">{error}</p>}
-        <form onSubmit={onSubmit}>
+        <form className="auth-form" onSubmit={onSubmit}>
           <label htmlFor="username">Логин</label>
           <input id="username" name="username" required autoComplete="username" />
           <label htmlFor="password">Пароль</label>
           <input id="password" name="password" type="password" required autoComplete="current-password" />
           <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-            {loading ? "Вход…" : "Войти"}
+            {loading ? "Вход…" : "Договорились!"}
           </button>
         </form>
         <p className="auth-links">

@@ -1,14 +1,19 @@
 import type {
   Dashboard,
+  ExamResult,
   Manual,
   SignedProtocol,
   TestEdit,
   TestListItem,
+  KotUser,
   User,
   UserAdmin,
+  WikiPage,
+  WikiPageListItem,
+  WikiAttachment,
 } from "../types/api";
 import type { QuestionSave } from "../types/api";
-import { deleteReact, getReact, postReact, putReact } from "./getReact";
+import { deleteReact, getReact, postFormReact, postReact, putReact } from "./getReact";
 
 /** API-слой: все вызовы через getReact / postReact (axios → JSON). */
 export const api = {
@@ -27,13 +32,19 @@ export const api = {
   listTests: () =>
     getReact<{ items: TestListItem[] }>("/tests").then((r) => r.items),
 
-  createTest: (title: string, description?: string) =>
-    postReact<{ id: number; title: string }>("/tests", {
+  createTest: (title: string, description?: string, safety_group = "II") =>
+    postReact<{ id: number; title: string; safety_group: string }>("/tests", {
       title,
       description: description || null,
+      safety_group,
     }),
 
   getTestEdit: (testId: number) => getReact<TestEdit>(`/tests/${testId}`),
+
+  updateTestSettings: (testId: number, random_ticket_order: boolean) =>
+    putReact<TestEdit>(`/tests/${testId}/settings`, { random_ticket_order }),
+
+  publishTest: (testId: number) => postReact<TestEdit>(`/tests/${testId}/publish`),
 
   deleteTest: (testId: number) => deleteReact<void>(`/tests/${testId}`),
 
@@ -55,6 +66,11 @@ export const api = {
   listManuals: () => getReact<Manual[]>("/manuals"),
 
   listAdminUsers: () => getReact<UserAdmin[]>("/admin/users"),
+
+  listKotUsers: () => getReact<KotUser[]>("/staff/kot-users"),
+
+  updateKotSafetyGroup: (userId: number, safety_group: string) =>
+    putReact<KotUser>(`/staff/kot-users/${userId}/safety-group`, { safety_group }),
 
   updateUserRole: (userId: number, role: string) =>
     putReact<UserAdmin>(`/admin/users/${userId}/role`, { role }),
@@ -83,4 +99,28 @@ export const api = {
 
   signProtocol: (testId: number, attemptId: number) =>
     postReact<SignedProtocol>(`/tests/${testId}/exam/attempts/${attemptId}/protocol/sign`),
+
+  getExamResult: (testId: number, attemptId: number) =>
+    getReact<ExamResult>(`/tests/${testId}/exam/attempts/${attemptId}/result`),
+
+  listWikiPages: () => getReact<WikiPageListItem[]>("/wiki/pages"),
+
+  getWikiPage: (pageId: number) => getReact<WikiPage>(`/wiki/pages/${pageId}`),
+
+  createWikiPage: (title: string, content: string) =>
+    postReact<WikiPage>("/wiki/pages", { title, content }),
+
+  updateWikiPage: (pageId: number, title: string, content: string) =>
+    putReact<WikiPage>(`/wiki/pages/${pageId}`, { title, content }),
+
+  deleteWikiPage: (pageId: number) => deleteReact<void>(`/wiki/pages/${pageId}`),
+
+  uploadWikiAttachment: (pageId: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return postFormReact<WikiAttachment>(`/wiki/pages/${pageId}/attachments`, fd);
+  },
+
+  deleteWikiAttachment: (attachmentId: number) =>
+    deleteReact<WikiPage>(`/wiki/attachments/${attachmentId}`),
 };

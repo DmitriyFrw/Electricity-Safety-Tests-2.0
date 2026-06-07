@@ -1,4 +1,5 @@
 import { Link, useLocation, useParams } from "react-router-dom";
+import TestResultTiles from "../components/test-flow/TestResultTiles";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult } from "../types/api";
 
@@ -16,9 +17,11 @@ export default function TrainingResultPage() {
     );
   }
 
+  const questions = result.question_results ?? [];
+
   return (
     <DashboardLayout active="training">
-      <section className="dash-hero" style={{ gridTemplateColumns: "1fr auto" }}>
+      <section className="dash-hero">
         <div>
           <h1>Результат тренировки</h1>
           <p className="dash-hero-sub">{result.test_title}</p>
@@ -32,6 +35,15 @@ export default function TrainingResultPage() {
           К обучению
         </Link>
       </section>
+
+      {questions.length > 0 && (
+        <TestResultTiles
+          questions={questions}
+          reviewBasePath={`/training/${testId}/result`}
+          result={result}
+        />
+      )}
+
       {result.ticket_rows.length > 0 && (
         <div className="dash-table-wrap">
           <table className="dash-table">

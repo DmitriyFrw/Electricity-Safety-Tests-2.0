@@ -61,6 +61,7 @@ export default function TestEditPage() {
     for (let pos = 1; pos <= test.questions_per_ticket; pos++) {
       questions.push({
         position: pos,
+        option_count,
         text: String(fd.get(`q${pos}_text`) || ""),
         option_a: String(fd.get(`q${pos}_a`) || ""),
         option_b: String(fd.get(`q${pos}_b`) || ""),

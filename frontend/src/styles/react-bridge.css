@@ -19,6 +19,44 @@
   font-size: var(--font-size-2xl);
 }
 
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.auth-brand-mascot {
+  width: 120px;
+  height: auto;
+  margin-bottom: var(--spacing-4);
+}
+
+.auth-brand-title {
+  margin: 0 0 var(--spacing-1);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.03em;
+  color: var(--color-text-primary);
+}
+
+.auth-brand-accent {
+  color: var(--color-accent-red);
+}
+
+.auth-brand-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-form button[type="submit"] {
+  display: block;
+  width: 100%;
+  margin-top: var(--spacing-4);
+}
+
 .auth-card label {
   display: block;
   margin: var(--spacing-3) 0 var(--spacing-1);
@@ -46,11 +84,22 @@
   font-size: var(--font-size-sm);
 }
 
-.auth-brand {
-  display: flex;
-  justify-content: center;
+.auth-register-header {
+  text-align: center;
   margin-bottom: var(--spacing-4);
 }
+
+.auth-register-mascot {
+  display: block;
+  width: min(220px, 70vw);
+  height: auto;
+  margin: 0 auto var(--spacing-4);
+}
+
+.auth-register-header h1 {
+  margin: 0;
+}
+
 
 /* Запрет копирования текста билета */
 .dash-no-copy,
@@ -106,6 +155,13 @@ a.dash-exam-btn {
   cursor: not-allowed;
 }
 
+.header-logo-cloud {
+  height: 34px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
 .dash-logo {
   display: inline-flex;
   align-items: center;
@@ -133,6 +189,44 @@ a.dash-exam-btn {
 .grade-good { color: var(--color-primary); }
 .grade-satisfactory { color: var(--color-warning); }
 .grade-bad { color: var(--color-error); }
+
+.dash-protocol-draft-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.dash-protocol-draft-select {
+  flex: 1;
+  min-width: min(100%, 220px);
+  padding: var(--spacing-3) var(--spacing-4);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+}
+
+.dash-protocol-draft-select:focus {
+  outline: none;
+  border-color: rgba(0, 122, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.22);
+}
+
+.dash-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  align-items: center;
+}
+
+.dash-table-actions .btn {
+  text-decoration: none;
+  white-space: nowrap;
+}
 
 .dash-table-wrap { overflow-x: auto; margin-top: var(--spacing-4); }
 .dash-table {
@@ -260,4 +354,103 @@ a.dash-exam-btn {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed);
   margin: 0;
+}
+
+.exam-intro-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(70vh, calc(100vh - var(--header-height) - var(--spacing-12)));
+  padding: var(--spacing-6) 0;
+}
+
+.exam-intro-card {
+  width: 100%;
+  max-width: 520px;
+  padding: var(--spacing-8) var(--spacing-10);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--glass-shadow);
+  text-align: center;
+}
+
+.exam-intro-card h1 {
+  margin: 0 0 var(--spacing-6);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.03em;
+}
+
+.exam-intro-text {
+  margin-bottom: var(--spacing-8);
+  text-align: left;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.exam-intro-text p {
+  margin: 0 0 var(--spacing-4);
+}
+
+.exam-intro-text p:last-child {
+  margin-bottom: 0;
+}
+
+.exam-intro-mascot {
+  display: block;
+  width: min(200px, 60vw);
+  height: auto;
+  margin: 0 auto var(--spacing-6);
+}
+
+.exam-intro-btn {
+  display: inline-flex;
+  min-width: 200px;
+  text-decoration: none;
+}
+
+.widget-group-passed {
+  margin-top: var(--spacing-4);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.constructor-drafts-list .dash-exam-export-item {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.dash-exam-export-tile {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  text-decoration: none;
+  color: inherit;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.dash-exam-export-tile:hover {
+  background: var(--color-primary-light);
+  border-color: rgba(0, 122, 255, 0.25);
+}
+
+.dash-exam-export-tile strong {
+  display: block;
+  margin-bottom: var(--spacing-1);
+}
+
+.dash-exam-result-percent {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import { useAuth } from "../auth/AuthContext";
+import TestResultTiles from "../components/test-flow/TestResultTiles";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult, SignedProtocol } from "../types/api";
 import { formatDateRu } from "../utils/format";
@@ -77,7 +78,7 @@ function ExamResultView({ testId, result }: ExamResultViewProps) {
 
   return (
     <DashboardLayout active="exam">
-      <section className="dash-hero" style={{ gridTemplateColumns: "1fr auto" }}>
+      <section className="dash-hero">
         <div>
           <h1>Результат экзамена</h1>
           <p className="dash-hero-sub">{result.test_title}</p>
@@ -182,6 +183,14 @@ function ExamResultView({ testId, result }: ExamResultViewProps) {
         </section>
       )}
 
+      {(result.question_results?.length ?? 0) > 0 && (
+        <TestResultTiles
+          questions={result.question_results ?? []}
+          reviewBasePath={`/exam/${testId}/result`}
+          result={result}
+        />
+      )}
+
       {result.ticket_rows.length > 0 && (
         <div className="dash-table-wrap">
           <table className="dash-table">
@@ -213,12 +222,63 @@ function ExamResultView({ testId, result }: ExamResultViewProps) {
 }
 
 export default function ExamResultPage() {
-  const { testId } = useParams();
+  const { testId, attemptId } = useParams();
   const location = useLocation();
-  const result = location.state?.result as ExamResult | undefined;
+  const stateResult = location.state?.result as ExamResult | undefined;
 
   const tid = Number(testId);
+  const aid = attemptId ? Number(attemptId) : null;
   const hasTestId = Number.isFinite(tid) && tid > 0;
+
+  const [result, setResult] = useState<ExamResult | null>(stateResult ?? null);
+  const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(!stateResult && aid != null && Number.isFinite(aid));
+
+  useEffect(() => {
+    if (stateResult) {
+      setResult(stateResult);
+      setLoading(false);
+      return;
+    }
+    if (!hasTestId || aid == null || !Number.isFinite(aid)) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
+    void api
+      .getExamResult(tid, aid)
+      .then((data) => {
+        if (!cancelled) setResult(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(axiosErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [stateResult, hasTestId, tid, aid]);
+
+  if (loading) {
+    return (
+      <DashboardLayout active="exam">
+        <p className="dash-card-note">Загрузка…</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <DashboardLayout active="exam">
+        <p className="auth-error">{loadError}</p>
+        <Link to="/cabinet">В кабинет</Link>
+      </DashboardLayout>
+    );
+  }
 
   if (!result) {
     return (

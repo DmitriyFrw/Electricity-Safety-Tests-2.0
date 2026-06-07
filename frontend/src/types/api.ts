@@ -4,7 +4,17 @@ export interface UserAdmin {
   display_name: string;
   role: string;
   role_label: string;
+  safety_group: string | null;
   created_at: string | null;
+  profile_complete: boolean;
+}
+
+export interface KotUser {
+  id: number;
+  username: string;
+  display_name: string;
+  safety_group: string;
+  safety_group_desc: string;
   profile_complete: boolean;
 }
 
@@ -15,6 +25,7 @@ export interface User {
   role: "admin" | "ezh" | "kot" | string;
   role_label: string;
   can_create_tests: boolean;
+  can_edit_wiki: boolean;
   safety_group: string;
   safety_group_desc: string;
   full_name: string | null;
@@ -28,6 +39,26 @@ export interface Manual {
   id: string;
   title: string;
   filename: string;
+}
+
+export interface WikiAttachment {
+  id: number;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  url: string;
+  is_image: boolean;
+}
+
+export interface WikiPageListItem {
+  id: number;
+  title: string;
+  updated_at: string;
+}
+
+export interface WikiPage extends WikiPageListItem {
+  content: string;
+  attachments: WikiAttachment[];
 }
 
 export interface AttemptRow {
@@ -80,6 +111,9 @@ export interface Dashboard {
   last_grade_class: string | null;
   last_test_title: string | null;
   last_test_date: string | null;
+  last_passed_exam_date: string | null;
+  last_passed_exam_percent: number | null;
+  last_passed_exam_grade: string | null;
   next_check_date: string;
   signed_protocol: SignedProtocol | null;
   staff_protocol_exports: StaffProtocolExport[];
@@ -92,6 +126,7 @@ export interface TestListItem {
   id: number;
   title: string;
   description: string | null;
+  safety_group: string;
   author_id: number;
   author_username: string;
   ticket_count: number;
@@ -107,6 +142,8 @@ export interface QuestionExam {
   option_b: string;
   option_c: string;
   option_d: string;
+  option_count?: number;
+  multiple_choice?: boolean;
 }
 
 export interface TicketExam {
@@ -132,6 +169,7 @@ export interface ExamSession {
   completed_ticket_ids: number[];
   next_ticket_id: number | null;
   time_limit_seconds: number;
+  random_ticket_order?: boolean;
 }
 
 export interface ExamTicketPaper {
@@ -156,6 +194,25 @@ export interface TicketResultRow {
   grade_class: string;
 }
 
+export interface QuestionResult {
+  question_id: number;
+  ticket_id: number;
+  ticket_position: number;
+  ticket_title: string | null;
+  question_position: number;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  option_count: number;
+  correct_index: number;
+  correct_indexes?: number[];
+  selected_index: number | null;
+  selected_indexes?: number[];
+  is_correct: boolean;
+}
+
 export interface ExamResult {
   attempt_id: number;
   test_id: number;
@@ -170,6 +227,7 @@ export interface ExamResult {
   protocol_signed: boolean;
   min_pass_percent: number;
   ticket_rows: TicketResultRow[];
+  question_results?: QuestionResult[];
 }
 
 export interface SignedProtocol {
@@ -191,6 +249,8 @@ export interface QuestionEdit {
   position: number;
   text: string;
   correct_index: number;
+  correct_indexes?: number[];
+  option_count?: number;
   option_a: string;
   option_b: string;
   option_c: string;
@@ -210,15 +270,20 @@ export interface TestEdit {
   id: number;
   title: string;
   description: string | null;
+  safety_group: string;
+  published: boolean;
+  content_complete: boolean;
   ready: boolean;
   max_tickets: number;
   questions_per_ticket: number;
+  random_ticket_order: boolean;
   tickets: TicketEdit[];
 }
 
 export interface QuestionSave {
   position: number;
   text: string;
+  option_count: number;
   option_a: string;
   option_b: string;
   option_c: string;

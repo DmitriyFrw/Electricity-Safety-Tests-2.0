@@ -24,6 +24,8 @@ type Props = {
   value: string;
   onChange: (html: string) => void;
   minHeight?: number;
+  gridLayout?: boolean;
+  enableLinks?: boolean;
 };
 
 function applyCommand(cmd: string, value?: string) {
@@ -116,6 +118,7 @@ function FormatToolbar({
   setColorOpen,
   highlightOpen,
   setHighlightOpen,
+  enableLinks,
 }: {
   run: (cmd: string, val?: string) => void;
   onFont: (family: string) => void;
@@ -127,6 +130,7 @@ function FormatToolbar({
   setColorOpen: (v: boolean | ((prev: boolean) => boolean)) => void;
   highlightOpen: boolean;
   setHighlightOpen: (v: boolean | ((prev: boolean) => boolean)) => void;
+  enableLinks?: boolean;
 }) {
   return (
     <div className="rich-editor-toolbar" role="toolbar" aria-label="Инструменты форматирования">
@@ -274,12 +278,29 @@ function FormatToolbar({
             <span className="rte-glyph rte-glyph-clear" aria-hidden />
           </ToolbarBtn>
         </div>
+        {enableLinks && (
+          <div className="rich-editor-group">
+            <ToolbarBtn title="Вставить ссылку" onClick={() => run("createLinkPrompt")}>
+              <span className="rte-glyph rte-glyph-link" aria-hidden />
+            </ToolbarBtn>
+            <ToolbarBtn title="Убрать ссылку" onClick={() => run("unlink")}>
+              <span className="rte-label">⌫</span>
+            </ToolbarBtn>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default function RichTextEditor({ label, value, onChange, minHeight = 88 }: Props) {
+export default function RichTextEditor({
+  label,
+  value,
+  onChange,
+  minHeight = 88,
+  gridLayout = false,
+  enableLinks = false,
+}: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const colorWrapRef = useRef<HTMLDivElement>(null);
   const highlightWrapRef = useRef<HTMLDivElement>(null);
@@ -296,7 +317,26 @@ export default function RichTextEditor({ label, value, onChange, minHeight = 88 
   const run = useCallback(
     (cmd: string, val?: string) => {
       focusEditor(editorRef);
-      applyCommand(cmd, val);
+      if (cmd === "createLinkPrompt") {
+        const selected = window.getSelection()?.toString() ?? "";
+        let url = window.prompt("Адрес ссылки", "https://");
+        if (!url) return;
+        url = url.trim();
+        if (!/^https?:\/\//i.test(url) && !url.startsWith("/")) {
+          url = `https://${url}`;
+        }
+        if (selected) {
+          applyCommand("createLink", url);
+        } else {
+          const text = window.prompt("Текст ссылки", url) || url;
+          applyCommand(
+            "insertHTML",
+            `<a href="${url.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer">${text.replace(/</g, "&lt;")}</a>`
+          );
+        }
+      } else {
+        applyCommand(cmd, val);
+      }
       sync();
     },
     [sync]
@@ -392,11 +432,12 @@ export default function RichTextEditor({ label, value, onChange, minHeight = 88 
             setColorOpen={setColorOpen}
             highlightOpen={highlightOpen}
             setHighlightOpen={setHighlightOpen}
+            enableLinks={enableLinks}
           />
         </details>
         <div
           ref={editorRef}
-          className="rich-editor-area"
+          className={`rich-editor-area${gridLayout ? " rich-editor-area-grid" : ""}`}
           contentEditable
           role="textbox"
           aria-label={label}

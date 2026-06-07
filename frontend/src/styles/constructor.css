@@ -457,6 +457,21 @@
   transform: rotate(-18deg);
 }
 
+.rte-glyph-link::before {
+  content: "🔗";
+  font-size: 11px;
+  line-height: 1;
+}
+
+.rich-editor-area-grid {
+  background-color: #fff;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+  min-height: 240px;
+}
+
 .rich-editor-area {
   border: none;
   border-radius: 0 0 10px 10px;
@@ -594,6 +609,49 @@
   margin: 0;
 }
 
+.constructor-random-order-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 300px;
+  min-height: 40px;
+  padding: 10px var(--spacing-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 1.2;
+  border-radius: var(--border-radius-full, 999px);
+  border: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.14));
+  background: #fff;
+  color: var(--color-text-primary, #1d1d1f);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.constructor-random-order-btn:hover:not(:disabled) {
+  border-color: rgba(0, 122, 255, 0.45);
+  color: var(--color-primary, #007aff);
+}
+
+.constructor-random-order-btn-active {
+  border: none;
+  background: var(--color-primary, #007aff);
+  color: #fff;
+}
+
+.constructor-random-order-btn-active:hover:not(:disabled) {
+  background: var(--color-primary-hover, #0066d6);
+  color: #fff;
+}
+
+.constructor-random-order-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .constructor-option-count-select {
   width: auto;
   max-width: 120px;
@@ -706,50 +764,128 @@
   margin-bottom: var(--spacing-4);
 }
 
-.constructor-ticket-rows {
+.constructor-ticket-grid {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.constructor-ticket-tile {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.constructor-ticket-rows > li {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-4);
-  padding: var(--spacing-3) 0;
-  border-bottom: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  gap: 6px;
+  padding: var(--spacing-4) var(--spacing-3);
+  border: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
-.constructor-ticket-row-active {
+.constructor-ticket-tile-active {
+  border-color: rgba(0, 122, 255, 0.45);
   background: var(--color-primary-light, rgba(0, 122, 255, 0.08));
-  margin: 0 calc(-1 * var(--spacing-4));
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  border-radius: var(--border-radius-md);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
-.constructor-ticket-row-main {
+.constructor-ticket-tile-title {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: #1d1d1f;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.constructor-ticket-tile-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.constructor-ticket-tile-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-4);
+  margin-top: 2px;
+}
+
+.constructor-ticket-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.constructor-ticket-icon-btn-edit {
+  color: var(--color-primary, #007aff);
+}
+
+.constructor-ticket-icon-btn-edit:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.constructor-ticket-tile-active .constructor-ticket-icon-btn-edit {
+  color: #004999;
+}
+
+.constructor-ticket-icon-btn-delete {
+  color: var(--color-error, #ff3b30);
+}
+
+.constructor-ticket-icon-btn-delete:hover:not(:disabled) {
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.constructor-ticket-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .constructor-configure-panel {
   margin-top: var(--spacing-2);
 }
 
+.constructor-questions-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+  margin-bottom: var(--spacing-2);
+}
+
+.constructor-questions-list-title {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
 .constructor-questions-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-end;
   gap: var(--spacing-3);
-  margin-top: var(--spacing-5);
   margin-bottom: var(--spacing-2);
 }
 
@@ -769,6 +905,53 @@
 
 .constructor-import-hint {
   margin-bottom: var(--spacing-4);
+}
+
+.constructor-file-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-2);
+}
+
+.constructor-export-format-select {
+  width: 100%;
+  min-width: 10rem;
+  max-width: 14rem;
+}
+
+.constructor-correct-fieldset {
+  margin: var(--spacing-3) 0 0;
+  padding: var(--spacing-3);
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.constructor-correct-fieldset legend {
+  padding: 0 var(--spacing-1);
+  font-weight: 600;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.constructor-correct-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.constructor-correct-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.constructor-correct-option input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary, #007aff);
 }
 
 .constructor-question-block {

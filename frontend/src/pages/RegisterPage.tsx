@@ -31,9 +31,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-page">
+    <div className="auth-page auth-page--register">
       <div className="auth-card">
-        <h1>Регистрация</h1>
+        <div className="auth-register-header">
+          <img
+            src="/razvivaisia/assets/images/ezhkot-privet.png"
+            alt="Ежекот"
+            className="auth-register-mascot"
+            width={220}
+            height={220}
+          />
+          <h1>Регистрация</h1>
+        </div>
         {error && <p className="auth-error">{error}</p>}
         <form onSubmit={onSubmit}>
           <label htmlFor="username">Логин</label>

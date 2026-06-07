@@ -1,7 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { safetyGroupLabel } from "../constants/safetyGroups";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { useMobileNav } from "../hooks/useMobileNav";
+import { useSidebarOnScroll } from "../hooks/useSidebarOnScroll";
 
 const NAV_BASE = [
   { to: "/cabinet", label: "Главная", key: "home" },
@@ -11,6 +13,11 @@ const NAV_BASE = [
 ] as const;
 
 const NAV_ADMIN = { to: "/admin/users", label: "Пользователи", key: "admin" } as const;
+const NAV_SAFETY_GROUPS = {
+  to: "/staff/safety-groups",
+  label: "Группы ЭБ",
+  key: "safety-groups",
+} as const;
 const NAV_CONSTRUCTOR = {
   to: "/constructor",
   label: "Конструктор билетов",
@@ -18,6 +25,7 @@ const NAV_CONSTRUCTOR = {
 } as const;
 
 const LOGO_MASCOT = "/razvivaisia/assets/images/logo-mascot.gif";
+const LOGO_CLOUD = "/razvivaisia/assets/images/yandex-cloud-logo.png";
 const AVATAR = "/razvivaisia/assets/images/hedgehog-avatar.svg";
 
 export default function DashboardLayout({
@@ -25,15 +33,51 @@ export default function DashboardLayout({
   active,
 }: {
   children: React.ReactNode;
-  active: "home" | "manuals" | "training" | "exam" | "admin" | "constructor";
+  active: "home" | "manuals" | "training" | "exam" | "admin" | "constructor" | "safety-groups";
 }) {
   const { user, setUser } = useAuth();
   const editorNav = user?.can_create_tests ? [NAV_CONSTRUCTOR] : [];
-  const adminNav = user?.role === "admin" ? [NAV_ADMIN, ...editorNav] : editorNav;
+  const staffNav =
+    user?.role === "admin" || user?.role === "ezh" ? [NAV_SAFETY_GROUPS] : [];
+  const adminNav = user?.role === "admin" ? [NAV_ADMIN, ...editorNav, ...staffNav] : [...editorNav, ...staffNav];
   const navItems = [...NAV_BASE, ...adminNav];
   const navigate = useNavigate();
   const location = useLocation();
   const { open, toggle, close } = useMobileNav();
+  const { mainRef, collapsed, showDesktopSidebar, toggleDesktopSidebar } = useSidebarOnScroll(
+    location.pathname,
+    close,
+    open
+  );
+
+  const onBurgerClick = () => {
+    if (window.innerWidth <= 768) {
+      toggle();
+      return;
+    }
+    if (collapsed) {
+      toggleDesktopSidebar();
+    }
+  };
+
+  const pageWrapperClass = [
+    "page-wrapper",
+    "page-wrapper--dashboard",
+    collapsed ? "page-wrapper--sidebar-collapsed" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const mainLayoutClass = [
+    "main-layout",
+    !showDesktopSidebar ? "main-layout--sidebar-collapsed" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const sidebarClass = ["sidebar", open ? "active" : "", !showDesktopSidebar ? "sidebar--hidden" : ""]
+    .filter(Boolean)
+    .join(" ");
 
   const logout = async () => {
     try {
@@ -48,15 +92,16 @@ export default function DashboardLayout({
     active === key || location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
-    <div className="page-wrapper">
+    <div className={pageWrapperClass}>
       <header className="header">
         <div className="header-logo">
           <button
             type="button"
             className={`burger-menu ${open ? "active" : ""}`}
             id="burgerMenu"
-            aria-label="Открыть меню"
-            onClick={toggle}
+            aria-label={collapsed ? "Развернуть меню" : "Открыть меню"}
+            aria-expanded={open || (collapsed && showDesktopSidebar)}
+            onClick={onBurgerClick}
           >
             <span />
             <span />
@@ -64,7 +109,7 @@ export default function DashboardLayout({
           </button>
           <Link to="/cabinet" className="header-logo-brand">
             <img src={LOGO_MASCOT} alt="" className="header-logo-mascot" />
-            <span className="header-logo-mark">209AO</span>
+            <img src={LOGO_CLOUD} alt="Yandex Cloud" className="header-logo-cloud" />
           </Link>
         </div>
         <div className="header-user header-user-actions">
@@ -72,7 +117,7 @@ export default function DashboardLayout({
           <div className="header-user-info">
             <div className="header-user-name">{user?.display_name}</div>
             <div className="header-user-group">
-              <span>{user?.safety_group} группа</span> {user?.safety_group_desc}
+              {user?.role === "kot" ? safetyGroupLabel(user.safety_group) : user?.role_label}
             </div>
           </div>
           <button type="button" className="dash-link-btn" onClick={() => void logout()}>
@@ -81,7 +126,7 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <div className="main-layout">
+      <div className={mainLayoutClass}>
         <div
           className={`sidebar-overlay ${open ? "active" : ""}`}
           id="sidebarOverlay"
@@ -89,7 +134,7 @@ export default function DashboardLayout({
           onKeyDown={() => undefined}
           role="presentation"
         />
-        <aside className={`sidebar ${open ? "active" : ""}`} id="sidebar">
+        <aside className={sidebarClass} id="sidebar">
           <nav className="sidebar-nav">
             <ul className="sidebar-menu">
               {navItems.map((item) => (
@@ -122,7 +167,7 @@ export default function DashboardLayout({
           </div>
         </aside>
 
-        <main className="main-content">
+        <main className="main-content" ref={mainRef}>
           <div className="content-wrapper">{children}</div>
         </main>
       </div>

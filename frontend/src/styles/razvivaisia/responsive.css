@@ -65,6 +65,10 @@
         padding: var(--spacing-6);
     }
 
+    .dashboard-hero-row {
+        grid-template-columns: 1fr;
+    }
+
     .dashboard-hero {
         grid-template-columns: 1fr;
         text-align: center;

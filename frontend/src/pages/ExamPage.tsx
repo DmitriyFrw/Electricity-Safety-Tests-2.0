@@ -7,49 +7,44 @@ import { EXAM_TICKET_MINUTES } from "../utils/exam";
 export default function ExamPage() {
   const { data, error, loading } = useGetReact<{ items: TestListItem[] }>("/tests");
   const tests = data?.items ?? [];
-
   const firstReady = tests.find((t) => t.ready);
 
   return (
     <DashboardLayout active="exam">
-      <div className="dash-page-card">
-        <h1>Экзамен</h1>
-        <p className="dash-card-note">
-          На каждый билет — {EXAM_TICKET_MINUTES} минут. Тренировка без ограничения по времени — в разделе «Обучение».
-        </p>
-        {firstReady && (
-          <Link to={`/exam/${firstReady.id}`} className="dash-exam-btn">
-            Сдать экзамен
-          </Link>
-        )}
-      </div>
-      {error && <p className="auth-error">{error}</p>}
-      {loading && <p className="dash-card-note">Загрузка…</p>}
-      <div className="dash-table-wrap">
-        <table className="dash-table">
-          <thead>
-            <tr>
-              <th>Название</th>
-              <th>Билетов</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {tests.map((t) => (
-              <tr key={t.id}>
-                <td>{t.title}</td>
-                <td>{t.ticket_count}</td>
-                <td>
-                  {t.ready ? (
-                    <Link to={`/exam/${t.id}`}>Пройти</Link>
-                  ) : (
-                    <span className="dash-pill-draft">Черновик</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="exam-intro-page">
+        <div className="exam-intro-card">
+          <h1>Экзамен</h1>
+          <div className="exam-intro-text">
+            <p>
+              Экзамен сдается в присутствии контролирующего лица. На прохождение экзамена —{" "}
+              {EXAM_TICKET_MINUTES} минут. Для успешной сдачи экзамена необходимо набрать не менее
+              70% правильных ответов. У вас есть право на три ошибки.
+            </p>
+            <p>
+              Обратите внимание, что при закрытии страницы экзамен автоматически считается не
+              пройденным.
+            </p>
+            <p>Не спешите и у вас все получится.</p>
+            <p>Ежекот желает вам удачи!</p>
+          </div>
+          <img
+            src="/razvivaisia/assets/images/ezhkot-exam.png"
+            alt="Ежекот"
+            className="exam-intro-mascot"
+            width={200}
+            height={200}
+          />
+          {error && <p className="auth-error">{error}</p>}
+          {loading && <p className="dash-card-note">Загрузка…</p>}
+          {!loading && firstReady && (
+            <Link to={`/exam/${firstReady.id}`} className="btn btn-primary btn-lg exam-intro-btn">
+              Поехали!
+            </Link>
+          )}
+          {!loading && !error && !firstReady && (
+            <p className="dash-card-note">Нет доступных тестов для экзамена.</p>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );

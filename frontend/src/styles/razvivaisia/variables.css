@@ -126,6 +126,8 @@
     --transition-fast: 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     --transition-normal: 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
     --transition-slow: 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --sidebar-slide-duration: 0.52s;
+    --sidebar-slide-ease: cubic-bezier(0.32, 0.72, 0, 1);
 
     /* Layout */
     --sidebar-width: 260px;
@@ -143,4 +145,13 @@
 
     /* Glass */
     --blur-surface: saturate(180%) blur(20px);
+    --glass-bg: rgba(255, 255, 255, 0.48);
+    --glass-bg-subtle: rgba(255, 255, 255, 0.3);
+    --glass-blur: saturate(180%) blur(28px);
+    --glass-blur-soft: saturate(160%) blur(16px);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.55);
+    --glass-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.1);
 }

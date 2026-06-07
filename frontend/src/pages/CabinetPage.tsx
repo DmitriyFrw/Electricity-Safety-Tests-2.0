@@ -4,11 +4,33 @@ import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useGetReact } from "../hooks/useGetReact";
-import type { Dashboard } from "../types/api";
+import { safetyGroupLabel } from "../constants/safetyGroups";
+import type { Dashboard, StaffProtocolExport } from "../types/api";
 import { BUSINESS_UNITS } from "../constants/businessUnits";
-import { EXAM_TICKET_MINUTES } from "../utils/exam";
 import { formatDateRu, parseNextCheck } from "../utils/format";
 import { isProfileFieldsComplete, profileMissingLabels } from "../utils/profile";
+
+function PassedExamTile({ row }: { row: StaffProtocolExport }) {
+  return (
+    <li className="dash-exam-export-item">
+      <Link
+        to={`/exam/${row.test_id}/result/${row.attempt_id}`}
+        className="dash-exam-export-tile"
+      >
+        <strong>{row.examinee_full_name || "Экзаменуемый"}</strong>
+        <div className="dash-card-meta">
+          {row.test_title} · <span className="dash-exam-result-percent">{row.percent}%</span>
+          {!row.profile_complete && (
+            <>
+              {" "}
+              · <span className="grade-bad">профиль не заполнен</span>
+            </>
+          )}
+        </div>
+      </Link>
+    </li>
+  );
+}
 
 const InfoIcon = () => (
   <svg className="info-box-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -27,10 +49,22 @@ export default function CabinetPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [downloadingProtocol, setDownloadingProtocol] = useState(false);
   const [businessUnit, setBusinessUnit] = useState("");
+  const [selectedAdminDraftUserId, setSelectedAdminDraftUserId] = useState<number | "">("");
 
   useEffect(() => {
     setBusinessUnit(data?.user.business_unit ?? "");
   }, [data?.user.business_unit, data?.user?.id]);
+
+  useEffect(() => {
+    const drafts = data?.admin_protocol_drafts;
+    if (!drafts?.length) {
+      setSelectedAdminDraftUserId("");
+      return;
+    }
+    setSelectedAdminDraftUserId((prev) =>
+      prev !== "" && drafts.some((u) => u.user_id === prev) ? prev : drafts[0].user_id
+    );
+  }, [data?.admin_protocol_drafts]);
 
   if (error) {
     return (
@@ -137,28 +171,24 @@ export default function CabinetPage() {
 
   return (
     <DashboardLayout active="home">
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-content">
-          <h1>Личный кабинет</h1>
-          <p>платформы для подготовки и сдачи экзамена по электробезопасности</p>
-          <p className="dash-card-note">Роль: {data.user.role_label}</p>
-          <div className="info-box info-box-default">
-            <InfoIcon />
-            <span>
-              Экзамен сдается в присутствии контролирующего лица. На каждый билет —{" "}
-              {EXAM_TICKET_MINUTES} минут.
-            </span>
+      <div className="dashboard-hero-row">
+        <div className="dashboard-hero dashboard-hero-card">
+          <div className="dashboard-hero-content">
+            <h1>Личный кабинет</h1>
+            <p>платформы для подготовки и сдачи экзамена по электробезопасности</p>
+            <p className="dash-card-note">Роль: {data.user.role_label}</p>
           </div>
+          <img src={mascot} alt="" className="dashboard-hero-mascot" />
         </div>
-        <img src={mascot} alt="" className="dashboard-hero-mascot" />
-        <div className="dashboard-hero-action">
-          <Link to={examHref} className="btn btn-primary btn-lg">
-            Сдать экзамен
+
+        <div className="dashboard-hero dashboard-hero-card dashboard-portal-intro">
+          <h2 className="dashboard-portal-intro-title">Знакомство с порталом</h2>
+          <p className="dashboard-portal-intro-desc">
+            Тут вы найдете описание что и как тут работает
+          </p>
+          <Link to="/wiki" className="btn dashboard-portal-wiki-btn">
+            Вики
           </Link>
-          <div className="info-box info-box-default">
-            <InfoIcon />
-            <span>для успешной сдачи экзамена необходимо набрать не менее {data.min_pass_percent}% правильных ответов</span>
-          </div>
         </div>
       </div>
 
@@ -301,23 +331,30 @@ export default function CabinetPage() {
                   <p className="dash-card-note" style={{ marginBottom: "var(--spacing-2)" }}>
                     Черновик из профиля пользователя (без сдачи экзамена):
                   </p>
-                  <ul className="constructor-drafts-list" style={{ marginTop: 0 }}>
-                    {adminDrafts.map((u) => (
-                      <li key={u.user_id}>
-                        <div>
-                          <strong>{u.display_name}</strong>
-                          <div className="dash-card-meta">{u.username}</div>
-                        </div>
-                        <a
-                          className="btn btn-outline btn-sm"
-                          href={api.adminUserProtocolDraftPdfUrl(u.user_id)}
-                          style={{ textDecoration: "none", flexShrink: 0 }}
-                        >
-                          Черновик PDF
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="dash-protocol-draft-picker">
+                    <select
+                      id="admin-protocol-draft-user"
+                      className="dash-protocol-draft-select"
+                      value={selectedAdminDraftUserId}
+                      onChange={(e) => setSelectedAdminDraftUserId(Number(e.target.value))}
+                      aria-label="Выбор пользователя для черновика протокола"
+                    >
+                      {adminDrafts.map((u) => (
+                        <option key={u.user_id} value={u.user_id}>
+                          {u.display_name} ({u.username})
+                        </option>
+                      ))}
+                    </select>
+                    {selectedAdminDraftUserId !== "" && (
+                      <a
+                        className="btn btn-outline btn-sm"
+                        href={api.adminUserProtocolDraftPdfUrl(selectedAdminDraftUserId)}
+                        style={{ textDecoration: "none", flexShrink: 0 }}
+                      >
+                        Черновик PDF
+                      </a>
+                    )}
+                  </div>
                 </>
               ) : (
                 <p className="dash-card-note">
@@ -337,30 +374,7 @@ export default function CabinetPage() {
                   </p>
                   <ul className="constructor-drafts-list" style={{ marginTop: 0 }}>
                     {staffExports.map((row) => (
-                      <li key={row.attempt_id}>
-                        <div>
-                          <strong>{row.examinee_full_name || "Экзаменуемый"}</strong>
-                          <div className="dash-card-meta">
-                            {row.test_title} · {row.percent}%
-                          </div>
-                        </div>
-                        <div className="constructor-page-actions" style={{ flexShrink: 0 }}>
-                          <a
-                            className="btn btn-outline btn-sm"
-                            href={api.attemptProtocolDraftPdfUrl(row.test_id, row.attempt_id)}
-                            style={{ textDecoration: "none" }}
-                          >
-                            Черновик
-                          </a>
-                          <a
-                            className="btn btn-outline btn-sm"
-                            href={api.attemptProtocolFormPdfUrl(row.test_id, row.attempt_id)}
-                            style={{ textDecoration: "none" }}
-                          >
-                            Форма
-                          </a>
-                        </div>
-                      </li>
+                      <PassedExamTile key={row.attempt_id} row={row} />
                     ))}
                   </ul>
                 </>
@@ -370,37 +384,7 @@ export default function CabinetPage() {
             staffExports.length > 0 ? (
               <ul className="constructor-drafts-list" style={{ marginTop: 0 }}>
                 {staffExports.map((row) => (
-                  <li key={row.attempt_id}>
-                    <div>
-                      <strong>{row.examinee_full_name || "Экзаменуемый"}</strong>
-                      <div className="dash-card-meta">
-                        {row.test_title} · {row.percent}%
-                        {!row.profile_complete && (
-                          <> · <span className="grade-bad">профиль не заполнен</span></>
-                        )}
-                      </div>
-                    </div>
-                    <div className="constructor-page-actions" style={{ flexShrink: 0 }}>
-                      <a
-                        className="btn btn-outline btn-sm"
-                        href={api.attemptProtocolDraftPdfUrl(row.test_id, row.attempt_id)}
-                        title={
-                          row.profile_complete
-                            ? undefined
-                            : "Профиль экзаменуемого не заполнен"
-                        }
-                        style={row.profile_complete ? undefined : { opacity: 0.55 }}
-                      >
-                        Черновик
-                      </a>
-                      <a
-                        className="btn btn-outline btn-sm"
-                        href={api.attemptProtocolFormPdfUrl(row.test_id, row.attempt_id)}
-                      >
-                        Форма
-                      </a>
-                    </div>
-                  </li>
+                  <PassedExamTile key={row.attempt_id} row={row} />
                 ))}
               </ul>
             ) : (
@@ -418,9 +402,9 @@ export default function CabinetPage() {
               {isKot
                 ? "Черновик из данных профиля. После сдачи экзамена подписанный протокол появится в блоке выше или на странице результата."
                 : isAdmin
-                  ? "Администратор может скачать черновик по любому пользователю с заполненным профилем. После экзамена — также черновик и форма по попытке."
+                  ? "Администратор может скачать черновик по любому пользователю с заполненным профилем. Результат сданного экзамена открывается по клику на карточку."
                   : canExportStaffProtocol
-                    ? "Черновик — из профиля экзаменуемого; форма — с результатом конкретной попытки. Также доступно на странице результата экзамена."
+                    ? "Нажмите на карточку результата, чтобы открыть страницу экзамена с разбором ответов."
                     : "Черновик из данных профиля."}
             </span>
           </div>
@@ -428,8 +412,14 @@ export default function CabinetPage() {
 
         <div className="dashboard-widget widget-group">
           <div className="dashboard-widget-title">Текущая группа по ЭБ</div>
-          <div className="dashboard-widget-value">{data.user.safety_group}</div>
-          <div className="dashboard-widget-footer">{data.user.safety_group_desc}</div>
+          <div className="dashboard-widget-value">{safetyGroupLabel(data.user.safety_group)}</div>
+          {data.last_passed_exam_percent != null && data.last_passed_exam_date && (
+            <div className="dashboard-widget-footer widget-group-passed">
+              сдача {formatDateRu(data.last_passed_exam_date).split(",")[0]} ·{" "}
+              {data.last_passed_exam_percent}%
+              {data.last_passed_exam_grade ? ` · ${data.last_passed_exam_grade}` : ""}
+            </div>
+          )}
         </div>
       </div>
 
@@ -486,77 +476,6 @@ export default function CabinetPage() {
           )}
         </div>
       </div>
-
-      {data.can_create_tests && data.created_tests.length > 0 && (
-        <section className="dash-section">
-          <h2 className="dash-section-title">Мои тесты</h2>
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Название</th>
-                  <th>Билетов</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {data.created_tests.map((t) => (
-                  <tr key={t.id}>
-                    <td>{t.title}</td>
-                    <td>{t.ticket_count}</td>
-                    <td>
-                      <Link to={`/constructor/${t.id}`}>Редактировать</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Link to="/tests/new" className="dash-card-link">
-            + Создать тест
-          </Link>
-        </section>
-      )}
-
-      {data.can_create_tests && data.created_tests.length === 0 && (
-        <Link to="/tests/new" className="dash-card-link">
-          + Создать тест
-        </Link>
-      )}
-
-      {data.attempts.length > 0 && (
-        <section className="dash-section">
-          <h2 className="dash-section-title">История</h2>
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Тест</th>
-                  <th>Дата</th>
-                  <th>Результат</th>
-                  <th>Ошибки</th>
-                  <th>%</th>
-                  <th>Оценка</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.attempts.map((a) => (
-                  <tr key={a.attempt_id}>
-                    <td>{a.test_title}</td>
-                    <td>{formatDateRu(a.finished_at)}</td>
-                    <td>
-                      {a.correct}/{a.total}
-                    </td>
-                    <td>{a.errors}</td>
-                    <td>{a.percent}%</td>
-                    <td className={a.grade_class}>{a.grade}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </DashboardLayout>
   );
 }

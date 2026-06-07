@@ -75,3 +75,51 @@ def test_repository_avoids_n_plus_one(db_session):
 
     # 1 query tests + 1 authors/tickets prefetch bucket ~= small bounded number.
     assert len(queries) <= 4
+
+
+def _make_two_ticket_test(db_session, *, author_id: int) -> Test:
+    test = Test(author_id=author_id, title="Early finish", description=None, published=True)
+    for tpos in (1, 2):
+        ticket = Ticket(position=tpos)
+        for qpos in range(1, 11):
+            ticket.questions.append(
+                Question(
+                    position=qpos,
+                    text=f"T{tpos}Q{qpos}",
+                    correct_index=0,
+                    option_a="a",
+                    option_b="b",
+                    option_c="c",
+                    option_d="d",
+                )
+            )
+        test.tickets.append(ticket)
+    db_session.add(test)
+    db_session.commit()
+    db_session.refresh(test)
+    return test
+
+
+def test_training_early_finish_scores_only_attempted_tickets(db_session):
+    from app.services.attempts.scoring import submit_test_attempt_with_answers
+
+    user = User(username="early_user", password_hash="x", role="ezh")
+    db_session.add(user)
+    db_session.flush()
+    test = _make_two_ticket_test(db_session, author_id=user.id)
+    tickets = sorted(test.tickets, key=lambda t: t.position)
+    answers: dict[int, str] = {}
+    for q in tickets[0].questions:
+        answers[q.id] = "a" if q.position <= 5 else "b"
+
+    _, summary, ticket_rows = submit_test_attempt_with_answers(
+        db_session,
+        user_id=user.id,
+        test=test,
+        answers=answers,
+    )
+
+    assert summary.correct == 5
+    assert summary.total == 10
+    assert summary.percent == 50.0
+    assert len(ticket_rows) == 1

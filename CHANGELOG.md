@@ -33,7 +33,8 @@
 
 ### Changed
 
-- `TestService` и остальные фасады сервисов делегируют в CQRS-шину; логика use case — в `CommandHandler` / `QueryHandler`.
+- Порог сдачи экзамена: **75%** (удовлетворительно и выше); документация приведена в соответствие с `MIN_PASS_PERCENT`.
+- Экзамен: один случайный билет из пула тестов группы ЭБ; состав вопросов фиксируется в попытке.
 - CI job `lint`: проверка типов `mypy` (режим `strict`) после `ruff`; конфиг в `pyproject.toml`, scope — `app/` (legacy `routes.py`, `services/tests/` исключены).
 - Типизация middleware, CQRS bus, DTO (`ExportTaskDTO.task_id` ≥ 8 символов).
 - Время на экзаменационный билет увеличено с 10 до 20 минут (`EXAM_TICKET_TIME_LIMIT_SECONDS`).
@@ -47,6 +48,10 @@
 - Исправлены критические проблемы deploy:
   - `SECRET_KEY` прокинут в CI на этапе build production image,
   - `scripts/deploy.sh` очищает стек при failed healthcheck.
+
+### Fixed
+
+- **IDOR** на `GET …/protocol` и `GET …/protocol.pdf`: доступ только экзаменуемому, подписанту или staff (`admin`/`ezh`).
 
 ## [0.5.0] - 2026-05-27
 

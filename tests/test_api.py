@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.constants import EXAM_TICKET_TIME_LIMIT_SECONDS
 from app.auth_utils import hash_password
-from app.models import Question, Ticket, TicketAttempt, Test, User
+from app.models import Attempt, Question, Ticket, TicketAttempt, Test, User
 from app.database import SessionLocal
 from app.main import app
 
@@ -46,7 +46,7 @@ async def test_exam_ticket_timeout(async_client: AsyncClient, db_session):
     user_id = user.json()["id"]
 
     # 2) Create ready test in DB for this user
-    test = Test(author_id=user_id, title="Test 1", description=None)
+    test = Test(author_id=user_id, title="Test 1", description=None, published=True)
     ticket = Ticket(position=1)
     test.tickets.append(ticket)
 
@@ -274,7 +274,7 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
         kot.job_title = "Электромонтер"
         kot.business_unit = "ДЦ KLG"
         # add ready test with one ticket
-        t = Test(author_id=kot_user_id, title="Signed Exam", description=None)
+        t = Test(author_id=kot_user_id, title="Signed Exam", description=None, published=True)
         ticket = Ticket(position=1)
         t.tickets.append(ticket)
         for pos in range(1, 11):
@@ -383,6 +383,16 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
     dash.raise_for_status()
     assert dash.json()["signed_protocol"] is not None
 
+    kot_protocol = await async_client.get(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol"
+    )
+    assert kot_protocol.status_code == 200
+    kot_pdf = await async_client.get(
+        f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol.pdf"
+    )
+    assert kot_pdf.status_code == 200
+    assert kot_pdf.headers.get("content-type", "").startswith("application/pdf")
+
     form_kot = await async_client.get(
         f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol-form.pdf"
     )
@@ -391,6 +401,24 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
         f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol-draft.pdf"
     )
     assert draft_kot.status_code == 403
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as stranger:
+        csrf_stranger = (await stranger.get("/api/auth/csrf")).json()["csrf_token"]
+        reg_stranger = await stranger.post(
+            "/api/auth/register",
+            json={"username": "stranger_proto", "password": "password123", "password2": "password123"},
+            headers={"X-CSRF-Token": csrf_stranger},
+        )
+        reg_stranger.raise_for_status()
+        forbidden_meta = await stranger.get(
+            f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol"
+        )
+        assert forbidden_meta.status_code == 403
+        forbidden_pdf = await stranger.get(
+            f"/api/tests/{test_id}/exam/attempts/{attempt_id}/protocol.pdf"
+        )
+        assert forbidden_pdf.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -476,4 +504,122 @@ async def test_admin_update_user_role(async_client: AsyncClient, db_session):
         headers={"X-CSRF-Token": csrf5},
     )
     assert bad_role.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_exam_session_uses_single_random_ticket(async_client: AsyncClient, db_session):
+    user = await async_client.post(
+        "/api/auth/register",
+        json={"username": "randexam", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": (await async_client.get("/api/auth/csrf")).json()["csrf_token"]},
+    )
+    user.raise_for_status()
+    user_id = user.json()["id"]
+
+    test = Test(author_id=user_id, title="Exam pool", safety_group="II", published=True)
+    for pos in range(1, 3):
+        ticket = Ticket(position=pos, option_count=4)
+        for qpos in range(1, 11):
+            ticket.questions.append(
+                Question(
+                    position=qpos,
+                    text=f"Q{pos}-{qpos}",
+                    correct_index=0,
+                    option_a="A",
+                    option_b="B",
+                    option_c="C",
+                    option_d="D",
+                )
+            )
+        test.tickets.append(ticket)
+    db_session.add(test)
+    db_session.commit()
+
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    start = await async_client.post(
+        f"/api/tests/{test.id}/exam/session",
+        headers={"X-CSRF-Token": csrf},
+    )
+    start.raise_for_status()
+    session = start.json()
+    assert session["ticket_count"] == 1
+    assert session["next_ticket_id"] is not None
+
+    attempt = db_session.get(Attempt, session["attempt_id"])
+    assert attempt is not None
+    assert attempt.exam_ticket_order is not None
+    assert "question_ids" in attempt.exam_ticket_order
+
+
+@pytest.mark.asyncio
+async def test_kot_safety_group_and_exam_assignment(async_client: AsyncClient, db_session):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    kot = await async_client.post(
+        "/api/auth/register",
+        json={"username": "kot2", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    kot.raise_for_status()
+    kot_id = kot.json()["id"]
+    assert kot.json()["safety_group"] == "II"
+
+    ezh = User(username="ezh1", password_hash=hash_password("password123"), role="ezh")
+    db_session.add(ezh)
+    db_session.commit()
+
+    csrf_ezh = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    login_ezh = await async_client.post(
+        "/api/auth/login",
+        json={"username": "ezh1", "password": "password123"},
+        headers={"X-CSRF-Token": csrf_ezh},
+    )
+    login_ezh.raise_for_status()
+
+    csrf_ezh2 = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    updated = await async_client.put(
+        f"/api/staff/kot-users/{kot_id}/safety-group",
+        json={"safety_group": "III"},
+        headers={"X-CSRF-Token": csrf_ezh2},
+    )
+    updated.raise_for_status()
+    assert updated.json()["safety_group"] == "III"
+
+    test_ii = Test(author_id=ezh.id, title="Exam II", safety_group="II", published=True)
+    test_iii = Test(author_id=ezh.id, title="Exam III", safety_group="III", published=True)
+    for test_obj, pos_text in ((test_ii, "II"), (test_iii, "III")):
+        ticket = Ticket(position=1, option_count=4)
+        for pos in range(1, 11):
+            ticket.questions.append(
+                Question(
+                    position=pos,
+                    text=f"Q {pos_text}",
+                    correct_index=0,
+                    option_a="A",
+                    option_b="B",
+                    option_c="C",
+                    option_d="D",
+                )
+            )
+        test_obj.tickets.append(ticket)
+    db_session.add_all([test_ii, test_iii])
+    db_session.commit()
+
+    csrf_kot = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    login_kot = await async_client.post(
+        "/api/auth/login",
+        json={"username": "kot2", "password": "password123"},
+        headers={"X-CSRF-Token": csrf_kot},
+    )
+    login_kot.raise_for_status()
+
+    dash = await async_client.get("/api/dashboard")
+    dash.raise_for_status()
+    assert dash.json()["exam_test_id"] == test_iii.id
+    assert dash.json()["user"]["safety_group"] == "III"
+
+    listed = await async_client.get("/api/tests")
+    listed.raise_for_status()
+    ids = {item["id"] for item in listed.json()["items"]}
+    assert test_iii.id in ids
+    assert test_ii.id not in ids
 

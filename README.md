@@ -3,7 +3,7 @@
 **Backend:** FastAPI + PostgreSQL (JSON API)  
 **Frontend:** React 18 + TypeScript + Vite
 
-Архитектура: [ARCHITECTURE.md](ARCHITECTURE.md) · Деплой: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · Бизнес-правила: [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) · API: `/docs` (OpenAPI)
+Архитектура: [ARCHITECTURE.md](ARCHITECTURE.md) · Деплой: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · **Ubuntu 26.04:** [docs/DEPLOYMENT_UBUNTU_2604.md](docs/DEPLOYMENT_UBUNTU_2604.md) · Бизнес-правила: [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) · API: `/docs` (OpenAPI)
 
 ## Быстрый старт (разработка)
 
@@ -80,7 +80,7 @@ GitHub Actions (`.github/workflows/ci.yml`):
 
 Критические фиксы деплоя:
 - в `deploy` job задан `SECRET_KEY` уже на этапе сборки;
-- `scripts/deploy.sh` очищает стек (`down -v`) при провале healthcheck.
+- `scripts/deploy.sh` — build, up и healthcheck; при ошибке стек остаётся для диагностики (тома не трогаются).
 
 ## Миграции (Alembic)
 
@@ -122,6 +122,8 @@ alembic revision --autogenerate -m "описание"   # новая ревиз�
 | Еж | `ezh` | создание и редактирование тестов |
 | Кот | `kot` | обучение, экзамен, мануалы, профиль, PDF-протокол |
 
+Подробные бизнес-правила (порог сдачи **75%**, состав экзамена, доступ к протоколам): [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md).
+
 ## Основные API (JSON)
 
 | Метод | Путь | Описание |
@@ -142,6 +144,10 @@ alembic revision --autogenerate -m "описание"   # новая ревиз�
 | GET | `/api/tests/{id}/exam/tickets/{ticket_id}` | Билет (20 мин) |
 | POST | `/api/tests/{id}/exam/tickets/{ticket_id}` | Ответы по билету |
 | POST | `/api/tests/{id}/exam/finish` | Завершить экзамен |
+| GET | `/api/tests/{id}/exam/attempts/{attempt_id}/result` | Результат экзамена (экзаменуемый) |
+| POST | `/api/tests/{id}/exam/attempts/{attempt_id}/protocol/sign` | Подписать протокол (admin/ezh) |
+| GET | `/api/tests/{id}/exam/attempts/{attempt_id}/protocol` | Метаданные подписанного протокола |
+| GET | `/api/tests/{id}/exam/attempts/{attempt_id}/protocol.pdf` | PDF подписанного протокола |
 | POST/PUT/DELETE | `/api/tests/{id}/tickets/...` | CRUD билетов |
 | GET/PUT | `/api/profile` | Профиль Кота |
 | GET | `/api/profile/protocol.pdf` | PDF-протокол |

@@ -24,3 +24,9 @@ def test_access_policy_edit_test():
     assert AccessPolicy.can_edit_test(owner, test)
     assert AccessPolicy.can_edit_test(admin, test)
     assert not AccessPolicy.can_edit_test(outsider, test)
+
+
+def test_access_policy_edit_wiki():
+    assert AccessPolicy.can_edit_wiki(_user(1, ROLE_ADMIN))
+    assert AccessPolicy.can_edit_wiki(_user(2, ROLE_EZH))
+    assert not AccessPolicy.can_edit_wiki(_user(3, ROLE_KOT))

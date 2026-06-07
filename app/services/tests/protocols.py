@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.constants import MIN_PASS_PERCENT
+from app.support.grading import exam_is_passed
 from app.models import SignedProtocol, User
 from app.policies import AccessPolicy
 from app.repositories import AttemptRepository, ProtocolRepository, TestRepository, UserRepository
@@ -54,7 +54,7 @@ class TestProtocolService:
         require_profile_complete(examinee)
 
         summary = score_attempt(db, attempt)
-        if summary.percent < MIN_PASS_PERCENT:
+        if not exam_is_passed(summary.percent):
             raise AppError(
                 "Протокол можно подписать только после успешной сдачи экзамена",
                 status_code=400,
@@ -76,19 +76,35 @@ class TestProtocolService:
         return TestProtocolService._protocol_out(protocol)
 
     @staticmethod
-    def get_signed_protocol(db: Session, test_id: int, attempt_id: int) -> SignedProtocolOut:
+    def _require_signed_protocol_reader(protocol: SignedProtocol, requester: User) -> None:
+        if requester.id == protocol.examinee_id:
+            return
+        if requester.id == protocol.signer_id:
+            return
+        if AccessPolicy.can_create_tests(requester):
+            return
+        raise AppError("Нет доступа к протоколу", status_code=403)
+
+    @staticmethod
+    def get_signed_protocol(
+        db: Session, test_id: int, attempt_id: int, requester: User
+    ) -> SignedProtocolOut:
         protocol = ProtocolRepository.get_by_attempt_id(db, attempt_id)
         if not protocol:
             raise AppError("Протокол ещё не подписан", status_code=404)
         if protocol.attempt is None or protocol.attempt.test_id != test_id:
             raise AppError("Протокол не найден", status_code=404)
+        TestProtocolService._require_signed_protocol_reader(protocol, requester)
         return TestProtocolService._protocol_out(protocol)
 
     @staticmethod
-    def get_signed_protocol_pdf(db: Session, test_id: int, attempt_id: int) -> bytes:
+    def get_signed_protocol_pdf(
+        db: Session, test_id: int, attempt_id: int, requester: User
+    ) -> bytes:
         protocol = ProtocolRepository.get_by_attempt_id(db, attempt_id)
         if not protocol:
             raise AppError("Протокол ещё не подписан", status_code=404)
         if protocol.attempt is None or protocol.attempt.test_id != test_id:
             raise AppError("Протокол не найден", status_code=404)
+        TestProtocolService._require_signed_protocol_reader(protocol, requester)
         return build_signed_protocol_pdf(db, protocol)

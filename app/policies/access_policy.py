@@ -24,3 +24,11 @@ class AccessPolicy:
     @staticmethod
     def can_export_user_protocol_draft(user: User) -> bool:
         return user.role == ROLE_ADMIN
+
+    @staticmethod
+    def can_manage_safety_groups(user: User) -> bool:
+        return user.role in {ROLE_ADMIN, ROLE_EZH}
+
+    @staticmethod
+    def can_edit_wiki(user: User) -> bool:
+        return user.role in {ROLE_ADMIN, ROLE_EZH}

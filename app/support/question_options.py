@@ -16,6 +16,16 @@ def ticket_option_count(ticket: Ticket) -> int:
     return normalize_option_count(getattr(ticket, "option_count", None))
 
 
+def question_option_count(question: Question) -> int:
+    own = getattr(question, "option_count", None)
+    if own is not None:
+        return normalize_option_count(own)
+    ticket = getattr(question, "ticket", None)
+    if ticket is not None:
+        return ticket_option_count(ticket)
+    return MAX_OPTION_COUNT
+
+
 def question_option_values(question: Question, count: int) -> list[str]:
     n = normalize_option_count(count)
     values = [question.option_a, question.option_b, question.option_c, question.option_d]

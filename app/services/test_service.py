@@ -125,14 +125,23 @@ class TestService:
         )
 
     @staticmethod
-    def get_signed_protocol(db: Session, test_id: int, attempt_id: int) -> SignedProtocolOut:
+    def get_signed_protocol(
+        db: Session, test_id: int, attempt_id: int, requester: User
+    ) -> SignedProtocolOut:
         return dispatch_query(
-            GetSignedProtocolQuery(db=db, test_id=test_id, attempt_id=attempt_id),
+            GetSignedProtocolQuery(
+                db=db, test_id=test_id, attempt_id=attempt_id, requester=requester
+            ),
             SignedProtocolOut,
         )
 
     @staticmethod
-    def get_signed_protocol_pdf(db: Session, test_id: int, attempt_id: int) -> bytes:
+    def get_signed_protocol_pdf(
+        db: Session, test_id: int, attempt_id: int, requester: User
+    ) -> bytes:
         return dispatch_query(
-            GetSignedProtocolPdfQuery(db=db, test_id=test_id, attempt_id=attempt_id), bytes
+            GetSignedProtocolPdfQuery(
+                db=db, test_id=test_id, attempt_id=attempt_id, requester=requester
+            ),
+            bytes,
         )

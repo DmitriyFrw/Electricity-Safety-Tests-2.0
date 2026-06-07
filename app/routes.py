@@ -11,6 +11,7 @@ from app.answer_labels import INDEX_TO_DIGIT, INDEX_TO_LETTER, parse_answer_labe
 from app.attempt_service import attempt_to_row, submit_test_attempt
 from app.auth_utils import hash_password, verify_password
 from app.constants import MAX_TICKETS_PER_TEST, MIN_PASS_PERCENT, QUESTIONS_PER_TICKET
+from app.support.grading import exam_is_passed
 from app.dashboard_stats import build_dashboard_context
 from app.database import get_db
 from app.deps import get_current_user_optional, login_required
@@ -437,6 +438,6 @@ async def take_test_post(
         grade_class=summary.grade_class,
         ticket_rows=ticket_rows,
         last_errors=summary.errors,
-        passed_exam=summary.percent >= MIN_PASS_PERCENT,
+        passed_exam=exam_is_passed(summary.percent),
     )
     return templates.TemplateResponse("take_result.html", ctx)

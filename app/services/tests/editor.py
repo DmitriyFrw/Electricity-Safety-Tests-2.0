@@ -9,7 +9,7 @@ from app.constants import QUESTIONS_PER_TICKET
 from app.form_requests.tests import TicketSaveRequest
 from app.models import Question, Ticket, User
 from app.repositories import TestRepository
-from app.support.answers import parse_answer_label
+from app.support.answers import encode_correct_indexes, parse_answer_labels
 from app.support.errors import AppError
 from app.support.validation import assert_can_add_ticket
 from app.schemas import TestEditOut
@@ -40,6 +40,7 @@ class TestEditorService:
                     position=p,
                     text="",
                     correct_index=0,
+                    correct_indexes="0",
                     option_a="",
                     option_b="",
                     option_c="",
@@ -71,13 +72,14 @@ class TestEditorService:
             )
             if not q:
                 continue
-            ci = parse_answer_label(qin.correct)
+            indices = parse_answer_labels(qin.correct, option_count=form.option_count)
             q.text = qin.text.strip()
             q.option_a = qin.option_a.strip()
             q.option_b = qin.option_b.strip()
             q.option_c = qin.option_c.strip()
             q.option_d = qin.option_d.strip()
-            q.correct_index = ci if ci is not None else 0
+            q.correct_indexes = encode_correct_indexes(indices)
+            q.correct_index = indices[0]
         db.commit()
         invalidate_cache("test_list")
         test = TestRepository.get_full(db, test_id)

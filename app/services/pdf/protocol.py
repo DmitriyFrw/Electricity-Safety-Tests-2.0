@@ -12,8 +12,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session
 
-from app.constants import DEFAULT_SAFETY_GROUP, DEFAULT_SAFETY_GROUP_DESC
 from app.models import Attempt, SignedProtocol, Test, User
+from app.support.safety_groups import effective_safety_group, safety_group_label
 from app.support.exam_history import (
     format_exam_result_line,
     format_protocol_date,
@@ -54,7 +54,8 @@ class ProtocolFormValues:
     workplace: str = ""
     position: str = ""
     previous_check_date: str = ""
-    safety_grade: str = ""
+    exam_grade: str = ""
+    safety_group: str = ""
     result_installations: str = ""
     result_labor: str = ""
     result_fire: str = ""
@@ -109,8 +110,8 @@ def _truncate_to_width(text: str, font_name: str, font_size: float, max_width: f
     return ellipsis if lo == 0 else text[:lo] + ellipsis
 
 
-def _safety_grade_label() -> str:
-    return f"{DEFAULT_SAFETY_GROUP} ({DEFAULT_SAFETY_GROUP_DESC})"
+def _safety_group_for_user(user: User) -> str:
+    return safety_group_label(effective_safety_group(user))
 
 
 class _OfficialProtocolRenderer:
@@ -212,7 +213,8 @@ class _OfficialProtocolRenderer:
         self._labeled_line("место работы", values.workplace)
         self._labeled_line("должность", values.position)
         self._labeled_line("дата предыдущей проверки", values.previous_check_date)
-        self._labeled_line("оценка, группа по электробезопасности", values.safety_grade)
+        self._labeled_line("оценка", values.exam_grade)
+        self._labeled_line("группа по электробезопасности", values.safety_group)
 
     def _draw_results_section(self, values: ProtocolFormValues) -> None:
         self.c.setFont(self.font_bold, BODY_SIZE)
@@ -316,6 +318,22 @@ def _previous_check_date(db: Session, user_id: int, *, exclude_attempt_id: int |
     return format_protocol_date(finished)
 
 
+def _exam_grade_text(
+    db: Session,
+    user_id: int,
+    *,
+    exclude_attempt_id: int | None = None,
+    percent: float | None = None,
+    grade: str | None = None,
+) -> str:
+    if grade:
+        return grade
+    if percent is not None:
+        return grade_for_exam_protocol(percent)
+    passed = last_passed_exam_result(db, user_id, exclude_attempt_id=exclude_attempt_id)
+    return passed.grade if passed else ""
+
+
 def _installations_exam_result(
     db: Session,
     user_id: int,
@@ -347,7 +365,8 @@ def _profile_form_values(db: Session, user: User) -> ProtocolFormValues:
         workplace=_workplace_from_business_unit(user),
         position=job,
         previous_check_date=_previous_check_date(db, user.id),
-        safety_grade=_safety_grade_label(),
+        exam_grade=_exam_grade_text(db, user.id),
+        safety_group=_safety_group_for_user(user),
         result_installations=_installations_exam_result(db, user.id),
     )
 
@@ -367,7 +386,10 @@ def _signed_form_values(db: Session, protocol: SignedProtocol) -> ProtocolFormVa
         previous_check_date=_previous_check_date(
             db, protocol.examinee_id, exclude_attempt_id=protocol.attempt_id
         ),
-        safety_grade=_safety_grade_label(),
+        exam_grade=grade,
+        safety_group=(
+            _safety_group_for_user(protocol.examinee) if protocol.examinee is not None else ""
+        ),
         result_installations=_installations_exam_result(
             db, protocol.examinee_id, percent=pct, grade=grade
         ),
@@ -395,7 +417,8 @@ def _attempt_protocol_form_values(
         previous_check_date=_previous_check_date(
             db, examinee.id, exclude_attempt_id=attempt.id
         ),
-        safety_grade=_safety_grade_label(),
+        exam_grade=grade,
+        safety_group=_safety_group_for_user(examinee),
         result_installations=_installations_exam_result(
             db,
             examinee.id,

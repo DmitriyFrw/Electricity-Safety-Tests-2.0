@@ -5,15 +5,17 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.constants import ATTEMPT_MODE_EXAM, MIN_PASS_PERCENT
+from app.constants import ATTEMPT_MODE_EXAM
 from app.models import Attempt
 from app.repositories.options import ATTEMPT_DASHBOARD_OPTIONS
 from app.services.attempts.scoring import score_attempt
-from app.support.grading import grade_for_exam_protocol
+from app.support.grading import exam_is_passed, grade_for_exam_protocol
 
 
 @dataclass(frozen=True)
 class PassedExamResult:
+    attempt_id: int
+    test_id: int
     finished_at: dt.datetime
     percent: float
     grade: str
@@ -49,7 +51,7 @@ def _iter_passed_exam_attempts(
         if exclude_attempt_id is not None and attempt.id == exclude_attempt_id:
             continue
         summary = score_attempt(db, attempt)
-        if summary.percent >= MIN_PASS_PERCENT:
+        if exam_is_passed(summary.percent):
             passed.append((attempt, summary.percent))
     return passed
 
@@ -60,7 +62,7 @@ def last_passed_exam_result(
     *,
     exclude_attempt_id: int | None = None,
 ) -> PassedExamResult | None:
-    """Последняя успешная (≥ MIN_PASS_PERCENT) экзаменационная попытка."""
+    """Последняя успешная экзаменационная попытка (удовлетворительно и выше)."""
     rows = _iter_passed_exam_attempts(db, user_id, exclude_attempt_id=exclude_attempt_id)
     if not rows:
         return None
@@ -70,6 +72,8 @@ def last_passed_exam_result(
         return None
     pct = float(percent)
     return PassedExamResult(
+        attempt_id=attempt.id,
+        test_id=attempt.test_id,
         finished_at=finished,
         percent=pct,
         grade=grade_for_exam_protocol(pct),

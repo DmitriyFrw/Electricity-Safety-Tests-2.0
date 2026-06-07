@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from app.constants import MIN_PASS_PERCENT
 
+PASSING_EXAM_GRADES = frozenset({"удовлетворительно", "хорошо", "отлично"})
+
 
 def score_percent(correct: int, total: int) -> float:
     if total <= 0:
@@ -19,9 +21,14 @@ def grade_for_percent(pct: float) -> str:
     return "отлично"
 
 
+def exam_is_passed(pct: float) -> bool:
+    """Экзамен сдан при оценке удовлетворительно, хорошо или отлично."""
+    return grade_for_percent(pct) in PASSING_EXAM_GRADES
+
+
 def grade_for_exam_protocol(pct: float) -> str:
-    """Оценка в протоколе PDF для сданного экзамена (порог сдачи MIN_PASS_PERCENT)."""
-    if pct < MIN_PASS_PERCENT:
+    """Оценка в протоколе PDF (неудовлетворительно — экзамен не сдан)."""
+    if not exam_is_passed(pct):
         return "неудовлетворительно"
     if pct < 85:
         return "удовлетворительно"

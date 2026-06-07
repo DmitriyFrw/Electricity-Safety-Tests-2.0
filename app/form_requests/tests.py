@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import Field, field_validator, model_validator
 
 from app.constants import MAX_OPTION_COUNT, MIN_OPTION_COUNT, QUESTIONS_PER_TICKET
+from app.support.answers import parse_answer_labels
 from app.support.question_options import OPTION_LABELS, normalize_option_count
 from app.form_requests.base import FormRequest
 
@@ -10,6 +11,7 @@ from app.form_requests.base import FormRequest
 class TestCreateRequest(FormRequest):
     title: str = Field(min_length=1, max_length=200)
     description: str | None = None
+    safety_group: str = "II"
 
     @field_validator("title")
     @classmethod
@@ -27,6 +29,16 @@ class TestCreateRequest(FormRequest):
         s = v.strip()
         return s or None
 
+    @field_validator("safety_group")
+    @classmethod
+    def validate_safety_group(cls, v: str) -> str:
+        from app.constants import SAFETY_GROUPS
+
+        g = v.strip().upper()
+        if g not in SAFETY_GROUPS:
+            raise ValueError(f"Укажите группу: {', '.join(SAFETY_GROUPS)}")
+        return g
+
 
 class QuestionSaveRequest(FormRequest):
     position: int = Field(ge=1, le=QUESTIONS_PER_TICKET)
@@ -35,7 +47,13 @@ class QuestionSaveRequest(FormRequest):
     option_b: str = Field(max_length=20000)
     option_c: str = Field(max_length=20000)
     option_d: str = Field(max_length=20000)
-    correct: str = Field(min_length=1, max_length=1)
+    correct: str = Field(min_length=1, max_length=16)
+    option_count: int = Field(default=MAX_OPTION_COUNT, ge=MIN_OPTION_COUNT, le=MAX_OPTION_COUNT)
+
+    @field_validator("option_count")
+    @classmethod
+    def validate_question_option_count(cls, v: int) -> int:
+        return normalize_option_count(v)
 
 
 class TicketSaveRequest(FormRequest):
@@ -65,19 +83,21 @@ class TicketSaveRequest(FormRequest):
         expected = list(range(1, n + 1))
         if positions != expected:
             raise ValueError(f"Позиции вопросов должны быть 1..{n} без пропусков")
-        allowed = set(OPTION_LABELS[: self.option_count])
         for q in self.questions:
-            label = (q.correct or "").strip().upper()
-            if label not in allowed:
+            count = normalize_option_count(q.option_count)
+            allowed = set(OPTION_LABELS[:count])
+            indices = parse_answer_labels(q.correct, option_count=count)
+            labels = {OPTION_LABELS[i] for i in indices if i < len(OPTION_LABELS)}
+            if not labels or not labels.issubset(allowed):
                 raise ValueError(
-                    f"Верный ответ должен быть одним из {', '.join(sorted(allowed))}"
+                    f"Верные ответы вопроса {q.position} должны быть из {', '.join(sorted(allowed))}"
                 )
         return self
 
 
 class AnswerItemRequest(FormRequest):
     question_id: int = Field(gt=0)
-    value: str = Field(min_length=1, max_length=8)
+    value: str = Field(min_length=1, max_length=16)
 
 
 class SubmitExamRequest(FormRequest):

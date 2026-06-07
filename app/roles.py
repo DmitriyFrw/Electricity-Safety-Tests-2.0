@@ -19,6 +19,10 @@ def can_edit_test(user: User, test: Test) -> bool:
     return AccessPolicy.can_edit_test(user, test)
 
 
+def can_edit_wiki(user: User) -> bool:
+    return AccessPolicy.can_edit_wiki(user)
+
+
 def is_kot(user: User) -> bool:
     from app.constants import ROLE_KOT
 

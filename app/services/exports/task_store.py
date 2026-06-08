@@ -45,6 +45,8 @@ def _encode_meta(task: ExportTaskDTO) -> dict[str, str]:
         "content_type": task.content_type or "",
         "filename": task.filename or "",
         "error": task.error or "",
+        "kind": task.kind or "",
+        "export_test_id": str(task.export_test_id) if task.export_test_id is not None else "",
         "created_at": task.created_at.isoformat(),
     }
 
@@ -73,6 +75,10 @@ def _decode_meta(
     filename = _s("filename") or None
     error = _s("error") or None
 
+    kind_raw = _s("kind")
+    export_test_raw = _s("export_test_id")
+    kind: str | None = kind_raw if kind_raw in {"exam_results", "protocol"} else None
+
     return ExportTaskDTO(
         task_id=task_id,
         owner_user_id=int(_s("owner_user_id")),
@@ -81,6 +87,8 @@ def _decode_meta(
         filename=filename,
         payload=_payload_as_bytes(payload),
         error=error,
+        kind=kind,  # type: ignore[arg-type]
+        export_test_id=int(export_test_raw) if export_test_raw else None,
         created_at=created_at,
     )
 
@@ -147,6 +155,26 @@ class ExportTaskStore:
                 setattr(task, key, value)
         cls.put(task)
         return task
+
+    @classmethod
+    def list_recoverable(cls) -> list[ExportTaskDTO]:
+        client = _redis_client()
+        if client is None:
+            with _MEMORY_LOCK:
+                return [
+                    task
+                    for task in _MEMORY.values()
+                    if task.status in {"pending", "running"}
+                ]
+
+        tasks: list[ExportTaskDTO] = []
+        for key in client.scan_iter(match=f"{_META_PREFIX}*"):
+            raw_key = key.decode() if isinstance(key, bytes) else str(key)
+            task_id = raw_key.removeprefix(_META_PREFIX)
+            task = cls.get(task_id)
+            if task and task.status in {"pending", "running"}:
+                tasks.append(task)
+        return tasks
 
     @classmethod
     def backend_name(cls) -> str:

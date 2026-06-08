@@ -8,6 +8,14 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class ApiErrorOut(BaseModel):
+    """Единый формат ошибок API."""
+
+    detail: str
+    code: str | None = None
+    correlation_id: str | None = None
+
+
 class UserOut(BaseModel):
     id: int
     username: str
@@ -194,6 +202,7 @@ class DashboardOut(BaseModel):
     admin_protocol_drafts: list[AdminProtocolDraftUserOut] = []
     created_tests: list[CreatedTestOut]
     attempts: list[AttemptRowOut]
+    attempts_total: int = 0
 
 
 class TestListItemOut(BaseModel):

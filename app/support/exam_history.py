@@ -9,7 +9,8 @@ from app.constants import ATTEMPT_MODE_EXAM
 from app.models import Attempt
 from app.repositories.options import ATTEMPT_DASHBOARD_OPTIONS
 from app.services.attempts.scoring import score_attempt
-from app.support.grading import exam_is_passed, grade_for_exam_protocol
+from app.support.exam_completion import exam_attempt_is_passed
+from app.support.grading import grade_for_exam_protocol
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,7 @@ def _iter_passed_exam_attempts(
         if exclude_attempt_id is not None and attempt.id == exclude_attempt_id:
             continue
         summary = score_attempt(db, attempt)
-        if exam_is_passed(summary.percent):
+        if exam_attempt_is_passed(db, attempt, summary.percent):
             passed.append((attempt, summary.percent))
     return passed
 

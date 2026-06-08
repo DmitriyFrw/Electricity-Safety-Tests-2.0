@@ -65,8 +65,15 @@ def test_is_ready_to_take(db: Session, test: Test) -> bool:
     return bool(complete_tickets(t))
 
 
+def test_is_available_loaded(test: Test) -> bool:
+    """Тест доступен для списка, если tickets.questions уже загружены (без доп. запросов)."""
+    return bool(test.published) and bool(complete_tickets(test))
+
+
 def test_is_available(db: Session, test: Test) -> bool:
     """Тест доступен для экзамена/тренировки: опубликован и есть хотя бы один готовый билет."""
+    if test.tickets and all(hasattr(t, "questions") for t in test.tickets):
+        return test_is_available_loaded(test)
     return bool(test.published) and test_is_ready_to_take(db, test)
 
 

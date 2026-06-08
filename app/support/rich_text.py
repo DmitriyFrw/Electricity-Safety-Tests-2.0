@@ -5,6 +5,39 @@ import re
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 
+WIKI_ALLOWED_TAGS = [
+    "b",
+    "strong",
+    "i",
+    "em",
+    "u",
+    "s",
+    "strike",
+    "sub",
+    "sup",
+    "span",
+    "br",
+    "ol",
+    "ul",
+    "li",
+    "p",
+    "div",
+    "h3",
+    "h4",
+    "a",
+    "img",
+]
+
+WIKI_ALLOWED_ATTRS: dict[str, list[str]] = {
+    "span": ["style"],
+    "p": ["style"],
+    "div": ["style"],
+    "h3": ["style"],
+    "h4": ["style"],
+    "a": ["href", "target", "rel", "style"],
+    "img": ["src", "alt", "style"],
+}
+
 _ALLOWED_TAGS = [
     "b",
     "strong",

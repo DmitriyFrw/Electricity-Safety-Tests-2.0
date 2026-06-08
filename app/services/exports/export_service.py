@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -14,6 +15,8 @@ from app.config import get_settings
 from app.services.pdf.protocol import build_protocol_pdf
 from app.services.exports.task_store import ExportTaskStore
 
+logger = logging.getLogger("export-service")
+
 
 class ExportService:
     _executor = ThreadPoolExecutor(max_workers=2)
@@ -22,19 +25,84 @@ class ExportService:
     def create_exam_results_export(cls, req: ExportRequestDTO) -> str:
         task_id = str(uuid.uuid4())
         ExportTaskStore.put(
-            ExportTaskDTO(task_id=task_id, owner_user_id=req.user_id, status="pending")
+            ExportTaskDTO(
+                task_id=task_id,
+                owner_user_id=req.user_id,
+                status="pending",
+                kind="exam_results",
+                export_test_id=req.test_id,
+            )
         )
-        cls._executor.submit(cls._run_exam_export, task_id, req)
+        cls._enqueue(task_id, lambda: cls._dispatch_exam_export(task_id, req))
         return task_id
 
     @classmethod
     def create_protocol_export(cls, user_id: int) -> str:
         task_id = str(uuid.uuid4())
         ExportTaskStore.put(
-            ExportTaskDTO(task_id=task_id, owner_user_id=user_id, status="pending")
+            ExportTaskDTO(
+                task_id=task_id,
+                owner_user_id=user_id,
+                status="pending",
+                kind="protocol",
+            )
         )
-        cls._executor.submit(cls._run_protocol_export, task_id, user_id)
+        cls._enqueue(task_id, lambda: cls._dispatch_protocol_export(task_id, user_id))
         return task_id
+
+    @classmethod
+    def _enqueue(cls, task_id: str, dispatch_fn) -> None:
+        if get_settings().export_inline:
+            dispatch_fn()
+            return
+        logger.info("Export task %s queued for worker (EXPORT_INLINE=false)", task_id)
+
+    @classmethod
+    def recover_on_startup(cls) -> None:
+        if not get_settings().export_inline:
+            return
+        tasks = ExportTaskStore.list_recoverable()
+        if not tasks:
+            return
+        logger.info("Recovering %s export task(s) after startup", len(tasks))
+        for task in tasks:
+            if task.status == "running":
+                ExportTaskStore.patch(task.task_id, status="pending", error=None)
+            cls._dispatch(task)
+
+    @classmethod
+    def _dispatch(cls, task: ExportTaskDTO) -> None:
+        if task.kind == "exam_results":
+            req = ExportRequestDTO(
+                user_id=task.owner_user_id,
+                test_id=task.export_test_id,
+                kind="exam_results",
+            )
+            cls._dispatch_exam_export(task.task_id, req)
+            return
+        if task.kind == "protocol":
+            cls._dispatch_protocol_export(task.task_id, task.owner_user_id)
+            return
+        logger.warning("Skip export task %s: unknown kind %r", task.task_id, task.kind)
+
+    @classmethod
+    def process_pending(cls, *, limit: int = 10) -> int:
+        """Обработка очереди export-worker (EXPORT_INLINE=false)."""
+        processed = 0
+        for task in ExportTaskStore.list_recoverable()[:limit]:
+            if task.status == "running":
+                ExportTaskStore.patch(task.task_id, status="pending", error=None)
+            cls._dispatch(task)
+            processed += 1
+        return processed
+
+    @classmethod
+    def _dispatch_exam_export(cls, task_id: str, req: ExportRequestDTO) -> None:
+        cls._executor.submit(cls._run_exam_export, task_id, req)
+
+    @classmethod
+    def _dispatch_protocol_export(cls, task_id: str, user_id: int) -> None:
+        cls._executor.submit(cls._run_protocol_export, task_id, user_id)
 
     @classmethod
     def get_task(cls, task_id: str) -> ExportTaskDTO | None:

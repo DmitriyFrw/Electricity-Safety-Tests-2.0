@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from collections import defaultdict
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.constants import ATTEMPT_MODE_EXAM, EXAM_TICKET_TIME_LIMIT_SECONDS
@@ -27,6 +28,7 @@ from app.support.exam_composition import (
     load_exam_questions,
     parse_composition,
 )
+from app.support.errors import EXAM_TICKET_TIME_EXPIRED_MESSAGE, ExamTicketTimeExpiredError
 from app.support.exam_ticket_order import ensure_exam_ticket_order
 
 
@@ -65,6 +67,7 @@ def create_exam_attempt(db: Session, *, user_id: int, test_id: int, test: Test) 
     if existing:
         get_exam_composition(db, existing, test)
         return existing
+
     attempt = Attempt(
         user_id=user_id,
         test_id=test_id,
@@ -72,11 +75,19 @@ def create_exam_attempt(db: Session, *, user_id: int, test_id: int, test: Test) 
         finished_at=None,
     )
     db.add(attempt)
-    db.flush()
-    ensure_exam_composition(db, attempt, test.safety_group)
-    db.commit()
-    db.refresh(attempt)
-    return attempt
+    try:
+        db.flush()
+        ensure_exam_composition(db, attempt, test.safety_group)
+        db.commit()
+        db.refresh(attempt)
+        return attempt
+    except IntegrityError:
+        db.rollback()
+        existing = get_open_exam_attempt(db, user_id=user_id, test_id=test_id)
+        if existing:
+            get_exam_composition(db, existing, test)
+            return existing
+        raise ValueError("Не удалось начать экзамен") from None
 
 
 def _get_ticket_attempt(db: Session, attempt_id: int, ticket_id: int) -> TicketAttempt | None:
@@ -138,7 +149,7 @@ def start_ticket_for_exam(
             ta.finished_at = now
             _store_empty_question_answers(db, attempt, composition.question_ids)
             db.commit()
-            raise ValueError("Время на билет истекло")
+            raise ExamTicketTimeExpiredError(EXAM_TICKET_TIME_EXPIRED_MESSAGE)
         return ta, seconds_remaining(ta.started_at, now=now)
 
     ta = TicketAttempt(attempt_id=attempt.id, ticket_id=ticket.id, started_at=now)
@@ -167,7 +178,7 @@ def submit_exam_ticket(
         ta.finished_at = now
         _store_empty_question_answers(db, attempt, composition.question_ids)
         db.commit()
-        raise ValueError("Время на билет истекло")
+        raise ExamTicketTimeExpiredError(EXAM_TICKET_TIME_EXPIRED_MESSAGE)
 
     questions = load_exam_questions(db, composition.question_ids)
     for q in questions:
@@ -203,6 +214,65 @@ def next_exam_ticket_id(composition: ExamComposition, completed: set[int]) -> in
     return composition.ticket_id
 
 
+def _finalize_exam_attempt(
+    db: Session,
+    *,
+    attempt: Attempt,
+    test: Test,
+) -> tuple[AttemptScore, list[dict[str, object]]]:
+    composition = parse_composition(attempt.exam_ticket_order)
+    if not composition:
+        raise ValueError("Некорректная экзаменационная сессия")
+
+    ticket = db.get(Ticket, composition.ticket_id)
+    if not ticket:
+        raise ValueError("Билет экзамена не найден")
+
+    questions = load_exam_questions(db, composition.question_ids)
+    t_correct: defaultdict[int, int] = defaultdict(int)
+    t_total: defaultdict[int, int] = defaultdict(int)
+    by_q = {ua.question_id: user_answer_selected_indices(ua) for ua in attempt.user_answers}
+    t_total[ticket.id] = len(questions)
+    for q in questions:
+        selected = by_q.get(q.id, [])
+        if is_answer_correct(selected, question_correct_indices(q)):
+            t_correct[ticket.id] += 1
+
+    summary = score_exam_questions(questions, attempt.user_answers)
+    ticket_rows = build_ticket_result_rows([ticket], t_correct, t_total)
+    return summary, ticket_rows
+
+
+def abandon_exam_attempt(
+    db: Session,
+    *,
+    attempt: Attempt,
+    test: Test,
+) -> tuple[AttemptScore, list[dict[str, object]]]:
+    if attempt.finished_at is not None:
+        raise ValueError("Экзамен уже завершён")
+
+    composition = parse_composition(attempt.exam_ticket_order)
+    if not composition:
+        raise ValueError("Некорректная экзаменационная сессия")
+
+    ticket = db.get(Ticket, composition.ticket_id)
+    if not ticket:
+        raise ValueError("Билет экзамена не найден")
+
+    now = utc_now()
+    ta = _get_ticket_attempt(db, attempt.id, ticket.id)
+    if ta and ta.finished_at is None:
+        ta.timed_out = True
+        ta.finished_at = now
+        _store_empty_question_answers(db, attempt, composition.question_ids)
+
+    attempt.finished_at = now
+    db.commit()
+    db.refresh(attempt, attribute_names=["user_answers"])
+    return _finalize_exam_attempt(db, attempt=attempt, test=test)
+
+
 def finish_exam_attempt(
     db: Session,
     *,
@@ -227,17 +297,4 @@ def finish_exam_attempt(
     attempt.finished_at = utc_now()
     db.commit()
     db.refresh(attempt, attribute_names=["user_answers"])
-
-    questions = load_exam_questions(db, composition.question_ids)
-    t_correct: defaultdict[int, int] = defaultdict(int)
-    t_total: defaultdict[int, int] = defaultdict(int)
-    by_q = {ua.question_id: user_answer_selected_indices(ua) for ua in attempt.user_answers}
-    t_total[ticket.id] = len(questions)
-    for q in questions:
-        selected = by_q.get(q.id, [])
-        if is_answer_correct(selected, question_correct_indices(q)):
-            t_correct[ticket.id] += 1
-
-    summary = score_exam_questions(questions, attempt.user_answers)
-    ticket_rows = build_ticket_result_rows([ticket], t_correct, t_total)
-    return summary, ticket_rows
+    return _finalize_exam_attempt(db, attempt=attempt, test=test)

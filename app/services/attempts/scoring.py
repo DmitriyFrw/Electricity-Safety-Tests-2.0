@@ -211,6 +211,23 @@ def build_question_result_rows(
     return rows
 
 
+def build_training_ticket_rows(
+    test: Test,
+    user_answers: list[UserAnswer],
+) -> list[dict[str, Any]]:
+    by_q = _answers_by_question(user_answers)
+    tickets_sorted = attempted_tickets(test, set(by_q.keys()))
+    t_correct: defaultdict[int, int] = defaultdict(int)
+    t_total: defaultdict[int, int] = defaultdict(int)
+    for ticket in tickets_sorted:
+        for q in ticket.questions:
+            t_total[ticket.id] += 1
+            selected = by_q.get(q.id, [])
+            if is_answer_correct(selected, question_correct_indices(q)):
+                t_correct[ticket.id] += 1
+    return build_ticket_result_rows(tickets_sorted, t_correct, t_total)
+
+
 def build_ticket_result_rows(
     tickets_sorted: list[Ticket],
     t_correct: Mapping[int, int],

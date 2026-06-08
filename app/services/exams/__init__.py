@@ -1,4 +1,5 @@
 from app.services.exams.session import (
+    abandon_exam_attempt,
     completed_ticket_ids,
     create_exam_attempt,
     finish_exam_attempt,
@@ -12,6 +13,7 @@ from app.services.exams.session import (
 )
 
 __all__ = [
+    "abandon_exam_attempt",
     "completed_ticket_ids",
     "create_exam_attempt",
     "finish_exam_attempt",

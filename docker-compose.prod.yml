@@ -7,6 +7,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d exam_tests"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
   redis:
@@ -36,11 +41,36 @@ services:
       AUTO_CREATE_SCHEMA: "false"
       RUN_MIGRATIONS: "true"
       EXPORT_TASK_TTL_SECONDS: ${EXPORT_TASK_TTL_SECONDS:-3600}
+      EXPORT_INLINE: "false"
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  export-worker:
+    build:
+      context: .
+    command: python scripts/export_worker.py
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/exam_tests
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+      REDIS_URL: redis://redis:6379/0
+      EXPORT_INLINE: "false"
+      EXPORT_TASK_TTL_SECONDS: ${EXPORT_TASK_TTL_SECONDS:-3600}
+      AUTO_CREATE_SCHEMA: "false"
+      RUN_MIGRATIONS: "false"
+      SESSION_COOKIE_SECURE: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

@@ -23,7 +23,13 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    return get_settings().database_url
+    url = get_settings().database_url
+    if not url:
+        raise RuntimeError(
+            "Задайте DATABASE_URL (см. .env.example). "
+            "Пример: postgresql+psycopg://postgres:postgres@db:5432/exam_tests"
+        )
+    return url
 
 
 def run_migrations_offline() -> None:

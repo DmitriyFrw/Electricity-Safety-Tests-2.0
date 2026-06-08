@@ -3,8 +3,8 @@ python_version = "3.12"
 strict = true
 files = ["app"]
 exclude = [
+    "app/legacy/",
     "app/routes.py",
-    "app/web.py",
     "app/services/tests/",
 ]
 warn_unused_ignores = true

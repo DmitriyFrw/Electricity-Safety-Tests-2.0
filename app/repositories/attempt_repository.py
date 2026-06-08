@@ -9,6 +9,14 @@ from app.repositories.options import ATTEMPT_DASHBOARD_OPTIONS, ATTEMPT_STAFF_PR
 
 class AttemptRepository:
     @staticmethod
+    def count_finished_for_user(db: Session, user_id: int) -> int:
+        return (
+            db.query(Attempt)
+            .filter(Attempt.user_id == user_id, Attempt.finished_at.isnot(None))
+            .count()
+        )
+
+    @staticmethod
     def list_finished_for_user(db: Session, user_id: int, *, limit: int = 100) -> list[Attempt]:
         return (
             db.query(Attempt)

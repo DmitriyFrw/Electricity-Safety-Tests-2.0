@@ -17,6 +17,7 @@ from app.middleware.redis_rate_limit import RedisRateLimitMiddleware
 from app.session_middleware import AppSessionMiddleware
 from app.csrf import CSRFMiddleware, CSRF_HEADER
 from app.database import Base, engine
+from app.services.exports.export_service import ExportService
 
 settings = get_settings()
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -26,6 +27,7 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if settings.auto_create_schema:
         Base.metadata.create_all(bind=engine)
+    ExportService.recover_on_startup()
     yield
 
 

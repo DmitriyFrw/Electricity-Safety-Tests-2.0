@@ -29,8 +29,13 @@ class TestRepository:
         return test
 
     @staticmethod
-    def list_all(db: Session) -> list[Test]:
+    def list_catalog(db: Session) -> list[Test]:
+        """Список тестов для каталога: author + tickets + questions (eager)."""
         return db.query(Test).options(*TEST_LIST_OPTIONS).order_by(Test.created_at.desc()).all()
+
+    @staticmethod
+    def list_all(db: Session) -> list[Test]:
+        return TestRepository.list_catalog(db)
 
     @staticmethod
     def list_by_author(db: Session, author_id: int) -> list[Test]:

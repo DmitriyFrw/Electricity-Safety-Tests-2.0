@@ -23,3 +23,36 @@ def test_export_task_store_memory_roundtrip(monkeypatch):
 
     ExportTaskStore.delete(task_id)
     assert ExportTaskStore.get(task_id) is None
+
+
+def test_export_task_store_kind_roundtrip(monkeypatch):
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    monkeypatch.setenv("REDIS_URL", "")
+
+    task_id = "task-kind-01"
+    task = ExportTaskDTO(
+        task_id=task_id,
+        owner_user_id=7,
+        status="pending",
+        kind="exam_results",
+        export_test_id=3,
+    )
+    ExportTaskStore.put(task)
+    loaded = ExportTaskStore.get(task_id)
+    assert loaded is not None
+    assert loaded.kind == "exam_results"
+    assert loaded.export_test_id == 3
+
+
+def test_export_task_store_list_recoverable(monkeypatch):
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    monkeypatch.setenv("REDIS_URL", "")
+
+    ExportTaskStore.put(
+        ExportTaskDTO(task_id="pending-1", owner_user_id=1, status="pending", kind="protocol")
+    )
+    ExportTaskStore.put(
+        ExportTaskDTO(task_id="done-1", owner_user_id=1, status="done", kind="protocol")
+    )
+    recoverable = {t.task_id for t in ExportTaskStore.list_recoverable()}
+    assert recoverable == {"pending-1"}

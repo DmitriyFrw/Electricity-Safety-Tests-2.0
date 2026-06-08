@@ -66,15 +66,27 @@ def test_repository_avoids_n_plus_one(db_session):
 
     event.listen(db_session.bind, "before_cursor_execute", _before_cursor_execute)
     try:
-        rows = TestRepository.list_all(db_session)
+        rows = TestRepository.list_catalog(db_session)
         assert rows
         # Access related fields that would trigger N+1 without eager loading.
-        _ = [(x.author.username, len(x.tickets)) for x in rows]
+        from app.api.mappers import test_list_out
+        from app.support.validation import test_is_available_loaded
+
+        _ = [
+            (
+                x.author.username,
+                len(x.tickets),
+                len(x.tickets[0].questions) if x.tickets else 0,
+                test_is_available_loaded(x),
+            )
+            for x in rows
+        ]
+        _ = test_list_out(db_session, rows, author)
     finally:
         event.remove(db_session.bind, "before_cursor_execute", _before_cursor_execute)
 
-    # 1 query tests + 1 authors/tickets prefetch bucket ~= small bounded number.
-    assert len(queries) <= 4
+    # tests + authors + tickets + questions (selectinload), без N+1 на ready.
+    assert len(queries) <= 5
 
 
 def _make_two_ticket_test(db_session, *, author_id: int) -> Test:

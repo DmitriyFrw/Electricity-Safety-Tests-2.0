@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from app.constants import EXAM_TICKET_TIME_LIMIT_SECONDS
 from app.auth_utils import hash_password
-from app.models import Attempt, Question, Ticket, TicketAttempt, Test, User
+from app.models import Attempt, Question, Ticket, TicketAttempt, Test, User, UserAnswer
 from app.database import SessionLocal
 from app.main import app
 
@@ -105,6 +105,7 @@ async def test_exam_ticket_timeout(async_client: AsyncClient, db_session):
         headers={"X-CSRF-Token": csrf2},
     )
     assert submit.status_code == 408
+    assert submit.json()["code"] == "exam_ticket_time_expired"
     assert "X-Correlation-ID" in submit.headers
 
 
@@ -622,4 +623,168 @@ async def test_kot_safety_group_and_exam_assignment(async_client: AsyncClient, d
     ids = {item["id"] for item in listed.json()["items"]}
     assert test_iii.id in ids
     assert test_ii.id not in ids
+
+
+@pytest.mark.asyncio
+async def test_exam_abandon_closes_open_session(async_client: AsyncClient, db_session):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "abandonuser", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+    user_id = reg.json()["id"]
+
+    test = Test(author_id=user_id, title="Abandon test", description=None, published=True)
+    ticket = Ticket(position=1)
+    for pos in range(1, 4):
+        ticket.questions.append(
+            Question(
+                position=pos,
+                text=f"Q{pos}",
+                correct_index=0,
+                option_a="A",
+                option_b="B",
+                option_c="C",
+                option_d="D",
+            )
+        )
+    test.tickets.append(ticket)
+    db_session.add(test)
+    db_session.commit()
+    db_session.refresh(test)
+
+    csrf_start = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    start = await async_client.post(
+        f"/api/tests/{test.id}/exam/session",
+        headers={"X-CSRF-Token": csrf_start},
+    )
+    start.raise_for_status()
+    next_ticket_id = start.json()["next_ticket_id"]
+    await async_client.get(f"/api/tests/{test.id}/exam/tickets/{next_ticket_id}")
+
+    csrf_abandon = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    abandoned = await async_client.post(
+        f"/api/tests/{test.id}/exam/abandon",
+        headers={"X-CSRF-Token": csrf_abandon},
+    )
+    abandoned.raise_for_status()
+    body = abandoned.json()
+    assert body["passed_exam"] is False
+    assert body["attempt_id"] == start.json()["attempt_id"]
+
+    session = await async_client.get(f"/api/tests/{test.id}/exam/session")
+    assert session.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_exam_abandon_not_passed_with_partial_correct_answers(
+    async_client: AsyncClient, db_session
+):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "partialuser", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+    user_id = reg.json()["id"]
+
+    test = Test(author_id=user_id, title="Partial abandon", description=None, published=True)
+    ticket = Ticket(position=1)
+    for pos in range(1, 5):
+        ticket.questions.append(
+            Question(
+                position=pos,
+                text=f"Q{pos}",
+                correct_index=0,
+                option_a="A",
+                option_b="B",
+                option_c="C",
+                option_d="D",
+            )
+        )
+    test.tickets.append(ticket)
+    db_session.add(test)
+    db_session.commit()
+    db_session.refresh(test)
+
+    csrf_start = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    start = await async_client.post(
+        f"/api/tests/{test.id}/exam/session",
+        headers={"X-CSRF-Token": csrf_start},
+    )
+    start.raise_for_status()
+    next_ticket_id = start.json()["next_ticket_id"]
+    await async_client.get(f"/api/tests/{test.id}/exam/tickets/{next_ticket_id}")
+
+    attempt_id = start.json()["attempt_id"]
+    for q in ticket.questions[:3]:
+        db_session.add(
+            UserAnswer(attempt_id=attempt_id, question_id=q.id, selected_index=0)
+        )
+    db_session.commit()
+
+    csrf_abandon = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    abandoned = await async_client.post(
+        f"/api/tests/{test.id}/exam/abandon",
+        headers={"X-CSRF-Token": csrf_abandon},
+    )
+    abandoned.raise_for_status()
+    body = abandoned.json()
+    assert body["percent"] == 75.0
+    assert body["passed_exam"] is False
+
+
+@pytest.mark.asyncio
+async def test_training_result_can_be_fetched_by_attempt_id(async_client: AsyncClient, db_session):
+    csrf = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    reg = await async_client.post(
+        "/api/auth/register",
+        json={"username": "trainuser", "password": "password123", "password2": "password123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    reg.raise_for_status()
+    user_id = reg.json()["id"]
+
+    test = Test(author_id=user_id, title="Training test", description=None, published=True)
+    ticket = Ticket(position=1)
+    for pos in range(1, 3):
+        ticket.questions.append(
+            Question(
+                position=pos,
+                text=f"Q{pos}",
+                correct_index=0,
+                option_a="A",
+                option_b="B",
+                option_c="C",
+                option_d="D",
+            )
+        )
+    test.tickets.append(ticket)
+    db_session.add(test)
+    db_session.commit()
+    db_session.refresh(test)
+
+    csrf_submit = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
+    submit = await async_client.post(
+        f"/api/tests/{test.id}/training",
+        json={
+            "answers": [
+                {"question_id": ticket.questions[0].id, "value": "A"},
+                {"question_id": ticket.questions[1].id, "value": "B"},
+            ]
+        },
+        headers={"X-CSRF-Token": csrf_submit},
+    )
+    submit.raise_for_status()
+    body = submit.json()
+    attempt_id = body["attempt_id"]
+    assert body["percent"] >= 0
+
+    fetched = await async_client.get(f"/api/tests/{test.id}/training/attempts/{attempt_id}/result")
+    fetched.raise_for_status()
+    assert fetched.json()["attempt_id"] == attempt_id
+    assert fetched.json()["percent"] == body["percent"]
 

@@ -120,6 +120,7 @@ export interface Dashboard {
   admin_protocol_drafts: AdminProtocolDraftUser[];
   created_tests: CreatedTest[];
   attempts: AttemptRow[];
+  attempts_total: number;
 }
 
 export interface TestListItem {

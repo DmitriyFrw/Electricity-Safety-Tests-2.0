@@ -25,8 +25,11 @@ const NAV_CONSTRUCTOR = {
 } as const;
 
 const LOGO_MASCOT = "/razvivaisia/assets/images/logo-mascot.gif";
-const LOGO_CLOUD = "/razvivaisia/assets/images/yandex-cloud-logo.png";
+const LOGO_BRAND = "/razvivaisia/assets/images/y-razvivaisia-logo.png";
 const AVATAR = "/razvivaisia/assets/images/hedgehog-avatar.svg";
+const HELPY_LOGO = "/razvivaisia/assets/images/helpy.png";
+const HELPY_SUPPORT_URL =
+  "https://messenger.360.yandex.ru/#/user/f7469409-2aec-96de-46c5-5a4cd52f4227";
 
 export default function DashboardLayout({
   children,
@@ -109,7 +112,7 @@ export default function DashboardLayout({
           </button>
           <Link to="/cabinet" className="header-logo-brand">
             <img src={LOGO_MASCOT} alt="" className="header-logo-mascot" />
-            <img src={LOGO_CLOUD} alt="Yandex Cloud" className="header-logo-cloud" />
+            <img src={LOGO_BRAND} alt="Y Развивайся" className="header-logo-y-razvivaisia" />
           </Link>
         </div>
         <div className="header-user header-user-actions">
@@ -156,14 +159,16 @@ export default function DashboardLayout({
             aria-live="polite"
           />
           <div className="sidebar-support">
-            <div className="sidebar-support-title">Служба поддержки</div>
-            <a href="tel:88005553535" className="sidebar-support-phone">
-              8-800-555-35-35
+            <p className="sidebar-support-caption">Если что то сломалось</p>
+            <a
+              href={HELPY_SUPPORT_URL}
+              className="sidebar-helpy-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Открыть поддержку Helpy в Яндекс Мессенджере"
+            >
+              <img src={HELPY_LOGO} alt="Helpy — служба поддержки" className="sidebar-helpy-img" />
             </a>
-            <a href="mailto:support@ivan.ru" className="sidebar-support-email">
-              support@ivan.ru
-            </a>
-            <div className="sidebar-support-hours">Пн - Пт с 9:00 - 00:00</div>
           </div>
         </aside>
 

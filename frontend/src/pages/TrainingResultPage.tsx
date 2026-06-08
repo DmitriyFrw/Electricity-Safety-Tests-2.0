@@ -1,23 +1,79 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { api } from "../api/client";
+import { axiosErrorMessage } from "../api/getReact";
 import TestResultTiles from "../components/test-flow/TestResultTiles";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult } from "../types/api";
 
 export default function TrainingResultPage() {
-  const { testId } = useParams();
+  const { testId, attemptId } = useParams();
   const location = useLocation();
-  const result = location.state?.result as ExamResult | undefined;
+  const stateResult = location.state?.result as ExamResult | undefined;
+  const tid = Number(testId);
+  const aid = Number(attemptId);
+  const hasIds = Number.isFinite(tid) && Number.isFinite(aid);
+  const [result, setResult] = useState<ExamResult | undefined>(stateResult);
+  const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(!stateResult && hasIds);
 
-  if (!result) {
+  useEffect(() => {
+    if (stateResult) {
+      setResult(stateResult);
+      setLoading(false);
+      return;
+    }
+    if (!hasIds) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
+    void api
+      .getTrainingResult(tid, aid)
+      .then((data) => {
+        if (!cancelled) setResult(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(axiosErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [stateResult, hasIds, tid, aid]);
+
+  if (loading) {
+    return (
+      <DashboardLayout active="training">
+        <p className="dash-card-note">Загрузка…</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <DashboardLayout active="training">
+        <p className="auth-error">{loadError}</p>
+        <Link to={`/training/${testId ?? ""}`}>Вернуться к тренировке</Link>
+      </DashboardLayout>
+    );
+  }
+
+  if (!result || !hasIds) {
     return (
       <DashboardLayout active="training">
         <p className="dash-card-note">Нет данных результата.</p>
-        <Link to={`/training/${testId}`}>Вернуться к тренировке</Link>
+        <Link to={`/training/${testId ?? ""}`}>Вернуться к тренировке</Link>
       </DashboardLayout>
     );
   }
 
   const questions = result.question_results ?? [];
+  const reviewBasePath = `/training/${tid}/result/${aid}`;
 
   return (
     <DashboardLayout active="training">
@@ -39,7 +95,7 @@ export default function TrainingResultPage() {
       {questions.length > 0 && (
         <TestResultTiles
           questions={questions}
-          reviewBasePath={`/training/${testId}/result`}
+          reviewBasePath={reviewBasePath}
           result={result}
         />
       )}

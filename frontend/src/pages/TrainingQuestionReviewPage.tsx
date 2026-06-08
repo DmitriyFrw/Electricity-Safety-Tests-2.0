@@ -1,18 +1,78 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { api } from "../api/client";
+import { axiosErrorMessage } from "../api/getReact";
 import RichHtml from "../components/RichHtml";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult, QuestionResult } from "../types/api";
 import { labelsForCount, optionFieldsForQuestion } from "../utils/questionOptions";
 
 export default function TrainingQuestionReviewPage() {
-  const { testId, questionId } = useParams();
+  const { testId, attemptId, questionId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const result = location.state?.result as ExamResult | undefined;
+  const stateResult = location.state?.result as ExamResult | undefined;
+  const tid = Number(testId);
+  const aid = Number(attemptId);
   const qid = Number(questionId);
   const isExam = location.pathname.includes("/exam/");
   const active = isExam ? "exam" : "training";
-  const resultPath = isExam ? `/exam/${testId}/result` : `/training/${testId}/result`;
+  const hasTrainingIds = Number.isFinite(tid) && Number.isFinite(aid);
+  const resultPath = isExam
+    ? `/exam/${testId}/result`
+    : hasTrainingIds
+      ? `/training/${tid}/result/${aid}`
+      : `/training/${testId}/result`;
+
+  const [result, setResult] = useState<ExamResult | undefined>(stateResult);
+  const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(!stateResult && !isExam && hasTrainingIds);
+
+  useEffect(() => {
+    if (stateResult || isExam) {
+      setResult(stateResult);
+      setLoading(false);
+      return;
+    }
+    if (!hasTrainingIds) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
+    void api
+      .getTrainingResult(tid, aid)
+      .then((data) => {
+        if (!cancelled) setResult(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(axiosErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [stateResult, isExam, hasTrainingIds, tid, aid]);
+
+  if (loading) {
+    return (
+      <DashboardLayout active={active}>
+        <p className="dash-card-note">Загрузка…</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <DashboardLayout active={active}>
+        <p className="auth-error">{loadError}</p>
+        <Link to={resultPath}>К результатам</Link>
+      </DashboardLayout>
+    );
+  }
 
   if (!result || !Number.isFinite(qid)) {
     return (

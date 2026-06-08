@@ -110,7 +110,7 @@ export default function App() {
           }
         />
         <Route
-          path="/training/:testId/result"
+          path="/training/:testId/result/:attemptId"
           element={
             <PrivateRoute>
               <TrainingResultPage />
@@ -118,7 +118,7 @@ export default function App() {
           }
         />
         <Route
-          path="/training/:testId/result/q/:questionId"
+          path="/training/:testId/result/:attemptId/q/:questionId"
           element={
             <PrivateRoute>
               <TrainingQuestionReviewPage />

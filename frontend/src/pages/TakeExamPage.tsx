@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getReact, postReact, axiosErrorMessage } from "../api/getReact";
+import { api } from "../api/client";
+import { axiosErrorCode, axiosErrorMessage, getReact, postReact } from "../api/getReact";
 import PaginatedTestFlow, { type AnswersMap } from "../components/test-flow/PaginatedTestFlow";
 import DashboardLayout from "../layout/DashboardLayout";
 import type { ExamResult, ExamSession, ExamTicketPaper } from "../types/api";
+import {
+  abandonExamKeepalive,
+  clearExamPageGuard,
+  isExamPageRefresh,
+  markExamPageActive,
+} from "../utils/examSession";
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -23,11 +30,28 @@ export default function TakeExamPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const expiredRef = useRef(false);
+  const intentionalLeaveRef = useRef(false);
+  const abandonSentRef = useRef(false);
+
+  const goToResult = useCallback(
+    (result: ExamResult) => {
+      intentionalLeaveRef.current = true;
+      clearExamPageGuard(id);
+      navigate(`/exam/${id}/result/${result.attempt_id}`, { state: { result } });
+    },
+    [id, navigate]
+  );
+
+  const requestAbandon = useCallback(() => {
+    if (!id || abandonSentRef.current || intentionalLeaveRef.current) return;
+    abandonSentRef.current = true;
+    abandonExamKeepalive(id);
+  }, [id]);
 
   const finishExam = useCallback(async () => {
     const result = await postReact<ExamResult>(`/tests/${id}/exam/finish`);
-    navigate(`/exam/${id}/result`, { state: { result } });
-  }, [id, navigate]);
+    goToResult(result);
+  }, [goToResult, id]);
 
   const loadTicket = useCallback(
     async (ticketId: number) => {
@@ -53,17 +77,45 @@ export default function TakeExamPage() {
 
   useEffect(() => {
     if (!id) return;
+
+    const onPageHide = () => requestAbandon();
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      if (!intentionalLeaveRef.current) {
+        requestAbandon();
+      }
+      if (intentionalLeaveRef.current) {
+        clearExamPageGuard(id);
+      }
+    };
+  }, [id, requestAbandon]);
+
+  useEffect(() => {
+    if (!id) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
       setLoadError("");
       try {
-        let sess: ExamSession;
-        try {
-          sess = await getReact<ExamSession>(`/tests/${id}/exam/session`);
-        } catch {
-          sess = await postReact<ExamSession>(`/tests/${id}/exam/session`);
+        if (isExamPageRefresh(id)) {
+          try {
+            const result = await api.abandonExam(id);
+            if (cancelled) return;
+            goToResult(result);
+          } catch {
+            if (!cancelled) {
+              intentionalLeaveRef.current = true;
+              clearExamPageGuard(id);
+              navigate("/exam", { replace: true });
+            }
+          }
+          return;
         }
+
+        markExamPageActive(id);
+        const sess = await postReact<ExamSession>(`/tests/${id}/exam/session`);
         if (cancelled) return;
         setSession(sess);
         if (sess.next_ticket_id) {
@@ -80,7 +132,7 @@ export default function TakeExamPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, finishExam, loadTicket]);
+  }, [id, finishExam, goToResult, loadTicket]);
 
   useEffect(() => {
     if (!paper || secondsLeft <= 0) return;
@@ -108,7 +160,7 @@ export default function TakeExamPage() {
       } catch (err) {
         const msg = axiosErrorMessage(err);
         setSubmitError(msg);
-        if (msg.includes("истекло")) {
+        if (axiosErrorCode(err) === "exam_ticket_time_expired") {
           try {
             const refreshed = await getReact<ExamSession>(`/tests/${id}/exam/session`);
             await advanceSession(refreshed);

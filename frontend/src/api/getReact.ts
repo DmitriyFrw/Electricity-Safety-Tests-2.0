@@ -1,4 +1,4 @@
-import { apiClient, axiosErrorMessage } from "./axios";
+import { apiClient, axiosCorrelationId, axiosErrorCode, axiosErrorMessage } from "./axios";
 
 /**
  * GET к backend → JSON → возвращает типизированные данные для React state.
@@ -35,4 +35,4 @@ export async function postFormReact<T>(path: string, body: FormData): Promise<T>
   return data;
 }
 
-export { axiosErrorMessage };
+export { axiosCorrelationId, axiosErrorCode, axiosErrorMessage };

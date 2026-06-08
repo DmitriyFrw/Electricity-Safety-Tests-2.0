@@ -10,6 +10,8 @@ export default function TrainingPage() {
   const { data: dashboard } = useGetReact<Dashboard>("/dashboard");
   const tests = data?.items ?? [];
   const attempts = dashboard?.attempts ?? [];
+  const attemptsTotal = dashboard?.attempts_total ?? attempts.length;
+  const attemptsTruncated = attemptsTotal > attempts.length;
 
   return (
     <DashboardLayout active="training">
@@ -62,6 +64,11 @@ export default function TrainingPage() {
       {attempts.length > 0 && (
         <section className="dash-section dash-section--glass">
           <h2 className="dash-section-title">История пройденных тестов</h2>
+          {attemptsTruncated && (
+            <p className="dash-card-note">
+              Показаны последние {attempts.length} из {attemptsTotal} попыток
+            </p>
+          )}
           <div className="dash-table-wrap">
             <table className="dash-table">
               <thead>

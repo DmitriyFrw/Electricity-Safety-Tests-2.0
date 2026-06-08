@@ -124,9 +124,7 @@
 .page-wrapper--dashboard .dashboard-widget-footer,
 .page-wrapper--dashboard .info-box,
 .page-wrapper--dashboard .widget-group-passed,
-.page-wrapper--dashboard .sidebar-support-title,
-.page-wrapper--dashboard .sidebar-support-email,
-.page-wrapper--dashboard .sidebar-support-hours,
+.page-wrapper--dashboard .sidebar-support-caption,
 .page-wrapper--dashboard .dash-hero-sub,
 .page-wrapper--dashboard .documents-card p,
 .page-wrapper--dashboard .exam-rules-card p,
@@ -850,8 +848,8 @@
     font-size: var(--font-size-lg);
   }
 
-  .header-logo-cloud {
-    height: 26px;
+  .header-logo-y-razvivaisia {
+    height: 96px;
   }
 
   .header-user-avatar {

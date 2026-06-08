@@ -25,7 +25,7 @@ export default function TakeTrainingPage() {
     }));
     try {
       const result = await postReact<ExamResult>(`/tests/${paper.id}/training`, { answers: payload });
-      navigate(`/training/${paper.id}/result`, { state: { result } });
+      navigate(`/training/${paper.id}/result/${result.attempt_id}`, { state: { result } });
     } catch (err) {
       setSubmitError(axiosErrorMessage(err));
     } finally {

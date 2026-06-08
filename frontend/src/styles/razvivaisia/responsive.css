@@ -39,7 +39,10 @@
         padding: 0 var(--spacing-6);
     }
 
-    .header-logo-mascot,
+    .header-logo-mascot {
+        height: 60px;
+    }
+
     .header-logo-img {
         height: 50px;
     }
@@ -273,7 +276,10 @@
         --header-height: 70px;
     }
 
-    .header-logo-mascot,
+    .header-logo-mascot {
+        height: 48px;
+    }
+
     .header-logo-img {
         height: 40px;
     }

@@ -50,8 +50,18 @@ export const api = {
 
   addTicket: (testId: number) => postReact<TestEdit>(`/tests/${testId}/tickets`),
 
-  saveTicket: (testId: number, ticketId: number, questions: QuestionSave[]) =>
-    putReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`, { questions }),
+  saveTicket: (
+    testId: number,
+    ticketId: number,
+    body: {
+      questions: QuestionSave[];
+      title?: string | null;
+      option_count?: number;
+    }
+  ) => putReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`, body),
+
+  getTrainingResult: (testId: number, attemptId: number) =>
+    getReact<ExamResult>(`/tests/${testId}/training/attempts/${attemptId}/result`),
 
   deleteTicket: (testId: number, ticketId: number) =>
     deleteReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`),
@@ -102,6 +112,9 @@ export const api = {
 
   getExamResult: (testId: number, attemptId: number) =>
     getReact<ExamResult>(`/tests/${testId}/exam/attempts/${attemptId}/result`),
+
+  abandonExam: (testId: number) =>
+    postReact<ExamResult>(`/tests/${testId}/exam/abandon`),
 
   listWikiPages: () => getReact<WikiPageListItem[]>("/wiki/pages"),
 

@@ -26,9 +26,33 @@ function formatApiDetail(detail: unknown): string | null {
   return lines.length ? lines.join("; ") : null;
 }
 
+type ApiErrorBody = {
+  detail?: unknown;
+  code?: string | null;
+  correlation_id?: string | null;
+  /** @deprecated используйте code */
+  error_code?: string;
+};
+
+export function axiosErrorCode(err: unknown): string | null {
+  if (!axios.isAxiosError(err)) return null;
+  const data = (err as AxiosError<ApiErrorBody>).response?.data;
+  const code = data?.code ?? data?.error_code;
+  return typeof code === "string" && code.trim() ? code : null;
+}
+
+export function axiosCorrelationId(err: unknown): string | null {
+  if (!axios.isAxiosError(err)) return null;
+  const data = (err as AxiosError<ApiErrorBody>).response?.data;
+  const fromBody = data?.correlation_id;
+  if (typeof fromBody === "string" && fromBody.trim()) return fromBody;
+  const header = (err as AxiosError).response?.headers?.["x-correlation-id"];
+  return typeof header === "string" && header.trim() ? header : null;
+}
+
 export function axiosErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
-    const ax = err as AxiosError<{ detail?: unknown }>;
+    const ax = err as AxiosError<ApiErrorBody>;
     const formatted = formatApiDetail(ax.response?.data?.detail);
     if (formatted) return formatted;
     if (ax.response?.status === 422) return "Проверьте введённые данные (ошибка валидации)";

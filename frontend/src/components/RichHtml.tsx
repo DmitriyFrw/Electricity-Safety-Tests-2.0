@@ -1,4 +1,4 @@
-/** Безопасный вывод HTML из конструктора билетов (теги задаёт backend). */
+/** HTML санитизируется на backend (bleach); здесь только отображение доверенной разметки. */
 export default function RichHtml({ html, className }: { html: string; className?: string }) {
   if (!html?.trim()) return null;
   return (

@@ -7,6 +7,7 @@ import { useGetReact } from "../hooks/useGetReact";
 import { safetyGroupLabel } from "../constants/safetyGroups";
 import type { Dashboard, StaffProtocolExport } from "../types/api";
 import { BUSINESS_UNITS } from "../constants/businessUnits";
+import { EXAM_RULES } from "../content/examRules";
 import { formatDateRu, parseNextCheck } from "../utils/format";
 import { isProfileFieldsComplete, profileMissingLabels } from "../utils/profile";
 
@@ -467,7 +468,7 @@ export default function CabinetPage() {
               <div className="widget-errors-count">{data.last_errors}</div>
               <div className="widget-errors-details">
                 <div className="widget-errors-allowed">
-                  Допустимое количество ошибок не более <strong>{data.max_errors_allowed}</strong>
+                  Допустимое количество ошибок не более <strong>{EXAM_RULES.maxErrorsAllowed}</strong>
                 </div>
               </div>
             </div>

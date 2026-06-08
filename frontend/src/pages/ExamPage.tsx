@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
+import {
+  examErrorsAllowanceText,
+  examPassThresholdText,
+  examTimeLimitText,
+} from "../content/examRules";
 import { useGetReact } from "../hooks/useGetReact";
 import type { TestListItem } from "../types/api";
-import { EXAM_TICKET_MINUTES } from "../utils/exam";
 
 export default function ExamPage() {
   const { data, error, loading } = useGetReact<{ items: TestListItem[] }>("/tests");
@@ -17,12 +21,12 @@ export default function ExamPage() {
           <div className="exam-intro-text">
             <p>
               Экзамен сдается в присутствии контролирующего лица. На прохождение экзамена —{" "}
-              {EXAM_TICKET_MINUTES} минут. Для успешной сдачи экзамена необходимо набрать не менее
-              70% правильных ответов. У вас есть право на три ошибки.
+              {examTimeLimitText()}. Для успешной сдачи экзамена необходимо набрать{" "}
+              {examPassThresholdText()}. У вас есть {examErrorsAllowanceText()}.
             </p>
             <p>
-              Обратите внимание, что при закрытии страницы экзамен автоматически считается не
-              пройденным.
+              Экзамен завершается при сдаче билета, истечении времени на билет, а также при
+              обновлении или закрытии страницы — в этих случаях попытка считается не сданной.
             </p>
             <p>Не спешите и у вас все получится.</p>
             <p>Ежекот желает вам удачи!</p>

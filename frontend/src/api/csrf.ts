@@ -12,6 +12,7 @@ const UNSAFE = new Set(["post", "put", "patch", "delete"]);
 export async function initCsrf(): Promise<string> {
   const { csrf_token } = await getReact<{ csrf_token: string }>("/auth/csrf");
   csrfToken = csrf_token;
+  sessionStorage.setItem("csrf_token", csrf_token);
   return csrf_token;
 }
 
@@ -21,6 +22,7 @@ export function getCsrfToken(): string | null {
 
 export function setCsrfToken(token: string): void {
   csrfToken = token;
+  sessionStorage.setItem("csrf_token", token);
 }
 
 /** Подключить заголовок X-CSRF-Token ко всем небезопасным запросам axios. */

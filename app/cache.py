@@ -51,3 +51,14 @@ def invalidate_cache(name: str) -> None:
     cache = _caches.get(name)
     if cache is not None:
         cache.clear()
+
+
+def invalidate_user_test_list_cache(user_id: int) -> None:
+    """Сбросить кэш списка тестов для пользователя (смена роли / группы ЭБ)."""
+    cache = _caches.get("test_list")
+    if cache is None:
+        return
+    prefix = f"user:{user_id}:"
+    for key in list(cache.keys()):
+        if str(key).startswith(prefix):
+            del cache[key]

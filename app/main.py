@@ -80,9 +80,9 @@ app.add_middleware(CorrelationIdMiddleware)
 
 app.include_router(api_router)
 
-legacy_static = Path(__file__).resolve().parent / "static"
-if legacy_static.is_dir():
-    app.mount("/static", StaticFiles(directory=str(legacy_static)), name="static")
+app_static = Path(__file__).resolve().parent / "static"
+if app_static.is_dir():
+    app.mount("/static", StaticFiles(directory=str(app_static)), name="static")
 
 
 @app.get("/api/health")

@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources import NoDecode
 from typing import Annotated
@@ -22,6 +22,7 @@ def _normalize_db_url(url: str) -> str:
 
 
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+_INSECURE_SECRET_KEYS = frozenset({"dev-change-me-in-production", "change-me", "secret"})
 
 
 class Settings(BaseSettings):
@@ -65,6 +66,18 @@ class Settings(BaseSettings):
     )
     auto_create_schema: bool = Field(default=True, alias="AUTO_CREATE_SCHEMA")
     export_task_ttl_seconds: int = Field(default=3600, alias="EXPORT_TASK_TTL_SECONDS", ge=60)
+    export_inline: bool = Field(
+        default=True,
+        alias="EXPORT_INLINE",
+        description="True: ThreadPool в web-процессе; False: отдельный export-worker",
+    )
+    production_mode: bool = Field(default=False, alias="PRODUCTION_MODE")
+
+    @property
+    def is_production(self) -> bool:
+        return self.production_mode or (
+            not self.auto_create_schema and self.session_cookie_secure
+        )
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -80,6 +93,20 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [o.strip() for o in v.split(",") if o.strip()]
         return v
+
+    @model_validator(mode="after")
+    def _validate_production_security(self) -> Settings:
+        if not self.is_production:
+            return self
+        if not self.database_url:
+            raise ValueError("DATABASE_URL обязателен в production")
+        secret = self.secret_key.strip()
+        if secret in _INSECURE_SECRET_KEYS or len(secret) < 32:
+            raise ValueError(
+                "Задайте надёжный SECRET_KEY (≥ 32 символов) в production; "
+                "значение по умолчанию запрещено"
+            )
+        return self
 
 
 @lru_cache

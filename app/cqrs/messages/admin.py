@@ -27,3 +27,8 @@ class GetUserProtocolDraftPdfQuery(Query):
     db: Session
     actor: User
     target_user_id: int
+
+
+@dataclass(frozen=True, slots=True)
+class GetAdminStatsQuery(Query):
+    db: Session

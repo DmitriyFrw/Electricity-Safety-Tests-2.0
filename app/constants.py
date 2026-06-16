@@ -5,8 +5,10 @@ QUESTIONS_PER_TICKET = 10
 MIN_OPTION_COUNT = 2
 MAX_OPTION_COUNT = 4
 
-# Порог «сдан» на экзамене: удовлетворительно и выше (см. grade_for_percent, ≥ 75%)
+# Шкала оценок (см. grade_for_percent, docs/BUSINESS_RULES.md)
 MIN_PASS_PERCENT = 75
+GRADE_GOOD_MIN_PERCENT = 85
+GRADE_EXCELLENT_MIN_PERCENT = 95
 
 # Отображение в карточке «Количество ошибок» (как в макете)
 MAX_ERRORS_DISPLAY = 3
@@ -23,6 +25,9 @@ SAFETY_GROUP_DESCRIPTIONS: dict[str, str] = {
 DEFAULT_SAFETY_GROUP = DEFAULT_KOT_SAFETY_GROUP
 DEFAULT_SAFETY_GROUP_DESC = ""
 KNOWLEDGE_CHECK_INTERVAL_DAYS = 365
+
+# История попыток в личном кабинете / обучении (пагинация на UI)
+DASHBOARD_ATTEMPTS_PAGE_SIZE = 20
 
 # Лимит на один экзаменационный билет (секунды)
 EXAM_TICKET_TIME_LIMIT_SECONDS = 20 * 60

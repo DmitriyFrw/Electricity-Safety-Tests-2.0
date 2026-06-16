@@ -14,6 +14,7 @@ from app.cqrs.messages import (
     CreateTestCommand,
     DeleteTestCommand,
     DeleteTicketCommand,
+    AbandonExamCommand,
     FinishExamCommand,
     GetExamAttemptResultQuery,
     GetExamSessionQuery,
@@ -22,6 +23,7 @@ from app.cqrs.messages import (
     GetSignedProtocolPdfQuery,
     GetSignedProtocolQuery,
     GetTestForEditQuery,
+    GetTrainingAttemptResultQuery,
     GetTrainingPaperQuery,
     ListTestsQuery,
     OpenExamTicketCommand,
@@ -137,6 +139,24 @@ def submit_training(
     )
 
 
+@router.get(
+    "/{test_id}/training/attempts/{attempt_id}/result",
+    response_model=ExamResultOut,
+)
+def get_training_attempt_result(
+    test_id: int,
+    attempt_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+) -> ExamResultOut:
+    return dispatch_query(
+        GetTrainingAttemptResultQuery(
+            db=db, test_id=test_id, attempt_id=attempt_id, user=user
+        ),
+        ExamResultOut,
+    )
+
+
 @router.post("/{test_id}/exam/session", response_model=ExamSessionOut)
 def start_exam_session(
     test_id: int,
@@ -183,6 +203,17 @@ def submit_exam_ticket_answers(
             db=db, test_id=test_id, ticket_id=ticket_id, user=user, form=form
         ),
         ExamSessionOut,
+    )
+
+
+@router.post("/{test_id}/exam/abandon", response_model=ExamResultOut)
+def abandon_exam(
+    test_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(login_required)],
+) -> ExamResultOut:
+    return dispatch_command(
+        AbandonExamCommand(db=db, test_id=test_id, user=user), ExamResultOut
     )
 
 

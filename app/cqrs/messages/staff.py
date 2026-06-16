@@ -21,3 +21,15 @@ class UpdateKotSafetyGroupCommand(Command):
     actor: User
     target_user_id: int
     form: UpdateKotSafetyGroupIn
+
+
+@dataclass(frozen=True, slots=True)
+class ExportExamScheduleQuery(Query):
+    db: Session
+    actor: User
+
+
+@dataclass(frozen=True, slots=True)
+class ListExamScheduleQuery(Query):
+    db: Session
+    actor: User

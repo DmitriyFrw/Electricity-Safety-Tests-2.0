@@ -15,7 +15,7 @@ from app.constants import (
     ROLE_ADMIN,
     ROLE_KOT,
 )
-from app.support.grading import exam_is_passed
+from app.support.exam_completion import exam_attempt_is_passed
 from app.support.answers import question_allows_multiple, question_correct_indices
 from app.support.question_options import question_option_count
 from app.support.safety_groups import effective_safety_group, safety_group_description
@@ -51,7 +51,7 @@ from app.services.attempts.scoring import attempt_to_row
 from app.support.profile import is_profile_complete
 from app.support.validation import (
     complete_tickets_sorted,
-    test_is_available,
+    test_is_available_loaded,
     test_is_ready_to_take,
     ticket_is_complete,
 )
@@ -137,7 +137,7 @@ def _staff_protocol_exports(db: Session, user: User, *, limit: int = 15) -> list
     rows: list[StaffProtocolExportOut] = []
     for attempt in AttemptRepository.list_finished_exam_for_staff(db, user, limit=limit * 4):
         summary = score_attempt(db, attempt)
-        if not exam_is_passed(summary.percent):
+        if not exam_attempt_is_passed(db, attempt, summary.percent):
             continue
         examinee = attempt.user
         if examinee is None:
@@ -163,6 +163,7 @@ def dashboard_out(
     *,
     created_tests: list[Test],
     attempts: list[Attempt],
+    attempts_total: int | None = None,
     signed_protocol: SignedProtocol | None = None,
 ) -> DashboardOut:
     base = build_dashboard_context(
@@ -232,29 +233,60 @@ def dashboard_out(
             for t in created_tests
         ],
         attempts=attempt_rows,
+        attempts_total=attempts_total if attempts_total is not None else len(attempt_rows),
     )
 
 
-def test_list_out(db: Session, tests: list[Test], current_user: User) -> TestListOut:
-    items = []
-    for t in tests:
-        items.append(
-            TestListItemOut(
-                id=t.id,
-                title=t.title,
-                description=t.description,
-                safety_group=t.safety_group,
-                author_id=t.author_id,
-                author_username=t.author.username if t.author else "",
-                ticket_count=len(t.tickets),
-                ready=test_is_available(db, t),
-                can_edit=can_edit_test(current_user, t),
-            )
+def test_list_out_from_catalog(
+    snapshots: list,
+    current_user: User,
+) -> TestListOut:
+    items = [
+        TestListItemOut(
+            id=s.test.id,
+            title=s.test.title,
+            description=s.test.description,
+            safety_group=s.test.safety_group,
+            author_id=s.test.author_id,
+            author_username=s.test.author.username if s.test.author else "",
+            ticket_count=s.ticket_count,
+            published=s.published,
+            content_complete=s.content_complete,
+            ready=s.ready,
+            can_edit=can_edit_test(current_user, s.test),
         )
+        for s in snapshots
+    ]
     return TestListOut(items=items)
 
 
-def _ticket_exam_out(ticket: Ticket, questions: list | None = None) -> TicketExamOut:
+def test_list_out(db: Session, tests: list[Test], current_user: User) -> TestListOut:
+    from app.repositories.catalog import CatalogTestSnapshot
+    from app.support.validation import test_is_available_loaded as _ready
+
+    from app.support.validation import test_is_ready_loaded as _content_complete
+
+    snapshots = [
+        CatalogTestSnapshot(
+            test=t,
+            ticket_count=len(t.tickets),
+            published=bool(t.published),
+            content_complete=_content_complete(t),
+            ready=_ready(t),
+        )
+        for t in tests
+    ]
+    return test_list_out_from_catalog(snapshots, current_user)
+
+
+def _ticket_exam_out(
+    ticket: Ticket,
+    questions: list | None = None,
+    *,
+    option_orders: dict[int, list[int]] | None = None,
+) -> TicketExamOut:
+    from app.support.question_option_order import shuffled_option_fields
+
     source_questions = questions if questions is not None else sorted(
         ticket.questions, key=lambda x: x.position
     )
@@ -266,20 +298,31 @@ def _ticket_exam_out(ticket: Ticket, questions: list | None = None) -> TicketExa
         ]
         if counts:
             option_count = max(counts)
-    qs = [
-        QuestionExamOut(
-            id=q.id,
-            position=pos,
-            text=q.text,
-            option_a=q.option_a,
-            option_b=q.option_b,
-            option_c=q.option_c,
-            option_d=q.option_d,
-            option_count=question_option_count(q),
-            multiple_choice=question_allows_multiple(q),
+    qs = []
+    for pos, q in enumerate(source_questions, start=1):
+        permutation = (option_orders or {}).get(q.id)
+        if permutation:
+            opts = shuffled_option_fields(q, permutation)
+        else:
+            opts = {
+                "option_a": q.option_a,
+                "option_b": q.option_b,
+                "option_c": q.option_c,
+                "option_d": q.option_d,
+            }
+        qs.append(
+            QuestionExamOut(
+                id=q.id,
+                position=pos,
+                text=q.text,
+                option_a=opts["option_a"],
+                option_b=opts["option_b"],
+                option_c=opts["option_c"],
+                option_d=opts["option_d"],
+                option_count=question_option_count(q),
+                multiple_choice=question_allows_multiple(q),
+            )
         )
-        for pos, q in enumerate(source_questions, start=1)
-    ]
     return TicketExamOut(
         id=ticket.id,
         position=1,
@@ -289,8 +332,22 @@ def _ticket_exam_out(ticket: Ticket, questions: list | None = None) -> TicketExa
     )
 
 
-def exam_paper_out(test: Test) -> ExamPaperOut:
-    tickets = [_ticket_exam_out(ticket) for ticket in complete_tickets_sorted(test)]
+def exam_paper_out(
+    test: Test,
+    *,
+    option_orders: dict[int, list[int]] | None = None,
+    ticket_ids: list[int] | None = None,
+) -> ExamPaperOut:
+    from app.support.exam_ticket_order import tickets_by_id_order
+
+    ordered = (
+        tickets_by_id_order(test, ticket_ids)
+        if ticket_ids
+        else complete_tickets_sorted(test)
+    )
+    tickets = [
+        _ticket_exam_out(ticket, option_orders=option_orders) for ticket in ordered
+    ]
     return ExamPaperOut(
         id=test.id,
         title=test.title,
@@ -328,12 +385,13 @@ def exam_ticket_paper_out(
     seconds_remaining: int,
     deadline_at: datetime,
     questions: list | None = None,
+    option_orders: dict[int, list[int]] | None = None,
 ) -> ExamTicketPaperOut:
     return ExamTicketPaperOut(
         test_id=test.id,
         test_title=test.title,
         attempt_id=attempt_id,
-        ticket=_ticket_exam_out(ticket, questions=questions),
+        ticket=_ticket_exam_out(ticket, questions=questions, option_orders=option_orders),
         ticket_index=ticket_index,
         ticket_count=1,
         min_pass_percent=MIN_PASS_PERCENT,
@@ -351,6 +409,7 @@ def exam_result_out(
     attempt_id: int,
     protocol_signed: bool = False,
     question_rows: list[dict[str, Any]] | None = None,
+    passed_exam: bool | None = None,
 ) -> ExamResultOut:
     return ExamResultOut(
         attempt_id=attempt_id,
@@ -362,7 +421,7 @@ def exam_result_out(
         errors=summary.errors,
         grade=summary.grade,
         grade_class=summary.grade_class,
-        passed_exam=exam_is_passed(summary.percent),
+        passed_exam=passed_exam if passed_exam is not None else False,
         protocol_signed=protocol_signed,
         min_pass_percent=MIN_PASS_PERCENT,
         ticket_rows=[
@@ -440,5 +499,6 @@ def test_edit_out(db: Session, test: Test) -> TestEditOut:
         max_tickets=MAX_TICKETS_PER_TEST,
         questions_per_ticket=QUESTIONS_PER_TICKET,
         random_ticket_order=test.random_ticket_order,
+        random_option_order=test.random_option_order,
         tickets=tickets,
     )

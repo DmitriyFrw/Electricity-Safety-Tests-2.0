@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.support.grading import exam_is_passed
+from app.support.exam_completion import exam_attempt_is_passed
 from app.cqrs.messages.tests import (
     GetAttemptProtocolDraftPdfQuery,
     GetAttemptProtocolFormPdfQuery,
@@ -16,8 +16,8 @@ from app.repositories import AttemptRepository, ProtocolRepository, TestReposito
 from app.schemas import SignedProtocolOut
 from app.services.attempts.scoring import score_attempt
 from app.services.pdf.protocol import (
+    build_attempt_protocol_draft_pdf,
     build_examinee_protocol_form_pdf,
-    build_protocol_pdf,
     build_signed_protocol_pdf,
 )
 from app.support.errors import AppError
@@ -96,7 +96,7 @@ class SignProtocolHandler:
         require_profile_complete(examinee)
 
         summary = score_attempt(command.db, attempt)
-        if not exam_is_passed(summary.percent):
+        if not exam_attempt_is_passed(command.db, attempt, summary.percent):
             raise AppError(
                 "Протокол можно подписать только после успешной сдачи экзамена",
                 status_code=400,
@@ -154,7 +154,7 @@ class GetAttemptProtocolFormPdfHandler:
             raise AppError("Недостаточно данных для формирования протокола", status_code=400)
 
         summary = score_attempt(query.db, attempt)
-        if not exam_is_passed(summary.percent):
+        if not exam_attempt_is_passed(query.db, attempt, summary.percent):
             raise AppError(
                 "Форму протокола можно выгрузить только после успешной сдачи экзамена",
                 status_code=400,
@@ -164,11 +164,16 @@ class GetAttemptProtocolFormPdfHandler:
 
 
 class GetAttemptProtocolDraftPdfHandler:
-    """Черновик из профиля экзаменуемого (как у Кота в кабинете)."""
+    """Черновик протокола по конкретной попытке экзамена."""
 
     def handle(self, query: GetAttemptProtocolDraftPdfQuery) -> bytes:
         _require_protocol_exporter(query.requester)
-        _attempt, examinee = _examinee_for_attempt(
+        attempt, examinee = _examinee_for_attempt(
             query.db, query.test_id, query.attempt_id
         )
-        return build_protocol_pdf(query.db, examinee)
+        if attempt.finished_at is None:
+            raise AppError("Экзамен ещё не завершён", status_code=400)
+        test = TestRepository.get_by_id(query.db, attempt.test_id)
+        if not test:
+            raise AppError("Недостаточно данных для формирования протокола", status_code=400)
+        return build_attempt_protocol_draft_pdf(query.db, attempt, examinee, test)

@@ -29,6 +29,8 @@ class ExportTaskDTO(BaseModel):
     filename: str | None = Field(default=None, max_length=255)
     payload: bytes | None = None
     error: str | None = Field(default=None, max_length=2000)
+    kind: ExportKind | None = None
+    export_test_id: int | None = Field(default=None, gt=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("created_at")

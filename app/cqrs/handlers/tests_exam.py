@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.mappers import exam_session_out, exam_ticket_paper_out
 from app.cqrs.messages.tests import (
+    AbandonExamCommand,
     FinishExamCommand,
     GetExamAttemptResultQuery,
     GetExamSessionQuery,
@@ -18,8 +19,9 @@ from app.constants import ATTEMPT_MODE_EXAM
 from app.roles import can_create_tests
 from app.services.exams.result import build_exam_result_out
 from app.services.attempts.scoring import score_attempt
-from app.support.grading import exam_is_passed
+from app.support.exam_completion import exam_attempt_is_passed
 from app.services.exams.session import (
+    abandon_exam_attempt,
     completed_ticket_ids,
     create_exam_attempt,
     finish_exam_attempt,
@@ -30,9 +32,14 @@ from app.services.exams.session import (
     ticket_deadline,
 )
 from app.support.exam_composition import load_exam_questions
+from app.support.question_option_order import parse_option_orders
 from app.support.exam_ticket_order import ticket_index_in_order
-from app.services.tests._common import get_test_or_raise, require_test_ready
-from app.support.errors import AppError
+from app.support.test_access import get_test_or_raise, require_test_ready
+from app.support.errors import (
+    ERROR_EXAM_TICKET_TIME_EXPIRED,
+    AppError,
+    ExamTicketTimeExpiredError,
+)
 
 
 def _session_out(db: Session, test: Test, attempt: Attempt) -> ExamSessionOut:
@@ -44,7 +51,7 @@ def _session_out(db: Session, test: Test, attempt: Attempt) -> ExamSessionOut:
         test=test,
         completed_ticket_ids=sorted(done),
         next_ticket_id=next_id,
-        random_ticket_order=True,
+        random_ticket_order=test.random_ticket_order,
     )
 
 
@@ -52,6 +59,14 @@ class StartExamSessionHandler:
     def handle(self, command: StartExamSessionCommand) -> ExamSessionOut:
         test = get_test_or_raise(command.db, command.test_id)
         require_test_ready(test, command.user, command.db)
+        existing = AttemptRepository.get_open_exam(
+            command.db, user_id=command.user.id, test_id=command.test_id
+        )
+        if existing:
+            try:
+                abandon_exam_attempt(command.db, attempt=existing, test=test)
+            except ValueError:
+                pass
         try:
             attempt = create_exam_attempt(
                 command.db, user_id=command.user.id, test_id=test.id, test=test
@@ -94,9 +109,16 @@ class OpenExamTicketHandler:
                 ticket=ticket,
                 composition=composition,
             )
+        except ExamTicketTimeExpiredError as e:
+            raise AppError(
+                str(e),
+                status_code=408,
+                error_code=ERROR_EXAM_TICKET_TIME_EXPIRED,
+            ) from e
         except ValueError as e:
             raise AppError(str(e), status_code=408) from e
         questions = load_exam_questions(command.db, composition.question_ids)
+        orders = parse_option_orders(attempt.question_option_orders) or {}
         ticket_index = ticket_index_in_order(composition, ticket.id)
         return exam_ticket_paper_out(
             test=test,
@@ -106,6 +128,7 @@ class OpenExamTicketHandler:
             seconds_remaining=remaining,
             deadline_at=ticket_deadline(ta.started_at),
             questions=questions,
+            option_orders=orders or None,
         )
 
 
@@ -131,9 +154,30 @@ class SubmitExamTicketAnswersHandler:
                 composition=composition,
                 answers=command.form.answers_map(),
             )
+        except ExamTicketTimeExpiredError as e:
+            raise AppError(
+                str(e),
+                status_code=408,
+                error_code=ERROR_EXAM_TICKET_TIME_EXPIRED,
+            ) from e
         except ValueError as e:
             raise AppError(str(e), status_code=408) from e
         return _session_out(command.db, test, attempt)
+
+
+class AbandonExamHandler:
+    def handle(self, command: AbandonExamCommand) -> ExamResultOut:
+        test = get_test_or_raise(command.db, command.test_id)
+        attempt = AttemptRepository.get_open_exam(
+            command.db, user_id=command.user.id, test_id=command.test_id
+        )
+        if not attempt:
+            raise AppError("Нет активной экзаменационной сессии", status_code=404)
+        try:
+            abandon_exam_attempt(command.db, attempt=attempt, test=test)
+        except ValueError as e:
+            raise AppError(str(e), status_code=400) from e
+        return build_exam_result_out(command.db, attempt=attempt, test=test)
 
 
 class FinishExamHandler:
@@ -163,7 +207,7 @@ class GetExamAttemptResultHandler:
             if not can_create_tests(query.user):
                 raise AppError("Нет доступа к результату", status_code=403)
             summary = score_attempt(query.db, attempt)
-            if not exam_is_passed(summary.percent):
+            if not exam_attempt_is_passed(query.db, attempt, summary.percent):
                 raise AppError("Нет доступа к результату", status_code=403)
         try:
             return build_exam_result_out(query.db, attempt=attempt, test=test)

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import admin_required
 from app.cqrs.bus import dispatch_command, dispatch_query
 from app.cqrs.messages.admin import (
+    GetAdminStatsQuery,
     GetUserProtocolDraftPdfQuery,
     ListUsersQuery,
     UpdateUserRoleCommand,
@@ -16,9 +17,22 @@ from app.cqrs.messages.admin import (
 from app.database import get_db
 from app.form_requests.admin import UpdateUserRoleRequest
 from app.models import User
-from app.schemas import UpdateUserRoleIn, UserAdminOut
+from app.schemas import AdminStatsOut, UpdateUserRoleIn, UserAdminOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get(
+    "/stats",
+    response_model=AdminStatsOut,
+    summary="Статистика для панели управления",
+    description="Агрегированные результаты попыток: распределение оценок и динамика по месяцам.",
+)
+def get_admin_stats(
+    _admin: Annotated[User, Depends(admin_required)],
+    db: Annotated[Session, Depends(get_db)],
+) -> AdminStatsOut:
+    return dispatch_query(GetAdminStatsQuery(db=db), AdminStatsOut)
 
 
 @router.get(

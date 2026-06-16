@@ -1,22 +1,33 @@
 from __future__ import annotations
 
-from app.api.mappers import test_list_out
+from app.api.mappers import test_list_out_from_catalog
 from app.cache import cached, invalidate_cache
 from app.cqrs.messages.tests import CreateTestCommand, ListTestsQuery
 from app.constants import ROLE_KOT
 from app.models import Test
-from app.repositories import TestRepository
+from app.repositories.catalog import list_catalog_snapshots
 from app.schemas import TestCreateOut, TestListOut
 from app.support.safety_groups import effective_safety_group
 
 
-@cached("test_list", key_fn=lambda query: f"user:{query.user.id}")
+def _test_list_cache_key(query: ListTestsQuery) -> str:
+    return (
+        f"user:{query.user.id}:role:{query.user.role}"
+        f":group:{effective_safety_group(query.user)}"
+    )
+
+
+@cached("test_list", key_fn=_test_list_cache_key)
 def _list_tests(query: ListTestsQuery) -> TestListOut:
-    tests = TestRepository.list_all(query.db)
+    snapshots = list_catalog_snapshots(query.db)
     if query.user.role == ROLE_KOT:
         group = effective_safety_group(query.user)
-        tests = [t for t in tests if t.safety_group == group]
-    return test_list_out(query.db, tests, query.user)
+        snapshots = [
+            s
+            for s in snapshots
+            if s.test.safety_group == group and s.test.published
+        ]
+    return test_list_out_from_catalog(snapshots, query.user)
 
 
 class ListTestsHandler:

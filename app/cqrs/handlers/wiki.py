@@ -20,6 +20,7 @@ from app.models import WikiAttachment, WikiPage
 from app.policies import AccessPolicy
 from app.schemas import WikiAttachmentOut, WikiPageListItemOut, WikiPageOut
 from app.support.errors import AppError
+from app.support.file_types import validate_wiki_upload
 from app.support.rich_text import plain_text_from_rich, sanitize_wiki_rich_text
 
 WIKI_UPLOADS_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "wiki"
@@ -172,12 +173,15 @@ def save_wiki_attachment(
     user,
     page_id: int,
     filename: str,
-    mime_type: str,
     data: bytes,
 ) -> WikiAttachmentOut:
     _require_wiki_editor(user)
     if len(data) > MAX_WIKI_ATTACHMENT_BYTES:
         raise AppError("Файл слишком большой (максимум 10 МБ)", status_code=400)
+    try:
+        trusted_mime = validate_wiki_upload(filename, data)
+    except ValueError as e:
+        raise AppError(str(e), status_code=400) from e
     page = db.get(WikiPage, page_id)
     if page is None:
         raise AppError("Страница не найдена", status_code=404)
@@ -191,7 +195,7 @@ def save_wiki_attachment(
         page_id=page_id,
         filename=safe_name,
         stored_name=stored,
-        mime_type=mime_type or "application/octet-stream",
+        mime_type=trusted_mime,
         size_bytes=len(data),
     )
     db.add(att)

@@ -28,4 +28,9 @@ def get_manual(
     path: Path | None = dispatch_query(GetManualPathQuery(manual_id=manual_id), Path)
     if not path:
         raise HTTPException(status_code=404, detail="Мануал не найден")
-    return FileResponse(path, media_type="text/plain; charset=utf-8", filename=path.name)
+    return FileResponse(
+        path,
+        media_type="text/plain; charset=utf-8",
+        filename=path.name,
+        headers={"X-Content-Type-Options": "nosniff"},
+    )

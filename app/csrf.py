@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import secrets
-
-import uuid
-
 from collections.abc import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+
+from app.api.errors import api_error_response
 
 CSRF_SESSION_KEY = "csrf_token"
 CSRF_HEADER = "X-CSRF-Token"
@@ -64,10 +63,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if _path_exempt(request.url.path) or request.method in SAFE_METHODS:
             return await call_next(request)
         if not validate_csrf(request):
-            corr_id = getattr(request.state, "correlation_id", None) or uuid.uuid4().hex
-            return JSONResponse(
+            return api_error_response(
+                request,
+                detail="Неверный или отсутствующий CSRF-токен",
                 status_code=403,
-                content={"detail": "Неверный или отсутствующий CSRF-токен"},
-                headers={"X-Correlation-ID": corr_id},
+                code="csrf_invalid",
             )
         return await call_next(request)

@@ -132,7 +132,22 @@ class FinishExamCommand(Command):
 
 
 @dataclass(frozen=True, slots=True)
+class AbandonExamCommand(Command):
+    db: Session
+    test_id: int
+    user: User
+
+
+@dataclass(frozen=True, slots=True)
 class GetExamAttemptResultQuery(Query):
+    db: Session
+    test_id: int
+    attempt_id: int
+    user: User
+
+
+@dataclass(frozen=True, slots=True)
+class GetTrainingAttemptResultQuery(Query):
     db: Session
     test_id: int
     attempt_id: int

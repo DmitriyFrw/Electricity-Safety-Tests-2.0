@@ -96,7 +96,6 @@ async def upload_wiki_attachment(
         user=user,
         page_id=page_id,
         filename=file.filename or "file",
-        mime_type=file.content_type or "application/octet-stream",
         data=data,
     )
 
@@ -126,4 +125,9 @@ def download_wiki_attachment(
     if not result:
         raise HTTPException(status_code=404, detail="Файл не найден")
     path, filename, mime_type = result
-    return FileResponse(path, media_type=mime_type, filename=filename)
+    return FileResponse(
+        path,
+        media_type=mime_type,
+        filename=filename,
+        headers={"X-Content-Type-Options": "nosniff"},
+    )

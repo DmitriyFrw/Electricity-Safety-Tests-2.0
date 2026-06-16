@@ -53,6 +53,7 @@ class Test(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     safety_group: Mapped[str] = mapped_column(String(8), nullable=False, default="II", index=True)
     random_ticket_order: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    random_option_order: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: dt.datetime.now(dt.timezone.utc)
@@ -117,6 +118,7 @@ class Attempt(Base):
     )
     finished_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     exam_ticket_order: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    question_option_orders: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     user: Mapped[User] = relationship("User", back_populates="attempts")
     test: Mapped[Test] = relationship("Test", back_populates="attempts")

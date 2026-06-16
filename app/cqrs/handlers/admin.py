@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from app.api.mappers import user_admin_out
+from app.cache import invalidate_cache
 from app.cqrs.messages.admin import (
+    GetAdminStatsQuery,
     GetUserProtocolDraftPdfQuery,
     ListUsersQuery,
     UpdateUserRoleCommand,
 )
 from app.policies import AccessPolicy
 from app.repositories import UserRepository
-from app.schemas import UserAdminOut
+from app.schemas import AdminStatsOut, UserAdminOut
+from app.services.admin_stats import build_admin_stats
 from app.services.pdf.protocol import build_protocol_pdf
 from app.support.errors import AppError
 from app.support.profile import require_profile_complete
@@ -18,6 +21,11 @@ class ListUsersHandler:
     def handle(self, query: ListUsersQuery) -> list[UserAdminOut]:
         users = UserRepository.list_all(query.db)
         return [user_admin_out(u) for u in users]
+
+
+class GetAdminStatsHandler:
+    def handle(self, query: GetAdminStatsQuery) -> AdminStatsOut:
+        return AdminStatsOut(**build_admin_stats(query.db))
 
 
 class UpdateUserRoleHandler:
@@ -35,6 +43,7 @@ class UpdateUserRoleHandler:
         target.role = command.form.role
         command.db.commit()
         command.db.refresh(target)
+        invalidate_cache("test_list")
         return user_admin_out(target)
 
 

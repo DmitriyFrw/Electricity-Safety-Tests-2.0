@@ -68,7 +68,8 @@ class SaveTicketHandler:
         ticket = command.db.get(Ticket, command.ticket_id)
         if not ticket or ticket.test_id != command.test_id:
             raise AppError("Билет не найден", status_code=404)
-        ticket.title = command.form.title
+        if command.form.title is not None:
+            ticket.title = command.form.title
         max_option_count = MIN_OPTION_COUNT
         saved_positions = {qin.position for qin in command.form.questions}
         for qin in command.form.questions:
@@ -163,6 +164,7 @@ class UpdateTestSettingsHandler:
     def handle(self, command: UpdateTestSettingsCommand) -> TestEditOut:
         test = require_test_edit_access(command.db, command.test_id, command.user)
         test.random_ticket_order = command.form.random_ticket_order
+        test.random_option_order = command.form.random_option_order
         command.db.commit()
         invalidate_cache("test_list")
         full = TestRepository.get_full_or_raise(command.db, command.test_id)
@@ -176,7 +178,7 @@ class PublishTestHandler:
             raise AppError("Тест уже опубликован", status_code=400)
         if not test_is_ready_to_take(command.db, test):
             raise AppError(
-                "Добавьте хотя бы один билет с 10 вопросами и вариантами ответов",
+                "Заполните все билеты теста: в каждом — 10 вопросов и варианты ответов",
                 status_code=400,
             )
         test.published = True

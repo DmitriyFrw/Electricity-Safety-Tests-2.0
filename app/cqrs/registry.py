@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.cqrs.bus import CommandBus, QueryBus
 from app.cqrs.handlers.admin import (
+    GetAdminStatsHandler,
     GetUserProtocolDraftPdfHandler,
     ListUsersHandler,
     UpdateUserRoleHandler,
@@ -14,7 +15,12 @@ from app.cqrs.handlers.exports import (
     GetExportTaskHandler,
 )
 from app.cqrs.handlers.manuals import GetManualPathHandler, ListManualsHandler
-from app.cqrs.handlers.staff import ListKotUsersHandler, UpdateKotSafetyGroupHandler
+from app.cqrs.handlers.staff import (
+    ExportExamScheduleHandler,
+    ListExamScheduleHandler,
+    ListKotUsersHandler,
+    UpdateKotSafetyGroupHandler,
+)
 from app.cqrs.handlers.profile import (
     BuildProtocolPdfHandler,
     GetProfileHandler,
@@ -33,6 +39,7 @@ from app.cqrs.handlers.tests_editor import (
     UpdateTestSettingsHandler,
 )
 from app.cqrs.handlers.tests_exam import (
+    AbandonExamHandler,
     FinishExamHandler,
     GetExamAttemptResultHandler,
     GetExamSessionHandler,
@@ -47,7 +54,11 @@ from app.cqrs.handlers.tests_protocols import (
     GetSignedProtocolPdfHandler,
     SignProtocolHandler,
 )
-from app.cqrs.handlers.tests_training import GetTrainingPaperHandler, SubmitTrainingHandler
+from app.cqrs.handlers.tests_training import (
+    GetTrainingAttemptResultHandler,
+    GetTrainingPaperHandler,
+    SubmitTrainingHandler,
+)
 from app.cqrs.handlers.wiki import (
     CreateWikiPageHandler,
     DeleteWikiAttachmentHandler,
@@ -58,6 +69,7 @@ from app.cqrs.handlers.wiki import (
     UpdateWikiPageHandler,
 )
 from app.cqrs.messages.admin import (
+    GetAdminStatsQuery,
     GetUserProtocolDraftPdfQuery,
     ListUsersQuery,
     UpdateUserRoleCommand,
@@ -70,7 +82,12 @@ from app.cqrs.messages.exports import (
     GetExportTaskQuery,
 )
 from app.cqrs.messages.manuals import GetManualPathQuery, ListManualsQuery
-from app.cqrs.messages.staff import ListKotUsersQuery, UpdateKotSafetyGroupCommand
+from app.cqrs.messages.staff import (
+    ExportExamScheduleQuery,
+    ListExamScheduleQuery,
+    ListKotUsersQuery,
+    UpdateKotSafetyGroupCommand,
+)
 from app.cqrs.messages.profile import (
     BuildProtocolPdfQuery,
     GetProfileQuery,
@@ -94,6 +111,7 @@ from app.cqrs.messages.tests import (
     DeleteTicketCommand,
     PublishTestCommand,
     UpdateTestSettingsCommand,
+    AbandonExamCommand,
     FinishExamCommand,
     GetExamAttemptResultQuery,
     GetExamSessionQuery,
@@ -102,6 +120,7 @@ from app.cqrs.messages.tests import (
     GetSignedProtocolPdfQuery,
     GetSignedProtocolQuery,
     GetTestForEditQuery,
+    GetTrainingAttemptResultQuery,
     GetTrainingPaperQuery,
     ListTestsQuery,
     OpenExamTicketCommand,
@@ -128,6 +147,7 @@ def build_command_bus() -> CommandBus:
     bus.register(StartExamSessionCommand, StartExamSessionHandler())
     bus.register(OpenExamTicketCommand, OpenExamTicketHandler())
     bus.register(SubmitExamTicketAnswersCommand, SubmitExamTicketAnswersHandler())
+    bus.register(AbandonExamCommand, AbandonExamHandler())
     bus.register(FinishExamCommand, FinishExamHandler())
     bus.register(SignProtocolCommand, SignProtocolHandler())
     bus.register(UpdateProfileCommand, UpdateProfileHandler())
@@ -149,6 +169,7 @@ def build_query_bus() -> QueryBus:
     bus.register(ListTestsQuery, ListTestsHandler())
     bus.register(GetTestForEditQuery, GetTestForEditHandler())
     bus.register(GetTrainingPaperQuery, GetTrainingPaperHandler())
+    bus.register(GetTrainingAttemptResultQuery, GetTrainingAttemptResultHandler())
     bus.register(GetExamSessionQuery, GetExamSessionHandler())
     bus.register(GetExamAttemptResultQuery, GetExamAttemptResultHandler())
     bus.register(GetSignedProtocolQuery, GetSignedProtocolHandler())
@@ -159,11 +180,14 @@ def build_query_bus() -> QueryBus:
     bus.register(BuildProtocolPdfQuery, BuildProtocolPdfHandler())
     bus.register(GetDashboardQuery, GetDashboardHandler())
     bus.register(ListUsersQuery, ListUsersHandler())
+    bus.register(GetAdminStatsQuery, GetAdminStatsHandler())
     bus.register(GetUserProtocolDraftPdfQuery, GetUserProtocolDraftPdfHandler())
     bus.register(ListManualsQuery, ListManualsHandler())
     bus.register(GetManualPathQuery, GetManualPathHandler())
     bus.register(GetExportTaskQuery, GetExportTaskHandler())
     bus.register(ListKotUsersQuery, ListKotUsersHandler())
+    bus.register(ListExamScheduleQuery, ListExamScheduleHandler())
+    bus.register(ExportExamScheduleQuery, ExportExamScheduleHandler())
     bus.register(ListWikiPagesQuery, ListWikiPagesHandler())
     bus.register(GetWikiPageQuery, GetWikiPageHandler())
     bus.register(GetWikiAttachmentPathQuery, GetWikiAttachmentPathHandler())

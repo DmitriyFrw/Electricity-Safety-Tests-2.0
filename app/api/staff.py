@@ -3,14 +3,20 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import staff_required
 from app.cqrs.bus import dispatch_command, dispatch_query
-from app.cqrs.messages.staff import ListKotUsersQuery, UpdateKotSafetyGroupCommand
+from app.cqrs.messages.staff import (
+    ExportExamScheduleQuery,
+    ListExamScheduleQuery,
+    ListKotUsersQuery,
+    UpdateKotSafetyGroupCommand,
+)
 from app.database import get_db
 from app.models import User
-from app.schemas import KotUserOut, UpdateKotSafetyGroupIn
+from app.schemas import ExamScheduleRowOut, KotUserOut, UpdateKotSafetyGroupIn
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 
@@ -45,4 +51,45 @@ def update_kot_safety_group(
             db=db, actor=actor, target_user_id=user_id, form=body
         ),
         KotUserOut,
+    )
+
+
+@router.get(
+    "/exam-schedule",
+    response_model=list[ExamScheduleRowOut],
+    summary="График сдачи экзаменов",
+    description=(
+        "Таблица по всем пользователям портала: профиль, роль, "
+        "последняя и планируемая дата сдачи экзамена, оценка. "
+        "Доступно ролям admin и Еж."
+    ),
+)
+def list_exam_schedule(
+    actor: Annotated[User, Depends(staff_required)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[ExamScheduleRowOut]:
+    return dispatch_query(ListExamScheduleQuery(db=db, actor=actor), list[ExamScheduleRowOut])
+
+
+@router.get(
+    "/exam-schedule-export.xlsx",
+    summary="Выгрузка графика сдачи экзаменов",
+    description=(
+        "Excel-таблица по всем пользователям портала: профиль, роль, "
+        "последняя и планируемая дата сдачи экзамена, оценка. "
+        "Доступно ролям admin и Еж."
+    ),
+)
+def export_exam_schedule(
+    actor: Annotated[User, Depends(staff_required)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Response:
+    payload, filename = dispatch_query(
+        ExportExamScheduleQuery(db=db, actor=actor),
+        tuple[bytes, str],
+    )
+    return Response(
+        content=payload,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

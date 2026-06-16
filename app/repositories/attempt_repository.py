@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.constants import ATTEMPT_MODE_EXAM, ROLE_ADMIN
+from app.constants import ATTEMPT_MODE_EXAM, ATTEMPT_MODE_TRAINING, ROLE_ADMIN
 from app.models import Attempt, Test, User
 from app.repositories.options import ATTEMPT_DASHBOARD_OPTIONS, ATTEMPT_STAFF_PROTOCOL_OPTIONS
 
@@ -28,6 +28,20 @@ class AttemptRepository:
         )
 
     @staticmethod
+    def get_open_training(db: Session, *, user_id: int, test_id: int) -> Attempt | None:
+        return (
+            db.query(Attempt)
+            .filter(
+                Attempt.user_id == user_id,
+                Attempt.test_id == test_id,
+                Attempt.mode == ATTEMPT_MODE_TRAINING,
+                Attempt.finished_at.is_(None),
+            )
+            .order_by(Attempt.started_at.desc())
+            .first()
+        )
+
+    @staticmethod
     def get_open_exam(db: Session, *, user_id: int, test_id: int) -> Attempt | None:
         return (
             db.query(Attempt)
@@ -47,6 +61,17 @@ class AttemptRepository:
             db.query(Attempt)
             .filter(Attempt.id == attempt_id, Attempt.test_id == test_id)
             .one_or_none()
+        )
+
+    @staticmethod
+    def list_finished_all(db: Session, *, limit: int = 2000) -> list[Attempt]:
+        return (
+            db.query(Attempt)
+            .options(*ATTEMPT_DASHBOARD_OPTIONS)
+            .filter(Attempt.finished_at.isnot(None))
+            .order_by(Attempt.finished_at.desc())
+            .limit(limit)
+            .all()
         )
 
     @staticmethod

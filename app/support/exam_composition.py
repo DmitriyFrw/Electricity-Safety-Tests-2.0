@@ -64,6 +64,7 @@ def _question_pool(tickets: list[Ticket]) -> list[Question]:
 
 
 def build_random_exam_composition(db: Session, safety_group: str) -> ExamComposition:
+    """Случайный состав по группе ЭБ (без привязки к настройкам конкретного теста)."""
     tickets = list_complete_tickets_for_safety_group(db, safety_group)
     if not tickets:
         raise ValueError("Нет готовых билетов для экзамена по этой группе")
@@ -71,6 +72,24 @@ def build_random_exam_composition(db: Session, safety_group: str) -> ExamComposi
     if len(pool) < QUESTIONS_PER_TICKET:
         raise ValueError("Недостаточно вопросов для экзамена по этой группе")
     source_ticket = random.choice(tickets)
+    selected = random.sample(pool, QUESTIONS_PER_TICKET)
+    return ExamComposition(
+        ticket_id=source_ticket.id,
+        question_ids=[q.id for q in selected],
+    )
+
+
+def build_exam_composition(db: Session, test: Test) -> ExamComposition:
+    """Состав экзамена: вопросы из пула группы, билет-носитель — по random_ticket_order теста."""
+    from app.support.exam_ticket_order import pick_exam_source_ticket
+
+    tickets = list_complete_tickets_for_safety_group(db, test.safety_group)
+    if not tickets:
+        raise ValueError("Нет готовых билетов для экзамена по этой группе")
+    pool = _question_pool(tickets)
+    if len(pool) < QUESTIONS_PER_TICKET:
+        raise ValueError("Недостаточно вопросов для экзамена по этой группе")
+    source_ticket = pick_exam_source_ticket(test, group_tickets=tickets)
     selected = random.sample(pool, QUESTIONS_PER_TICKET)
     return ExamComposition(
         ticket_id=source_ticket.id,
@@ -92,19 +111,27 @@ def composition_is_valid(db: Session, composition: ExamComposition, safety_group
     return all(qid in allowed_ids for qid in composition.question_ids)
 
 
-def ensure_exam_composition(db: Session, attempt: Attempt, safety_group: str) -> ExamComposition:
+def ensure_exam_composition(db: Session, attempt: Attempt, test: Test) -> ExamComposition:
     existing = parse_composition(attempt.exam_ticket_order)
-    if existing is not None and composition_is_valid(db, existing, safety_group):
+    if existing is not None and composition_is_valid(db, existing, test.safety_group):
         return existing
-    composition = build_random_exam_composition(db, safety_group)
+    composition = build_exam_composition(db, test)
     attempt.exam_ticket_order = serialize_composition(composition)
     return composition
 
 
-def load_exam_questions(db: Session, question_ids: list[int]) -> list[Question]:
+def load_exam_questions(
+    db: Session,
+    question_ids: list[int],
+    *,
+    load_test: bool = False,
+) -> list[Question]:
+    options = [selectinload(Question.ticket)]
+    if load_test:
+        options.append(selectinload(Question.ticket).selectinload(Ticket.test))
     rows = (
         db.query(Question)
-        .options(selectinload(Question.ticket))
+        .options(*options)
         .filter(Question.id.in_(question_ids))
         .all()
     )

@@ -1,6 +1,6 @@
 # Шрифты DejaVu (кириллица в PDF)
 
-Файлы `DejaVuSans*.ttf` используются `app/pdf_service.py` для протоколов с кириллицей.
+Файлы `DejaVuSans*.ttf` используются `app/services/pdf/protocol.py` для протоколов с кириллицей.
 
 Лицензия: [DejaVu Fonts License](https://dejavu-fonts.github.io/License.html).
 

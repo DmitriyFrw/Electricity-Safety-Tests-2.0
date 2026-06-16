@@ -53,25 +53,25 @@ def test_is_ready_loaded(test: Test) -> bool:
 
 
 def test_is_ready_to_take(db: Session, test: Test) -> bool:
-    """Хотя бы один билет с 10 вопросами — достаточно для публикации и прохождения."""
+    """Тест готов к публикации и сдаче: все билеты полностью заполнены."""
     if test.tickets and all(hasattr(t, "questions") for t in test.tickets):
-        return bool(complete_tickets(test))
+        return test_is_ready_loaded(test)
     t = (
         db.query(Test)
         .options(selectinload(Test.tickets).selectinload(Ticket.questions))
         .filter(Test.id == test.id)
         .one()
     )
-    return bool(complete_tickets(t))
+    return test_is_ready_loaded(t)
 
 
 def test_is_available_loaded(test: Test) -> bool:
-    """Тест доступен для списка, если tickets.questions уже загружены (без доп. запросов)."""
-    return bool(test.published) and bool(complete_tickets(test))
+    """Опубликован и все билеты заполнены (tickets.questions уже загружены)."""
+    return bool(test.published) and test_is_ready_loaded(test)
 
 
 def test_is_available(db: Session, test: Test) -> bool:
-    """Тест доступен для экзамена/тренировки: опубликован и есть хотя бы один готовый билет."""
+    """Тест доступен для экзамена/тренировки: опубликован и все билеты заполнены."""
     if test.tickets and all(hasattr(t, "questions") for t in test.tickets):
         return test_is_available_loaded(test)
     return bool(test.published) and test_is_ready_to_take(db, test)

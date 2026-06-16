@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from app.constants import MIN_PASS_PERCENT
-
-PASSING_EXAM_GRADES = frozenset({"удовлетворительно", "хорошо", "отлично"})
+from app.constants import (
+    GRADE_EXCELLENT_MIN_PERCENT,
+    GRADE_GOOD_MIN_PERCENT,
+    MIN_PASS_PERCENT,
+)
 
 
 def score_percent(correct: int, total: int) -> float:
@@ -12,36 +14,30 @@ def score_percent(correct: int, total: int) -> float:
 
 
 def grade_for_percent(pct: float) -> str:
-    if pct < 75:
+    if pct < MIN_PASS_PERCENT:
         return "неудовлетворительно"
-    if pct < 85:
+    if pct < GRADE_GOOD_MIN_PERCENT:
         return "удовлетворительно"
-    if pct < 95:
+    if pct < GRADE_EXCELLENT_MIN_PERCENT:
         return "хорошо"
     return "отлично"
 
 
 def exam_is_passed(pct: float) -> bool:
     """Экзамен сдан при оценке удовлетворительно, хорошо или отлично."""
-    return grade_for_percent(pct) in PASSING_EXAM_GRADES
+    return pct >= MIN_PASS_PERCENT
 
 
 def grade_for_exam_protocol(pct: float) -> str:
     """Оценка в протоколе PDF (неудовлетворительно — экзамен не сдан)."""
-    if not exam_is_passed(pct):
-        return "неудовлетворительно"
-    if pct < 85:
-        return "удовлетворительно"
-    if pct < 95:
-        return "хорошо"
-    return "отлично"
+    return grade_for_percent(pct)
 
 
 def grade_css_class(pct: float) -> str:
-    if pct < 75:
+    if pct < MIN_PASS_PERCENT:
         return "grade-bad"
-    if pct < 85:
+    if pct < GRADE_GOOD_MIN_PERCENT:
         return "grade-ok"
-    if pct < 95:
+    if pct < GRADE_EXCELLENT_MIN_PERCENT:
         return "grade-good"
     return "grade-excellent"

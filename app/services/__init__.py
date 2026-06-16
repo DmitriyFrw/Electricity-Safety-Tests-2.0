@@ -8,7 +8,6 @@ __all__ = [
     "ManualService",
     "ProfileService",
     "SecurityAuditService",
-    "TestService",
 ]
 
 
@@ -41,8 +40,4 @@ def __getattr__(name: str) -> object:
         from app.services.security import SecurityAuditService
 
         return SecurityAuditService
-    if name == "TestService":
-        from app.services.test_service import TestService
-
-        return TestService
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

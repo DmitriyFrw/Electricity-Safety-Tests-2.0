@@ -251,6 +251,48 @@ def build_ticket_result_rows(
     return rows
 
 
+def finish_training_attempt_with_answers(
+    db: Session,
+    *,
+    attempt: Attempt,
+    test: Test,
+    answers: Mapping[int, str],
+    finished_at: dt.datetime | None = None,
+) -> tuple[Attempt, AttemptScore, list[dict[str, Any]]]:
+    when = finished_at or dt.datetime.now(dt.timezone.utc)
+    attempt.finished_at = when
+    attempt.question_option_orders = None
+
+    answered_ids = {qid for qid, raw in answers.items() if raw and str(raw).strip()}
+    tickets_sorted = attempted_tickets(test, answered_ids)
+    if not tickets_sorted:
+        raise ValueError("Нет ответов для оценки")
+
+    t_correct: defaultdict[int, int] = defaultdict(int)
+    t_total: defaultdict[int, int] = defaultdict(int)
+    stored: list[UserAnswer] = []
+
+    for ticket in tickets_sorted:
+        for q in ticket.questions:
+            t_total[ticket.id] += 1
+            raw = answers.get(q.id)
+            ua = UserAnswer(attempt_id=attempt.id, question_id=q.id, selected_index=None)
+            selected = set_user_answer_from_raw(
+                ua, str(raw) if raw is not None else None, option_count=question_option_count(q)
+            )
+            db.add(ua)
+            stored.append(ua)
+            if is_answer_correct(selected, question_correct_indices(q)):
+                t_correct[ticket.id] += 1
+
+    db.commit()
+    db.refresh(attempt)
+
+    summary = _score_from_test_and_answers(test, stored)
+    ticket_rows = build_ticket_result_rows(tickets_sorted, t_correct, t_total)
+    return attempt, summary, ticket_rows
+
+
 def submit_test_attempt_with_answers(
     db: Session,
     *,

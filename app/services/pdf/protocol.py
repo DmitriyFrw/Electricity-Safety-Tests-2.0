@@ -430,13 +430,22 @@ def _attempt_protocol_form_values(
 
 
 def build_protocol_pdf(db: Session, user: User) -> bytes:
+    """Черновик из профиля: последняя сданная попытка, дата формирования — сегодня."""
     return _render_protocol_pdf(_profile_form_values(db, user))
+
+
+def build_attempt_protocol_draft_pdf(
+    db: Session, attempt: Attempt, examinee: User, test: Test
+) -> bytes:
+    """Черновик протокола по конкретной попытке (до подписи)."""
+    return _render_protocol_pdf(_attempt_protocol_form_values(db, attempt, examinee, test))
 
 
 def build_examinee_protocol_form_pdf(
     db: Session, attempt: Attempt, examinee: User, test: Test
 ) -> bytes:
-    return _render_protocol_pdf(_attempt_protocol_form_values(db, attempt, examinee, test))
+    """Форма протокола после успешной сдачи (содержание совпадает с черновиком попытки)."""
+    return build_attempt_protocol_draft_pdf(db, attempt, examinee, test)
 
 
 def build_signed_protocol_pdf(db: Session, protocol: SignedProtocol) -> bytes:

@@ -63,6 +63,18 @@ class UpdateKotSafetyGroupIn(BaseModel):
     safety_group: Literal["I", "II", "III", "IV"]
 
 
+class ExamScheduleRowOut(BaseModel):
+    full_name: str
+    birth_date: str
+    job_title: str
+    business_unit: str
+    safety_group: str
+    role_label: str
+    last_exam_date: str
+    next_exam_date: str
+    exam_grade: str
+
+
 class ProfileUpdateIn(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     birth_date: date
@@ -179,6 +191,37 @@ class AdminProtocolDraftUserOut(BaseModel):
     profile_complete: bool
 
 
+class AdminGradeBucketOut(BaseModel):
+    grade: str
+    count: int
+    percent: float
+
+
+class AdminMonthlyResultOut(BaseModel):
+    year: int
+    month: int
+    average_percent: float
+    attempt_count: int
+
+
+class AdminActivityOut(BaseModel):
+    user_display_name: str
+    test_title: str
+    percent: float
+    grade: str
+    finished_at: datetime
+
+
+class AdminStatsOut(BaseModel):
+    users_count: int
+    tests_count: int
+    exams_passed_count: int
+    average_percent: float
+    grade_distribution: list[AdminGradeBucketOut]
+    monthly_results: list[AdminMonthlyResultOut]
+    recent_activity: list[AdminActivityOut]
+
+
 class DashboardOut(BaseModel):
     user: UserOut
     can_create_tests: bool
@@ -213,6 +256,8 @@ class TestListItemOut(BaseModel):
     author_id: int
     author_username: str
     ticket_count: int
+    published: bool
+    content_complete: bool
     ready: bool
     can_edit: bool
 
@@ -385,11 +430,13 @@ class TestEditOut(BaseModel):
     max_tickets: int
     questions_per_ticket: int
     random_ticket_order: bool = False
+    random_option_order: bool = False
     tickets: list[TicketEditOut]
 
 
 class TestSettingsIn(BaseModel):
     random_ticket_order: bool
+    random_option_order: bool = False
 
 
 class QuestionSaveIn(BaseModel):

@@ -54,9 +54,13 @@ def get_open_exam_attempt(db: Session, *, user_id: int, test_id: int) -> Attempt
 
 
 def get_exam_composition(db: Session, attempt: Attempt, test: Test) -> ExamComposition:
-    before = attempt.exam_ticket_order
+    from app.support.exam_option_order import ensure_exam_option_orders
+
+    before_order = attempt.exam_ticket_order
+    before_options = attempt.question_option_orders
     composition = ensure_exam_ticket_order(db, attempt, test)
-    if before != attempt.exam_ticket_order:
+    ensure_exam_option_orders(db, attempt, composition)
+    if before_order != attempt.exam_ticket_order or before_options != attempt.question_option_orders:
         db.commit()
         db.refresh(attempt)
     return composition
@@ -77,7 +81,7 @@ def create_exam_attempt(db: Session, *, user_id: int, test_id: int, test: Test) 
     db.add(attempt)
     try:
         db.flush()
-        ensure_exam_composition(db, attempt, test.safety_group)
+        ensure_exam_composition(db, attempt, test)
         db.commit()
         db.refresh(attempt)
         return attempt
@@ -180,7 +184,12 @@ def submit_exam_ticket(
         db.commit()
         raise ExamTicketTimeExpiredError(EXAM_TICKET_TIME_EXPIRED_MESSAGE)
 
+    from app.support.question_option_order import parse_option_orders, remap_answers_map
+
     questions = load_exam_questions(db, composition.question_ids)
+    orders = parse_option_orders(attempt.question_option_orders) or {}
+    if orders:
+        answers = remap_answers_map(answers, orders, {q.id: q for q in questions})
     for q in questions:
         raw = answers.get(q.id)
         ua = (

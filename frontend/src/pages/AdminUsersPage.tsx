@@ -3,7 +3,7 @@ import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import { useAuth } from "../auth/AuthContext";
 import { ASSIGNABLE_ROLES } from "../constants/roles";
-import DashboardLayout from "../layout/DashboardLayout";
+import AdminLayout from "../layout/AdminLayout";
 import type { UserAdmin } from "../types/api";
 
 export default function AdminUsersPage() {
@@ -52,12 +52,17 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <DashboardLayout active="admin">
+    <AdminLayout>
+      <h1>Пользователи</h1>
       <div className="dash-page-intro">
-        <h1 className="dash-section-title">Пользователи</h1>
         <p className="dash-card-note">
           Назначение ролей: администратор, Еж (редактор тестов), Кот (экзамен и протокол). Свою роль
           изменить нельзя.
+        </p>
+        <p className="dash-card-note" style={{ marginTop: 8 }}>
+          <a href="/staff/exam-schedule" className="mockup-link">
+            Выгрузить график сдачи экзаменов (Excel) →
+          </a>
         </p>
       </div>
       {error && <p className="auth-error">{error}</p>}
@@ -138,6 +143,6 @@ export default function AdminUsersPage() {
           </table>
         </div>
       )}
-    </DashboardLayout>
+    </AdminLayout>
   );
 }

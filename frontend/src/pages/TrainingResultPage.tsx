@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import TestResultTiles from "../components/test-flow/TestResultTiles";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import type { ExamResult } from "../types/api";
 
 export default function TrainingResultPage() {
@@ -48,27 +48,27 @@ export default function TrainingResultPage() {
 
   if (loading) {
     return (
-      <DashboardLayout active="training">
+      <TopNavLayout active="results">
         <p className="dash-card-note">Загрузка…</p>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (loadError) {
     return (
-      <DashboardLayout active="training">
+      <TopNavLayout active="results">
         <p className="auth-error">{loadError}</p>
         <Link to={`/training/${testId ?? ""}`}>Вернуться к тренировке</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (!result || !hasIds) {
     return (
-      <DashboardLayout active="training">
+      <TopNavLayout active="results">
         <p className="dash-card-note">Нет данных результата.</p>
         <Link to={`/training/${testId ?? ""}`}>Вернуться к тренировке</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
@@ -76,7 +76,7 @@ export default function TrainingResultPage() {
   const reviewBasePath = `/training/${tid}/result/${aid}`;
 
   return (
-    <DashboardLayout active="training">
+    <TopNavLayout active="results">
       <section className="dash-hero">
         <div>
           <h1>Результат тренировки</h1>
@@ -126,6 +126,6 @@ export default function TrainingResultPage() {
           </table>
         </div>
       )}
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }

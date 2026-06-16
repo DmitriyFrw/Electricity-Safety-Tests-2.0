@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import { useAuth } from "../auth/AuthContext";
 import TestResultTiles from "../components/test-flow/TestResultTiles";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import type { ExamResult, SignedProtocol } from "../types/api";
 import { formatDateRu } from "../utils/format";
 
@@ -77,7 +77,7 @@ function ExamResultView({ testId, result }: ExamResultViewProps) {
   }
 
   return (
-    <DashboardLayout active="exam">
+    <TopNavLayout active="results">
       <section className="dash-hero">
         <div>
           <h1>Результат экзамена</h1>
@@ -217,7 +217,7 @@ function ExamResultView({ testId, result }: ExamResultViewProps) {
           </table>
         </div>
       )}
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }
 
@@ -265,36 +265,36 @@ export default function ExamResultPage() {
 
   if (loading) {
     return (
-      <DashboardLayout active="exam">
+      <TopNavLayout active="results">
         <p className="dash-card-note">Загрузка…</p>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (loadError) {
     return (
-      <DashboardLayout active="exam">
+      <TopNavLayout active="results">
         <p className="auth-error">{loadError}</p>
         <Link to="/cabinet">В кабинет</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (!result) {
     return (
-      <DashboardLayout active="exam">
+      <TopNavLayout active="results">
         <p className="dash-card-note">Нет данных результата.</p>
         <Link to={hasTestId ? `/exam/${tid}` : "/exam"}>Вернуться к экзамену</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (!hasTestId) {
     return (
-      <DashboardLayout active="exam">
+      <TopNavLayout active="results">
         <p className="dash-card-note">Некорректный идентификатор теста.</p>
         <Link to="/exam">Вернуться к экзамену</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 

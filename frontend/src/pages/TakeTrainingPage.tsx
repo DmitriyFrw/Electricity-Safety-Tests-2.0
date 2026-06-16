@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { axiosErrorMessage, postReact } from "../api/getReact";
 import PaginatedTestFlow, { type AnswersMap } from "../components/test-flow/PaginatedTestFlow";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import { useGetReact } from "../hooks/useGetReact";
 import type { ExamPaper, ExamResult } from "../types/api";
 
@@ -35,22 +35,24 @@ export default function TakeTrainingPage() {
 
   if (loadError && !paper) {
     return (
-      <DashboardLayout active="training">
+      <TopNavLayout active="training">
         <p className="auth-error">{loadError}</p>
-        <Link to="/training">← К обучению</Link>
-      </DashboardLayout>
+        <Link to="/training" className="mockup-link">
+          ← К тренировкам
+        </Link>
+      </TopNavLayout>
     );
   }
   if (loadPaper || !paper) {
     return (
-      <DashboardLayout active="training">
-        <p className="dash-card-note">Загрузка…</p>
-      </DashboardLayout>
+      <TopNavLayout active="training">
+        <p className="mockup-page-header p">Загрузка…</p>
+      </TopNavLayout>
     );
   }
 
   return (
-    <DashboardLayout active="training">
+    <TopNavLayout active="training">
       <PaginatedTestFlow
         tickets={paper.tickets}
         testTitle={paper.title}
@@ -61,7 +63,8 @@ export default function TakeTrainingPage() {
         completeError={submitError}
         finishLabel="Завершить тест"
         allowEarlyFinish
+        allowBack
       />
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }

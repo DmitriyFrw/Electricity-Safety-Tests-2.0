@@ -13,9 +13,11 @@ import "./styles/razvivaisia/pages.css";
 import "./styles/razvivaisia/responsive.css";
 import "./styles/react-bridge.css";
 import "./styles/constructor.css";
-import "./styles/apple-theme.css";
+import "./styles/constructor-catalog.css";
 import "./styles/responsive-app.css";
 import "./styles/test-flow.css";
+import "./styles/mockup-theme.css";
+import "./styles/profile-page.css";
 
 setupCsrfInterceptor();
 

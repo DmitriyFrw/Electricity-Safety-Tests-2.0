@@ -272,6 +272,10 @@ a.dash-exam-btn {
 .dash-page-card {
   padding: var(--spacing-6);
   margin-bottom: var(--spacing-4);
+  background: var(--color-white);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-card);
 }
 
 .dash-form label {

@@ -37,70 +37,76 @@ export default function TestQuestionPanel({
   const selectedSet = new Set(parseSelectedValue(selectedValue));
 
   return (
-    <div className="test-question-card dash-no-copy test-flow-question-card">
-      <p className="test-flow-progress">
+    <div className="mockup-ticket__question dash-no-copy">
+      <p className="mockup-ticket__question-progress">
         Вопрос {questionIndex + 1} из {ticket.questions.length}
         {multipleChoice && !review ? " · выберите все верные варианты" : ""}
       </p>
-      <div className="dash-question">
+      <div className="mockup-ticket__question-text">
         <p>
           <strong>Вопрос {q.position}.</strong> <RichHtml html={q.text} />
         </p>
-        <div className="dash-radio-line">
-          {fields.map(({ label, field }, i) => {
-            const value = labels[i];
-            const isSelected = review
-              ? review.selectedIndices.includes(i)
-              : selectedSet.has(value);
-            const isCorrect = review ? review.correctIndices.includes(i) : false;
-            let optionClass = "test-answer-option";
-            if (review) {
-              if (isCorrect) optionClass += " test-answer-option-correct";
-              else if (isSelected) optionClass += " test-answer-option-wrong";
-              else optionClass += " test-answer-option-neutral";
-            }
+      </div>
+      <div className="mockup-ticket__answers" role={multipleChoice && !review ? "group" : undefined}>
+        {fields.map(({ label, field }, i) => {
+          const value = labels[i];
+          const isSelected = review
+            ? review.selectedIndices.includes(i)
+            : selectedSet.has(value);
+          const isCorrect = review ? review.correctIndices.includes(i) : false;
+          let optionClass = "mockup-ticket__option";
+          if (review) {
+            if (isCorrect) optionClass += " mockup-ticket__option--correct";
+            else if (isSelected) optionClass += " mockup-ticket__option--wrong";
+            else optionClass += " mockup-ticket__option--neutral";
+          } else if (isSelected) {
+            optionClass += " mockup-ticket__option--selected";
+          }
 
-            if (review) {
-              return (
-                <div key={label} className={optionClass}>
-                  <span>
-                    {label} — <RichHtml html={q[field]} />
-                  </span>
-                </div>
-              );
-            }
-
-            if (multipleChoice) {
-              return (
-                <label key={label} className="test-answer-checkbox">
-                  <input
-                    type="checkbox"
-                    name={`q_${q.id}_${value}`}
-                    value={value}
-                    checked={selectedSet.has(value)}
-                    disabled={disabled}
-                    onChange={() => onSelect(q.id, toggleSelectedValue(selectedValue, value))}
-                  />
-                  {label} — <RichHtml html={q[field]} />
-                </label>
-              );
-            }
-
+          if (review) {
             return (
-              <label key={label}>
+              <div key={label} className={optionClass}>
+                <RichHtml html={q[field]} />
+              </div>
+            );
+          }
+
+          if (multipleChoice) {
+            return (
+              <label key={label} className={optionClass}>
                 <input
-                  type="radio"
-                  name={`q_${q.id}`}
+                  type="checkbox"
+                  className="mockup-ticket__option-input"
+                  name={`q_${q.id}_${value}`}
                   value={value}
-                  checked={selectedValue === value}
+                  checked={selectedSet.has(value)}
                   disabled={disabled}
-                  onChange={() => onSelect(q.id, value)}
+                  onChange={() => onSelect(q.id, toggleSelectedValue(selectedValue, value))}
                 />
-                {label} — <RichHtml html={q[field]} />
+                <span className="mockup-ticket__option-text">
+                  <RichHtml html={q[field]} />
+                </span>
               </label>
             );
-          })}
-        </div>
+          }
+
+          return (
+            <label key={label} className={optionClass}>
+              <input
+                type="radio"
+                className="mockup-ticket__option-input"
+                name={`q_${q.id}`}
+                value={value}
+                checked={selectedValue === value}
+                disabled={disabled}
+                onChange={() => onSelect(q.id, value)}
+              />
+              <span className="mockup-ticket__option-text">
+                <RichHtml html={q[field]} />
+              </span>
+            </label>
+          );
+        })}
       </div>
     </div>
   );

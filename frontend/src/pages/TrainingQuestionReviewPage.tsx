@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import RichHtml from "../components/RichHtml";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import type { ExamResult, QuestionResult } from "../types/api";
 import { labelsForCount, optionFieldsForQuestion } from "../utils/questionOptions";
 
@@ -16,7 +16,6 @@ export default function TrainingQuestionReviewPage() {
   const aid = Number(attemptId);
   const qid = Number(questionId);
   const isExam = location.pathname.includes("/exam/");
-  const active = isExam ? "exam" : "training";
   const hasTrainingIds = Number.isFinite(tid) && Number.isFinite(aid);
   const resultPath = isExam
     ? `/exam/${testId}/result`
@@ -59,44 +58,44 @@ export default function TrainingQuestionReviewPage() {
 
   if (loading) {
     return (
-      <DashboardLayout active={active}>
+      <TopNavLayout active="results">
         <p className="dash-card-note">Загрузка…</p>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (loadError) {
     return (
-      <DashboardLayout active={active}>
+      <TopNavLayout active="results">
         <p className="auth-error">{loadError}</p>
         <Link to={resultPath}>К результатам</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   if (!result || !Number.isFinite(qid)) {
     return (
-      <DashboardLayout active={active}>
+      <TopNavLayout active="results">
         <p className="dash-card-note">Нет данных для просмотра.</p>
         <Link to={resultPath}>К результатам</Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   const question = result.question_results?.find((q) => q.question_id === qid);
   if (!question) {
     return (
-      <DashboardLayout active={active}>
+      <TopNavLayout active="results">
         <p className="dash-card-note">Вопрос не найден.</p>
         <Link to={resultPath} state={{ result }}>
           К результатам
         </Link>
-      </DashboardLayout>
+      </TopNavLayout>
     );
   }
 
   return (
-    <DashboardLayout active={active}>
+    <TopNavLayout active="results">
       <button
         type="button"
         className="dash-link-btn test-review-back"
@@ -105,7 +104,7 @@ export default function TrainingQuestionReviewPage() {
         ← К результатам
       </button>
       <QuestionReviewCard question={question} />
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }
 
@@ -154,9 +153,7 @@ function QuestionReviewCard({ question }: { question: QuestionResult }) {
 
           return (
             <div key={label} className={optionClass}>
-              <span>
-                {label} — <RichHtml html={question[field]} />
-              </span>
+              <RichHtml html={question[field]} />
             </div>
           );
         })}

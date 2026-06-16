@@ -9,24 +9,34 @@ type Props = {
   tickets: TicketExam[];
   testTitle: string;
   subtitle?: string;
+  ticketMeta?: string;
+  timerText?: string;
+  timerWarn?: boolean;
   cancelHref: string;
   onComplete: (answers: AnswersMap) => Promise<void>;
   completing?: boolean;
   completeError?: string;
   finishLabel?: string;
   allowEarlyFinish?: boolean;
+  allowBack?: boolean;
+  showCancel?: boolean;
 };
 
 export default function PaginatedTestFlow({
   tickets,
   testTitle,
   subtitle,
+  ticketMeta,
+  timerText,
+  timerWarn = false,
   cancelHref,
   onComplete,
   completing = false,
   completeError,
   finishLabel = "Завершить тест",
   allowEarlyFinish = true,
+  allowBack = false,
+  showCancel = true,
 }: Props) {
   const [ticketIndex, setTicketIndex] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -40,10 +50,13 @@ export default function PaginatedTestFlow({
     ? hasSelectedValue(selectedValue, Boolean(currentQuestion.multiple_choice))
     : false;
 
+  const isFirstQuestion = questionIndex <= 0;
   const isLastQuestion = questionIndex >= questions.length - 1;
+  const isFirstTicket = ticketIndex <= 0;
   const isLastTicket = ticketIndex >= tickets.length - 1;
   const isEndOfTicket = isLastQuestion && !isLastTicket;
   const isEndOfTest = isLastQuestion && isLastTicket;
+  const canGoBack = allowBack && (!isFirstQuestion || !isFirstTicket);
 
   const ticketTitle = useMemo(
     () => ticket?.title?.trim() || `Билет ${ticketIndex + 1}`,
@@ -56,6 +69,18 @@ export default function PaginatedTestFlow({
 
   const onSelect = (questionId: number, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const goBack = () => {
+    if (!canGoBack || completing) return;
+    if (questionIndex > 0) {
+      setQuestionIndex((i) => i - 1);
+      return;
+    }
+    const prevTicket = tickets[ticketIndex - 1];
+    const prevQuestionCount = prevTicket?.questions.length ?? 0;
+    setTicketIndex((i) => i - 1);
+    setQuestionIndex(Math.max(prevQuestionCount - 1, 0));
   };
 
   const goNextQuestion = () => {
@@ -74,41 +99,57 @@ export default function PaginatedTestFlow({
     void onComplete(answers);
   };
 
+  const progressLine =
+    ticketMeta ??
+    `${ticketTitle} · билет ${ticketIndex + 1} из ${tickets.length}`;
+
+  const showHeader = Boolean(testTitle || subtitle || timerText || ticketMeta);
+
   return (
-    <>
-      {(testTitle || subtitle) && (
-        <div className="dash-page-card test-flow-header">
-          {testTitle && <h1>{testTitle}</h1>}
-          {subtitle && <p className="dash-card-note">{subtitle}</p>}
-          <p className="test-flow-progress">
-            {ticketTitle} · билет {ticketIndex + 1} из {tickets.length}
-          </p>
-        </div>
-      )}
-      {!testTitle && !subtitle && (
-        <p className="test-flow-progress" style={{ marginBottom: "var(--spacing-3)" }}>
-          {ticketTitle} · билет {ticketIndex + 1} из {tickets.length}
-        </p>
+    <div className="mockup-ticket test-flow-shell">
+      {showHeader && (
+        <header className="mockup-ticket__card mockup-ticket__header">
+          {testTitle && <h1 className="mockup-ticket__title">{testTitle}</h1>}
+          {timerText && (
+            <p className={`mockup-ticket__timer ${timerWarn ? "mockup-ticket__timer--warn" : ""}`}>
+              {timerText}
+            </p>
+          )}
+          {subtitle && <p className="mockup-ticket__subtitle">{subtitle}</p>}
+          <p className="mockup-ticket__meta">{progressLine}</p>
+        </header>
       )}
 
-      <TestQuestionPanel
-        ticket={ticket}
-        questionIndex={questionIndex}
-        selectedValue={selectedValue}
-        onSelect={onSelect}
-        disabled={completing}
-      />
+      <section className="mockup-ticket__card mockup-ticket__body">
+        <TestQuestionPanel
+          ticket={ticket}
+          questionIndex={questionIndex}
+          selectedValue={selectedValue}
+          onSelect={onSelect}
+          disabled={completing}
+        />
+      </section>
 
-      {completeError && <p className="auth-error">{completeError}</p>}
+      {completeError && <p className="auth-error mockup-ticket__error">{completeError}</p>}
 
-      <div className="test-flow-actions">
+      <footer className="mockup-ticket__actions">
+        {canGoBack && (
+          <button
+            type="button"
+            className="mockup-btn mockup-btn--outline mockup-ticket__btn"
+            disabled={completing}
+            onClick={goBack}
+          >
+            Назад
+          </button>
+        )}
+
         {!isLastQuestion && (
           <button
             type="button"
-            className="dash-exam-btn"
+            className="mockup-btn mockup-btn--primary mockup-ticket__btn"
             disabled={!hasAnswer || completing}
             onClick={goNextQuestion}
-            style={{ border: "none", cursor: "pointer" }}
           >
             Далее
           </button>
@@ -117,10 +158,9 @@ export default function PaginatedTestFlow({
         {isEndOfTicket && (
           <button
             type="button"
-            className="dash-exam-btn"
+            className="mockup-btn mockup-btn--primary mockup-ticket__btn"
             disabled={!hasAnswer || completing}
             onClick={goNextTicket}
-            style={{ border: "none", cursor: "pointer" }}
           >
             Перейти к следующему билету
           </button>
@@ -129,7 +169,7 @@ export default function PaginatedTestFlow({
         {(isEndOfTest || (isEndOfTicket && allowEarlyFinish)) && (
           <button
             type="button"
-            className="btn btn-outline"
+            className="mockup-btn mockup-btn--primary mockup-ticket__btn"
             disabled={!hasAnswer || completing}
             onClick={finish}
           >
@@ -137,10 +177,12 @@ export default function PaginatedTestFlow({
           </button>
         )}
 
-        <Link to={cancelHref} className="dash-card-link">
-          Отмена
-        </Link>
-      </div>
-    </>
+        {showCancel && (
+          <Link to={cancelHref} className="mockup-link mockup-ticket__cancel">
+            Отмена
+          </Link>
+        )}
+      </footer>
+    </div>
   );
 }

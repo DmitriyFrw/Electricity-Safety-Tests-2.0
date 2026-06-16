@@ -3,10 +3,10 @@
    ============================================ */
 
 :root {
-    /* Primary (System Blue) */
-    --color-primary: #007aff;
-    --color-primary-hover: #0066d6;
-    --color-primary-light: rgba(0, 122, 255, 0.12);
+    /* Primary (mockup purple) */
+    --color-primary: #7b61ff;
+    --color-primary-hover: #6a52e8;
+    --color-primary-light: rgba(123, 97, 255, 0.12);
 
     /* Secondary */
     --color-secondary: #1d1d1f;

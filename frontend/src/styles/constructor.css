@@ -705,14 +705,14 @@
 }
 
 .constructor-number-pill-active {
-  background: var(--color-primary, #007aff);
-  border-color: var(--color-primary, #007aff);
+  background: var(--mockup-purple, var(--color-primary, #7b61ff));
+  border-color: var(--mockup-purple, var(--color-primary, #7b61ff));
   color: #fff;
 }
 
 .constructor-number-pill-active:hover {
   color: #fff;
-  border-color: var(--color-primary, #007aff);
+  border-color: var(--mockup-purple, var(--color-primary, #7b61ff));
 }
 
 .constructor-number-ellipsis {
@@ -861,7 +861,9 @@
 }
 
 .constructor-configure-panel {
-  margin-top: var(--spacing-2);
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
 }
 
 .constructor-questions-header {

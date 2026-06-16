@@ -5,12 +5,6 @@ export const SAFETY_GROUPS = [
   { id: "IV", label: "IV группа" },
 ] as const;
 
-export type SafetyGroupId = (typeof SAFETY_GROUPS)[number]["id"];
-
 export function safetyGroupLabel(id: string): string {
   return SAFETY_GROUPS.find((g) => g.id === id)?.label ?? `${id} группа`;
-}
-
-export function safetyGroupDesc(_id: string): string {
-  return "";
 }

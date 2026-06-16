@@ -1,10 +1,10 @@
 import type {
-  Dashboard,
   ExamResult,
   Manual,
   SignedProtocol,
   TestEdit,
   TestListItem,
+  ExamScheduleRow,
   KotUser,
   User,
   UserAdmin,
@@ -12,13 +12,17 @@ import type {
   WikiPageListItem,
   WikiAttachment,
 } from "../types/api";
-import type { QuestionSave } from "../types/api";
-import { deleteReact, getReact, postFormReact, postReact, putReact } from "./getReact";
+import {
+  deleteReact,
+  downloadReact,
+  getReact,
+  postFormReact,
+  postReact,
+  putReact,
+} from "./getReact";
 
 /** API-слой: все вызовы через getReact / postReact (axios → JSON). */
 export const api = {
-  me: () => getReact<User | null>("/auth/me"),
-
   login: (username: string, password: string) =>
     postReact<User>("/auth/login", { username, password }),
 
@@ -26,8 +30,6 @@ export const api = {
     postReact<User>("/auth/register", { username, password, password2 }),
 
   logout: () => postReact<{ message: string }>("/auth/logout"),
-
-  dashboard: () => getReact<Dashboard>("/dashboard"),
 
   listTests: () =>
     getReact<{ items: TestListItem[] }>("/tests").then((r) => r.items),
@@ -39,32 +41,17 @@ export const api = {
       safety_group,
     }),
 
-  getTestEdit: (testId: number) => getReact<TestEdit>(`/tests/${testId}`),
-
-  updateTestSettings: (testId: number, random_ticket_order: boolean) =>
-    putReact<TestEdit>(`/tests/${testId}/settings`, { random_ticket_order }),
+  updateTestSettings: (
+    testId: number,
+    settings: { random_ticket_order: boolean; random_option_order: boolean }
+  ) => putReact<TestEdit>(`/tests/${testId}/settings`, settings),
 
   publishTest: (testId: number) => postReact<TestEdit>(`/tests/${testId}/publish`),
 
   deleteTest: (testId: number) => deleteReact<void>(`/tests/${testId}`),
 
-  addTicket: (testId: number) => postReact<TestEdit>(`/tests/${testId}/tickets`),
-
-  saveTicket: (
-    testId: number,
-    ticketId: number,
-    body: {
-      questions: QuestionSave[];
-      title?: string | null;
-      option_count?: number;
-    }
-  ) => putReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`, body),
-
   getTrainingResult: (testId: number, attemptId: number) =>
     getReact<ExamResult>(`/tests/${testId}/training/attempts/${attemptId}/result`),
-
-  deleteTicket: (testId: number, ticketId: number) =>
-    deleteReact<TestEdit>(`/tests/${testId}/tickets/${ticketId}`),
 
   updateProfile: (body: {
     full_name: string;
@@ -81,6 +68,11 @@ export const api = {
 
   updateKotSafetyGroup: (userId: number, safety_group: string) =>
     putReact<KotUser>(`/staff/kot-users/${userId}/safety-group`, { safety_group }),
+
+  listExamSchedule: () => getReact<ExamScheduleRow[]>("/staff/exam-schedule"),
+
+  downloadExamScheduleExport: () =>
+    downloadReact("/staff/exam-schedule-export.xlsx", "grafik_ebkamena.xlsx"),
 
   updateUserRole: (userId: number, role: string) =>
     putReact<UserAdmin>(`/admin/users/${userId}/role`, { role }),

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import { SAFETY_GROUPS } from "../constants/safetyGroups";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import type { KotUser } from "../types/api";
 
 export default function KotSafetyGroupsPage() {
@@ -50,23 +50,32 @@ export default function KotSafetyGroupsPage() {
   };
 
   return (
-    <DashboardLayout active="safety-groups">
-      <div className="dash-page-intro">
-        <h1 className="dash-section-title">Группы по электробезопасности</h1>
-        <p className="dash-card-note">
+    <TopNavLayout>
+      <header className="mockup-page-header">
+        <h1>Группы по электробезопасности</h1>
+        <p>
           Назначение группы I, II, III или IV пользователям с ролью Кот. От группы зависит, какой
           экзамен и тренировочные тесты будут доступны.
         </p>
-      </div>
+        <p style={{ marginTop: 12 }}>
+          <a href="/staff/exam-schedule" className="mockup-link">
+            График сдачи экзаменов →
+          </a>
+        </p>
+      </header>
+
       {error && <p className="auth-error">{error}</p>}
-      {message && <p className="dash-card-note">{message}</p>}
+      {message && <p className="mockup-flash mockup-flash--ok">{message}</p>}
+
       {loading ? (
-        <p className="dash-card-note">Загрузка…</p>
+        <p>Загрузка…</p>
       ) : users.length === 0 ? (
-        <p className="dash-card-note">Пользователей с ролью Кот пока нет.</p>
+        <div className="mockup-page-card">
+          <p className="mockup-muted">Пользователей с ролью Кот пока нет.</p>
+        </div>
       ) : (
-        <div className="dash-table-wrap">
-          <table className="dash-table">
+        <div className="results-table-wrap">
+          <table className="results-table staff-table">
             <thead>
               <tr>
                 <th>Логин</th>
@@ -85,6 +94,7 @@ export default function KotSafetyGroupsPage() {
                     <td>{u.display_name}</td>
                     <td>
                       <select
+                        className="mockup-select"
                         value={pending}
                         disabled={savingId === u.id}
                         onChange={(e) =>
@@ -99,10 +109,10 @@ export default function KotSafetyGroupsPage() {
                         ))}
                       </select>
                     </td>
-                    <td>
+                    <td className="staff-table__actions">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm"
+                        className="mockup-btn mockup-btn--outline mockup-btn--sm"
                         disabled={!changed || savingId === u.id}
                         onClick={() => void onSave(u)}
                       >
@@ -116,6 +126,6 @@ export default function KotSafetyGroupsPage() {
           </table>
         </div>
       )}
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }

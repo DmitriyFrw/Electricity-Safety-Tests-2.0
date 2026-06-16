@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { axiosErrorCode, axiosErrorMessage, getReact, postReact } from "../api/getReact";
 import PaginatedTestFlow, { type AnswersMap } from "../components/test-flow/PaginatedTestFlow";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import type { ExamResult, ExamSession, ExamTicketPaper } from "../types/api";
 import {
   abandonExamKeepalive,
@@ -183,18 +183,20 @@ export default function TakeExamPage() {
 
   if (loadError && !paper) {
     return (
-      <DashboardLayout active="exam">
+      <TopNavLayout active="exam">
         <p className="auth-error">{loadError}</p>
-        <Link to="/exam">← К экзамену</Link>
-      </DashboardLayout>
+        <Link to="/exam" className="mockup-link">
+          ← К экзамену
+        </Link>
+      </TopNavLayout>
     );
   }
 
   if (loading || !paper || !session) {
     return (
-      <DashboardLayout active="exam">
-        <p className="dash-card-note">Загрузка…</p>
-      </DashboardLayout>
+      <TopNavLayout active="exam">
+        <p className="mockup-page-header p">Загрузка…</p>
+      </TopNavLayout>
     );
   }
 
@@ -202,27 +204,22 @@ export default function TakeExamPage() {
   const finishLabel = "Завершить экзамен";
 
   return (
-    <DashboardLayout active="exam">
-      <div className="dash-page-card test-flow-header">
-        <h1>{paper.test_title}</h1>
-        <p className={`dash-exam-timer ${secondsLeft <= 60 ? "dash-exam-timer-warn" : ""}`}>
-          Осталось: {formatTime(secondsLeft)}
-        </p>
-        <p className="dash-card-note">
-          Билет {paper.ticket_index} из {paper.ticket_count} · лимит {paper.time_limit_seconds / 60} мин
-        </p>
-      </div>
+    <TopNavLayout active="exam">
       <PaginatedTestFlow
         key={paper.ticket.id}
         tickets={[paper.ticket]}
-        testTitle=""
+        testTitle={paper.test_title}
+        timerText={`Осталось: ${formatTime(secondsLeft)}`}
+        timerWarn={secondsLeft <= 60}
+        ticketMeta={`Билет ${paper.ticket_index} из ${paper.ticket_count} · лимит ${paper.time_limit_seconds / 60} мин`}
         cancelHref="/exam"
         onComplete={submitCurrentTicket}
         completing={submitting || timedOut}
         completeError={submitError}
         finishLabel={finishLabel}
         allowEarlyFinish={false}
+        showCancel={false}
       />
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }

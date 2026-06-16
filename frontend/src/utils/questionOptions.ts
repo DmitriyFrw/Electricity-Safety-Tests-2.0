@@ -21,12 +21,6 @@ export function letterToIndex(letter: string): number {
   return i >= 0 ? i : 0;
 }
 
-export function clampCorrectLetter(letter: string, count: number): string {
-  const idx = letterToIndex(letter);
-  const max = normalizeOptionCount(count) - 1;
-  return indexToLetter(Math.min(idx, max));
-}
-
 export function parseCorrectLetters(raw: string, count: number): string[] {
   const n = normalizeOptionCount(count);
   const allowed = new Set(labelsForCount(n));

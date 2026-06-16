@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import type { Manual } from "../types/api";
 
 export default function ManualsPage() {
@@ -40,7 +40,7 @@ export default function ManualsPage() {
   }, [activeId]);
 
   return (
-    <DashboardLayout active="manuals">
+    <TopNavLayout>
       <div className="documents-card">
         <h1>Нормативные документы</h1>
         <p className="dash-card-note">Справочные материалы для подготовки к экзамену</p>
@@ -71,6 +71,6 @@ export default function ManualsPage() {
           <Link to="/cabinet">← В личный кабинет</Link>
         </p>
       </div>
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }

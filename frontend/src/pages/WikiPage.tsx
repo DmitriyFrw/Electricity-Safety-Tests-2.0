@@ -4,7 +4,7 @@ import { api } from "../api/client";
 import { axiosErrorMessage } from "../api/getReact";
 import RichHtml from "../components/RichHtml";
 import RichTextEditor from "../components/RichTextEditor";
-import DashboardLayout from "../layout/DashboardLayout";
+import TopNavLayout from "../layout/TopNavLayout";
 import { useAuth } from "../auth/AuthContext";
 import type { WikiAttachment, WikiPage, WikiPageListItem } from "../types/api";
 
@@ -387,7 +387,7 @@ export default function WikiPage() {
     editorMode?.kind === "edit" ? loaded[editorMode.pageId] ?? null : null;
 
   return (
-    <DashboardLayout active="home">
+    <TopNavLayout>
       <div className="dash-page-card wiki-page">
         <Link to="/cabinet" className="dash-link-btn wiki-page-back">
           ← На главную
@@ -460,6 +460,6 @@ export default function WikiPage() {
           ))}
         </div>
       </div>
-    </DashboardLayout>
+    </TopNavLayout>
   );
 }

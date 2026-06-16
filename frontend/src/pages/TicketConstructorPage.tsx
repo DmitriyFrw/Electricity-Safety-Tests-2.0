@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import CreateTestDialog from "../components/CreateTestDialog";
 import { api } from "../api/client";
 import { axiosErrorMessage, deleteReact, postReact, putReact } from "../api/getReact";
 import { safetyGroupLabel } from "../constants/safetyGroups";
 import RichTextEditor from "../components/RichTextEditor";
+import ConstructorCatalog from "../components/ConstructorCatalog";
 import SidebarPortal from "../components/SidebarPortal";
-import DashboardLayout from "../layout/DashboardLayout";
+import ConstructorLayout from "../layout/ConstructorLayout";
 import { useGetReact } from "../hooks/useGetReact";
-import type { QuestionSave, TestEdit, TestListItem } from "../types/api";
+import type { QuestionSave, TestEdit } from "../types/api";
 import {
   clampCorrectLetters,
   formatCorrectLetters,
@@ -184,91 +186,6 @@ function NumberCircleNav({
   );
 }
 
-function ConstructorTestList() {
-  const [tests, setTests] = useState<TestListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [deletingTestId, setDeletingTestId] = useState<number | null>(null);
-
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const items = await api.listTests();
-        setTests(items.filter((t) => t.can_edit));
-      } catch (e) {
-        setError(axiosErrorMessage(e));
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  const onDeleteTest = async (t: TestListItem) => {
-    const ok = window.confirm(
-      `Удалить тест «${t.title}»? Билеты и вопросы будут удалены без возможности восстановления.`
-    );
-    if (!ok) return;
-    setError("");
-    setDeletingTestId(t.id);
-    try {
-      await api.deleteTest(t.id);
-      setTests((prev) => prev.filter((item) => item.id !== t.id));
-    } catch (e) {
-      setError(axiosErrorMessage(e));
-    } finally {
-      setDeletingTestId(null);
-    }
-  };
-
-  return (
-    <>
-      {error && <p className="auth-error">{error}</p>}
-      {loading ? (
-        <p className="dash-card-note">Загрузка…</p>
-      ) : tests.length === 0 ? (
-        <p className="dash-card-note">
-          Нет доступных тестов.{" "}
-          <Link to="/tests/new" className="dash-card-link">
-            Создать тест
-          </Link>
-        </p>
-      ) : (
-        <ul className="constructor-test-list">
-          {tests.map((t) => (
-            <li key={t.id}>
-              <div>
-                <strong>{t.title}</strong>
-                <div className="dash-card-meta">
-                  {safetyGroupLabel(t.safety_group)} · Билетов: {t.ticket_count}
-                  {t.ready ? " · готов" : " · черновик"}
-                </div>
-              </div>
-              <div className="constructor-page-actions" style={{ flexShrink: 0 }}>
-                <Link
-                  to={`/constructor/${t.id}`}
-                  className="btn btn-outline btn-sm"
-                  style={{ textDecoration: "none" }}
-                >
-                  Открыть
-                </Link>
-                <button
-                  type="button"
-                  className="dash-btn-danger btn-sm"
-                  disabled={deletingTestId === t.id}
-                  onClick={() => void onDeleteTest(t)}
-                >
-                  {deletingTestId === t.id ? "Удаление…" : "Удалить"}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
-}
-
 function TicketConfigurePanel({
   ticketId,
   draft,
@@ -384,18 +301,18 @@ function TicketConfigurePanel({
   return (
     <div
       id={`constructor-panel-${ticketId}`}
-      className="dash-page-card dash-form constructor-configure-panel"
+      className="mockup-page-card constructor-configure-panel"
     >
       <div className="constructor-ticket-head">
-        <h2 className="dash-section-title" style={{ margin: 0 }}>
+        <h2 style={{ margin: 0 }}>
           {draft.title.trim() || `Билет ${draft.position}`}
           {ticketComplete ? (
-            <span className="dash-pill-ok"> заполнен</span>
+            <span className="mockup-pill mockup-pill--ok"> заполнен</span>
           ) : (
-            <span className="dash-pill-draft"> черновик</span>
+            <span className="mockup-pill mockup-pill--draft"> черновик</span>
           )}
         </h2>
-        <button type="button" className="dash-link-btn" onClick={onClose}>
+        <button type="button" className="mockup-link mockup-link--btn" onClick={onClose}>
           ← К списку билетов
         </button>
       </div>
@@ -415,12 +332,16 @@ function TicketConfigurePanel({
           />
           <button
             type="button"
-            className="btn btn-outline btn-sm"
+            className="mockup-btn mockup-btn--outline mockup-btn--sm"
             onClick={() => fileRef.current?.click()}
           >
             Загрузить из файла
           </button>
-          <button type="button" className="btn btn-outline btn-sm" onClick={() => void onExport()}>
+          <button
+            type="button"
+            className="mockup-btn mockup-btn--outline mockup-btn--sm"
+            onClick={() => void onExport()}
+          >
             Выгрузить в файл
           </button>
           <select
@@ -439,7 +360,7 @@ function TicketConfigurePanel({
       </div>
       {importError && <p className="auth-error">{importError}</p>}
       {exportError && <p className="auth-error">{exportError}</p>}
-      <p className="dash-card-note constructor-import-hint">
+      <p className="mockup-muted constructor-import-hint">
         Поддерживаются TXT, CSV, TSV и Excel (.xlsx, .xls). Колонки: формулировка, варианты A–D,
         верные ответы, кол-во вариантов (2–4, необязательно). У каждого вопроса можно задать своё
         число вариантов.
@@ -472,7 +393,7 @@ function TicketConfigurePanel({
               <div className="constructor-question-head-actions">
                 <button
                   type="button"
-                  className="dash-link-btn"
+                  className="mockup-link mockup-link--btn"
                   onClick={() => toggleQuestionCollapsed(qi)}
                 >
                   {collapsed ? "Развернуть" : "Свернуть"}
@@ -480,7 +401,7 @@ function TicketConfigurePanel({
                 {draft.questions.length > 1 && (
                   <button
                     type="button"
-                    className="dash-btn-danger btn-sm"
+                    className="mockup-btn mockup-btn--danger mockup-btn--sm"
                     onClick={() => removeQuestion(qi)}
                   >
                     Удалить вопрос
@@ -593,7 +514,7 @@ function TicketConfigurePanel({
       })}
 
       {canAddQuestion && (
-        <button type="button" className="btn btn-outline" onClick={addQuestion}>
+        <button type="button" className="mockup-btn mockup-btn--outline" onClick={addQuestion}>
           Добавить вопрос
         </button>
       )}
@@ -601,7 +522,7 @@ function TicketConfigurePanel({
       <div className="constructor-actions">
         <button
           type="button"
-          className="dash-exam-btn"
+          className="mockup-btn mockup-btn--primary"
           disabled={saving}
           onClick={() => void onSave()}
         >
@@ -609,7 +530,7 @@ function TicketConfigurePanel({
         </button>
         <button
           type="button"
-          className="dash-btn-danger"
+          className="mockup-btn mockup-btn--danger"
           disabled={deleting}
           onClick={() => void onDelete()}
         >
@@ -743,7 +664,7 @@ function ConstructorEditor({ testId }: { testId: number }) {
   };
 
   if (loading || !test) {
-    return <p className="dash-card-note">{error || "Загрузка…"}</p>;
+    return <p className="mockup-muted">{error || "Загрузка…"}</p>;
   }
 
   const displayError = actionError || error;
@@ -766,18 +687,32 @@ function ConstructorEditor({ testId }: { testId: number }) {
 
   const closeTicket = () => navigate(`/constructor/${testId}`);
 
-  const toggleRandomTicketOrder = async () => {
+  const updateTestSettings = async (patch: {
+    random_ticket_order?: boolean;
+    random_option_order?: boolean;
+  }) => {
     if (!test) return;
     setSettingsSaving(true);
     setActionError("");
     try {
-      const updated = await api.updateTestSettings(testId, !test.random_ticket_order);
+      const updated = await api.updateTestSettings(testId, {
+        random_ticket_order: patch.random_ticket_order ?? test.random_ticket_order,
+        random_option_order: patch.random_option_order ?? test.random_option_order,
+      });
       setTest(updated);
-      setMessage(
-        updated.random_ticket_order
-          ? "В экзамене билеты будут выдаваться в случайном порядке"
-          : "В экзамене билеты будут выдаваться по порядку"
-      );
+      if (patch.random_ticket_order !== undefined) {
+        setMessage(
+          updated.random_ticket_order
+            ? "В экзамене билеты будут выдаваться в случайном порядке"
+            : "В экзамене билеты будут выдаваться по порядку"
+        );
+      } else if (patch.random_option_order !== undefined) {
+        setMessage(
+          updated.random_option_order
+            ? "Варианты ответов в каждом вопросе будут показываться в случайном порядке"
+            : "Варианты ответов будут показываться в порядке редактирования"
+        );
+      }
     } catch (e) {
       setActionError(axiosErrorMessage(e));
     } finally {
@@ -833,33 +768,54 @@ function ConstructorEditor({ testId }: { testId: number }) {
         </SidebarPortal>
       )}
 
-      <div className="dash-page-card">
+      <div className="mockup-page-card">
         <h1>{test.title}</h1>
-        <p className="dash-card-meta">
+        <p className="mockup-muted">
           {safetyGroupLabel(test.safety_group)}
           {" · "}Билетов {test.tickets.length}/{test.max_tickets}
           {test.ready
             ? " · готов к сдаче"
             : test.published
-              ? " · опубликован, добавьте билет с 10 вопросами"
-              : " · черновик — достаточно одного билета с 10 вопросами, затем «Тест готов»"}
-          {test.random_ticket_order ? " · случайный порядок билетов в экзамене" : ""}
+              ? " · опубликован, дозаполните неготовые билеты"
+              : " · черновик — заполните все билеты (по 10 вопросов), затем «Тест готов»"}
+          {test.random_ticket_order ? " · случайный порядок билетов" : ""}
+          {test.random_option_order ? " · случайный порядок ответов" : ""}
         </p>
-        <div className="constructor-page-actions" style={{ marginBottom: "var(--spacing-4)" }}>
-          <button
-            type="button"
-            className={`constructor-random-order-btn${
-              test.random_ticket_order ? " constructor-random-order-btn-active" : ""
-            }`}
-            disabled={settingsSaving}
-            onClick={() => void toggleRandomTicketOrder()}
-          >
-            {settingsSaving
-              ? "Сохранение…"
-              : test.random_ticket_order
-                ? "Случайный порядок билетов: вкл"
-                : "Случайный порядок билетов: выкл"}
-          </button>
+        <div className="constructor-page-toolbar">
+          <div className="constructor-test-settings">
+            <button
+              type="button"
+              className={`constructor-random-order-btn${
+                test.random_ticket_order ? " constructor-random-order-btn-active" : ""
+              }`}
+              disabled={settingsSaving}
+              onClick={() =>
+                void updateTestSettings({ random_ticket_order: !test.random_ticket_order })
+              }
+            >
+              {settingsSaving
+                ? "Сохранение…"
+                : test.random_ticket_order
+                  ? "Случайный порядок билетов: вкл (экзамен и тренировка)"
+                  : "Случайный порядок билетов: выкл (по номеру билета)"}
+            </button>
+            <button
+              type="button"
+              className={`constructor-random-order-btn${
+                test.random_option_order ? " constructor-random-order-btn-active" : ""
+              }`}
+              disabled={settingsSaving}
+              onClick={() =>
+                void updateTestSettings({ random_option_order: !test.random_option_order })
+              }
+            >
+              {settingsSaving
+                ? "Сохранение…"
+                : test.random_option_order
+                  ? "Случайный порядок ответов: вкл"
+                  : "Случайный порядок ответов: выкл"}
+            </button>
+          </div>
           <button
             type="button"
             className={`constructor-random-order-btn${
@@ -870,7 +826,7 @@ function ConstructorEditor({ testId }: { testId: number }) {
               test.published
                 ? "Тест уже опубликован"
                 : !test.content_complete
-                  ? "Добавьте хотя бы один билет с 10 вопросами"
+                  ? "Заполните все билеты теста (по 10 вопросов в каждом)"
                   : undefined
             }
             onClick={() => void publishTest()}
@@ -879,20 +835,16 @@ function ConstructorEditor({ testId }: { testId: number }) {
           </button>
         </div>
         {displayError && <p className="auth-error">{displayError}</p>}
-        {message && <p className="dash-card-note">{message}</p>}
-        {isEditingTicket ? (
-          <button type="button" className="dash-link-btn" onClick={closeTicket}>
-            ← К списку билетов
-          </button>
-        ) : (
-          <Link to="/constructor" className="dash-card-link" style={{ display: "inline-block" }}>
+        {message && <p className="mockup-flash mockup-flash--ok">{message}</p>}
+        {!isEditingTicket && (
+          <Link to="/constructor" className="mockup-link">
             ← К списку тестов
           </Link>
         )}
       </div>
 
       {!isEditingTicket && (
-      <div className="dash-page-card constructor-tickets-card">
+      <div className="mockup-page-card constructor-tickets-card">
         <ul className="constructor-ticket-grid">
           {test.tickets.map((ticket) => {
             const draft = drafts.find((d) => d.id === ticket.id);
@@ -905,9 +857,9 @@ function ConstructorEditor({ testId }: { testId: number }) {
               >
                 <div className="constructor-ticket-tile-title">{label}</div>
                 {ticket.complete ? (
-                  <span className="constructor-ticket-tile-status dash-pill-ok">заполнен</span>
+                  <span className="constructor-ticket-tile-status mockup-pill mockup-pill--ok">заполнен</span>
                 ) : (
-                  <span className="constructor-ticket-tile-status dash-pill-draft">черновик</span>
+                  <span className="constructor-ticket-tile-status mockup-pill mockup-pill--draft">черновик</span>
                 )}
                 <div className="constructor-ticket-tile-actions">
                   <button
@@ -936,8 +888,8 @@ function ConstructorEditor({ testId }: { testId: number }) {
         </ul>
         <button
           type="button"
-          className="dash-exam-btn"
-          style={{ border: "none", cursor: "pointer", marginTop: "var(--spacing-4)" }}
+          className="mockup-btn mockup-btn--primary"
+          style={{ marginTop: "var(--spacing-4)" }}
           disabled={test.tickets.length >= test.max_tickets}
           onClick={() => void addTicket()}
         >
@@ -967,7 +919,7 @@ function ConstructorEditor({ testId }: { testId: number }) {
       {!isEditingTicket && (
         <button
           type="button"
-          className="dash-link-btn"
+          className="mockup-link mockup-link--btn"
           onClick={() => navigate("/constructor")}
         >
           Закрыть редактор
@@ -979,26 +931,39 @@ function ConstructorEditor({ testId }: { testId: number }) {
 
 export default function TicketConstructorPage() {
   const { testId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(false);
   const id = testId ? Number(testId) : null;
+  const editing = id != null && !Number.isNaN(id);
+  const { data: testMeta } = useGetReact<TestEdit>(
+    editing ? `/tests/${id}` : null,
+    Boolean(editing)
+  );
+
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const openCreate = () => setCreateOpen(true);
 
   return (
-    <DashboardLayout active="constructor">
-      {id && !Number.isNaN(id) ? (
+    <ConstructorLayout
+      editing={editing}
+      title={editing && testMeta ? testMeta.title : "Конструктор билетов"}
+      showCreate={!editing}
+      onCreateClick={!editing ? openCreate : undefined}
+    >
+      {!editing && (
+        <CreateTestDialog open={createOpen} onClose={() => setCreateOpen(false)} />
+      )}
+      {editing ? (
         <ConstructorEditor testId={id} />
       ) : (
-        <>
-          <div className="dash-page-intro">
-            <h1 className="dash-section-title">Конструктор билетов</h1>
-            <p className="dash-card-note">
-              Выберите тест для редактирования билетов с форматированием текста.
-            </p>
-            <Link to="/tests/new" className="btn btn-primary dash-page-intro-btn">
-              Новый тест
-            </Link>
-          </div>
-          <ConstructorTestList />
-        </>
+        <ConstructorCatalog onCreateClick={openCreate} />
       )}
-    </DashboardLayout>
+    </ConstructorLayout>
   );
 }

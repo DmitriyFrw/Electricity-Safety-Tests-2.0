@@ -18,6 +18,18 @@ export interface KotUser {
   profile_complete: boolean;
 }
 
+export interface ExamScheduleRow {
+  full_name: string;
+  birth_date: string;
+  job_title: string;
+  business_unit: string;
+  safety_group: string;
+  role_label: string;
+  last_exam_date: string;
+  next_exam_date: string;
+  exam_grade: string;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -97,6 +109,37 @@ export interface AdminProtocolDraftUser {
   profile_complete: boolean;
 }
 
+export interface AdminGradeBucket {
+  grade: string;
+  count: number;
+  percent: number;
+}
+
+export interface AdminMonthlyResult {
+  year: number;
+  month: number;
+  average_percent: number;
+  attempt_count: number;
+}
+
+export interface AdminActivity {
+  user_display_name: string;
+  test_title: string;
+  percent: number;
+  grade: string;
+  finished_at: string;
+}
+
+export interface AdminStats {
+  users_count: number;
+  tests_count: number;
+  exams_passed_count: number;
+  average_percent: number;
+  grade_distribution: AdminGradeBucket[];
+  monthly_results: AdminMonthlyResult[];
+  recent_activity: AdminActivity[];
+}
+
 export interface Dashboard {
   user: User;
   can_create_tests: boolean;
@@ -131,6 +174,8 @@ export interface TestListItem {
   author_id: number;
   author_username: string;
   ticket_count: number;
+  published: boolean;
+  content_complete: boolean;
   ready: boolean;
   can_edit: boolean;
 }
@@ -278,6 +323,7 @@ export interface TestEdit {
   max_tickets: number;
   questions_per_ticket: number;
   random_ticket_order: boolean;
+  random_option_order: boolean;
   tickets: TicketEdit[];
 }
 

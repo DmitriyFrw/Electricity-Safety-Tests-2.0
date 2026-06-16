@@ -35,4 +35,18 @@ export async function postFormReact<T>(path: string, body: FormData): Promise<T>
   return data;
 }
 
+/** GET бинарного ответа (файл) и сохранение на диск. */
+export async function downloadReact(path: string, fallbackFilename: string): Promise<void> {
+  const response = await apiClient.get<Blob>(path, { responseType: "blob" });
+  const disposition = response.headers["content-disposition"] as string | undefined;
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
+  const filename = match?.[1] ?? fallbackFilename;
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export { axiosCorrelationId, axiosErrorCode, axiosErrorMessage };

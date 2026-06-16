@@ -1,104 +1,119 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { safetyGroupLabel } from "../constants/safetyGroups";
-import DashboardLayout from "../layout/DashboardLayout";
+import { SAFETY_GROUPS, safetyGroupLabel } from "../constants/safetyGroups";
+import TopNavLayout from "../layout/TopNavLayout";
 import { useGetReact } from "../hooks/useGetReact";
-import type { Dashboard, TestListItem } from "../types/api";
-import { formatDateRu } from "../utils/format";
+import type { AttemptRow, Dashboard, TestListItem } from "../types/api";
+
+function bestPercentForTest(attempts: AttemptRow[], testId: number): number {
+  const related = attempts.filter((a) => a.test_id === testId);
+  if (!related.length) return 0;
+  return Math.max(...related.map((a) => a.percent));
+}
 
 export default function TrainingPage() {
+  const [filter, setFilter] = useState<string>("all");
   const { data, error, loading } = useGetReact<{ items: TestListItem[] }>("/tests");
   const { data: dashboard } = useGetReact<Dashboard>("/dashboard");
   const tests = data?.items ?? [];
   const attempts = dashboard?.attempts ?? [];
-  const attemptsTotal = dashboard?.attempts_total ?? attempts.length;
-  const attemptsTruncated = attemptsTotal > attempts.length;
+
+  const readyTests = useMemo(() => tests.filter((t) => t.ready), [tests]);
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return readyTests;
+    return readyTests.filter((t) => t.safety_group === filter);
+  }, [readyTests, filter]);
+
+  const completedCount = useMemo(() => {
+    return readyTests.filter((t) => attempts.some((a) => a.test_id === t.id)).length;
+  }, [readyTests, attempts]);
+
+  const avgPercent = useMemo(() => {
+    const percents = readyTests
+      .map((t) => bestPercentForTest(attempts, t.id))
+      .filter((p) => p > 0);
+    if (!percents.length) return 0;
+    return Math.round(percents.reduce((a, b) => a + b, 0) / percents.length);
+  }, [readyTests, attempts]);
+
+  const chips = [{ id: "all", label: "Все темы" }, ...SAFETY_GROUPS.map((g) => ({ id: g.id, label: g.label }))];
 
   return (
-    <DashboardLayout active="training">
-      <div className="dash-page-card">
-        <h1>Обучение</h1>
-        <p className="dash-card-note">Выберите тест для изучения билетов</p>
-      </div>
-      {error && <p className="auth-error">{error}</p>}
-      {loading && <p className="dash-card-note">Загрузка…</p>}
-      <div className="dash-table-wrap">
-        <table className="dash-table">
-          <thead>
-            <tr>
-              <th>Тест</th>
-              <th>Группа</th>
-              <th>Автор</th>
-              <th>Билетов</th>
-              <th>Статус</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {tests.map((t) => (
-              <tr key={t.id}>
-                <td>{t.title}</td>
-                <td>{safetyGroupLabel(t.safety_group)}</td>
-                <td>{t.author_username}</td>
-                <td>{t.ticket_count}</td>
-                <td>{t.ready ? <span className="dash-pill-ok">Готов</span> : <span className="dash-pill-draft">Черновик</span>}</td>
-                <td>
-                  <div className="dash-table-actions">
-                    {t.ready && (
-                      <Link to={`/training/${t.id}`} className="btn btn-primary btn-sm">
-                        Пройти
-                      </Link>
-                    )}
-                    {t.can_edit && (
-                      <Link to={`/constructor/${t.id}`} className="btn btn-outline btn-sm">
-                        Редактировать
-                      </Link>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <TopNavLayout active="training">
+      <header className="mockup-page-header">
+        <h1>Тренировочные тесты</h1>
+        <p>Выберите тему и начните тренировку для подготовки к экзамену</p>
+      </header>
 
-      {attempts.length > 0 && (
-        <section className="dash-section dash-section--glass">
-          <h2 className="dash-section-title">История пройденных тестов</h2>
-          {attemptsTruncated && (
-            <p className="dash-card-note">
-              Показаны последние {attempts.length} из {attemptsTotal} попыток
-            </p>
-          )}
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Тест</th>
-                  <th>Дата</th>
-                  <th>Результат</th>
-                  <th>Ошибки</th>
-                  <th>%</th>
-                  <th>Оценка</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attempts.map((a) => (
-                  <tr key={a.attempt_id}>
-                    <td>{a.test_title}</td>
-                    <td>{formatDateRu(a.finished_at)}</td>
-                    <td>
-                      {a.correct}/{a.total}
-                    </td>
-                    <td>{a.errors}</td>
-                    <td>{a.percent}%</td>
-                    <td className={a.grade_class}>{a.grade}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="training-layout">
+        <div>
+          <div className="training-filters">
+            {chips.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                className={`training-chip${filter === chip.id ? " training-chip--active" : ""}`}
+                onClick={() => setFilter(chip.id)}
+              >
+                {chip.label}
+              </button>
+            ))}
           </div>
-        </section>
-      )}
-    </DashboardLayout>
+
+          {error && <p className="auth-error">{error}</p>}
+          {loading && <p className="mockup-page-header p">Загрузка…</p>}
+
+          <div className="training-list">
+            {filtered.map((t) => {
+              const percent = bestPercentForTest(attempts, t.id);
+              return (
+                <div key={t.id} className="training-row">
+                  <div>
+                    <div className="training-row__category">{safetyGroupLabel(t.safety_group)}</div>
+                    <div className="training-row__title">{t.title}</div>
+                  </div>
+                  <div className="training-row__meta">{t.ticket_count} билетов</div>
+                  <div className="training-row__progress-wrap">
+                    <div className="training-row__percent">{percent}%</div>
+                    <div className="training-progress">
+                      <div className="training-progress__bar" style={{ width: `${percent}%` }} />
+                    </div>
+                  </div>
+                  <Link to={`/training/${t.id}`} className="mockup-link">
+                    Начать
+                  </Link>
+                </div>
+              );
+            })}
+            {!loading && !filtered.length && (
+              <p className="mockup-page-header p">Нет доступных тренировочных тестов.</p>
+            )}
+          </div>
+        </div>
+
+        <aside className="training-sidebar">
+          <div className="training-info-card">
+            <svg className="training-info-card__icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <h3>Зачем тренироваться?</h3>
+            <p>
+              Регулярная практика помогает закрепить знания и уверенно пройти основной экзамен.
+            </p>
+          </div>
+          <div className="training-progress-card">
+            <h3>Ваш прогресс</h3>
+            <div className="training-progress-card__stat">
+              {completedCount} из {readyTests.length || "—"} тем пройдено
+            </div>
+            <div className="training-progress-card__avg">Средний результат: {avgPercent}%</div>
+            <div className="training-progress">
+              <div className="training-progress__bar" style={{ width: `${avgPercent}%` }} />
+            </div>
+          </div>
+        </aside>
+      </div>
+    </TopNavLayout>
   );
 }

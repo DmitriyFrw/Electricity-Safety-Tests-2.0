@@ -11,10 +11,12 @@ import TakeTrainingPage from "./pages/TakeTrainingPage";
 import TrainingResultPage from "./pages/TrainingResultPage";
 import TrainingQuestionReviewPage from "./pages/TrainingQuestionReviewPage";
 import ManualsPage from "./pages/ManualsPage";
-import TestNewPage from "./pages/TestNewPage";
 import TrainingPage from "./pages/TrainingPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ResultsPage from "./pages/ResultsPage";
 import KotSafetyGroupsPage from "./pages/KotSafetyGroupsPage";
+import StaffExamSchedulePage from "./pages/StaffExamSchedulePage";
 import TicketConstructorPage from "./pages/TicketConstructorPage";
 import WikiPage from "./pages/WikiPage";
 
@@ -36,6 +38,10 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 function RedirectTestEditToConstructor() {
   const { testId } = useParams();
   return <Navigate to={`/constructor/${testId ?? ""}`} replace />;
+}
+
+function RedirectTestsNewToConstructor() {
+  return <Navigate to="/constructor?create=1" replace />;
 }
 
 function StaffRoute({ children }: { children: React.ReactNode }) {
@@ -82,6 +88,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <ManualsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/results"
+          element={
+            <PrivateRoute>
+              <ResultsPage />
             </PrivateRoute>
           }
         />
@@ -158,6 +172,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboardPage />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/admin/users"
           element={
             <AdminRoute>
@@ -170,6 +192,14 @@ export default function App() {
           element={
             <StaffRoute>
               <KotSafetyGroupsPage />
+            </StaffRoute>
+          }
+        />
+        <Route
+          path="/staff/exam-schedule"
+          element={
+            <StaffRoute>
+              <StaffExamSchedulePage />
             </StaffRoute>
           }
         />
@@ -201,7 +231,7 @@ export default function App() {
           path="/tests/new"
           element={
             <EditorRoute>
-              <TestNewPage />
+              <RedirectTestsNewToConstructor />
             </EditorRoute>
           }
         />

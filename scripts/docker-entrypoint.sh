@@ -44,8 +44,8 @@ _run_alembic() {
     return 0
   fi
   if _schema_has_users_table; then
-    echo "==> Legacy create_all database: stamp 001_initial, then upgrade"
-    alembic stamp 001_initial
+    echo "==> Legacy create_all database: stamp head, then retry upgrade"
+    alembic stamp head
     alembic upgrade head
     return 0
   fi

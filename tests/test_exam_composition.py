@@ -60,7 +60,7 @@ def test_ensure_exam_composition_persists_attempt(db_session, monkeypatch):
     db_session.add(attempt)
     db_session.flush()
 
-    composition = ensure_exam_composition(db_session, attempt, "II")
+    composition = ensure_exam_composition(db_session, attempt, test)
     assert composition == parse_composition(attempt.exam_ticket_order)
     assert len(composition.question_ids) == QUESTIONS_PER_TICKET
 

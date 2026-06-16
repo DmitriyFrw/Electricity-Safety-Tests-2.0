@@ -18,7 +18,7 @@
 | Источник | Назначение |
 |----------|------------|
 | `razvivaisia/css/*.css` | `frontend/src/styles/razvivaisia/*.css` |
-| `razvivaisia/js/main.js` | `frontend/public/razvivaisia/main.js` + `frontend/src/hooks/useMobileNav.ts` |
+| `razvivaisia/js/main.js` | `frontend/public/razvivaisia/main.js` |
 | `razvivaisia/*.html` | `frontend/public/razvivaisia/*.html` (статические прототипы) |
 | `assets/images/` | `frontend/public/razvivaisia/assets/images/` |
 

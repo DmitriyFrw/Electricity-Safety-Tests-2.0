@@ -294,7 +294,6 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
         s.commit()
         s.refresh(t)
         test_id = t.id
-        qids = [q.id for q in ticket.questions]
     finally:
         s.close()
 
@@ -306,7 +305,9 @@ async def test_admin_can_sign_protocol_for_passed_exam(async_client: AsyncClient
     sess = start.json()
     ticket_id = sess["next_ticket_id"]
     assert ticket_id is not None
-    await async_client.get(f"/api/tests/{test_id}/exam/tickets/{ticket_id}")
+    paper = await async_client.get(f"/api/tests/{test_id}/exam/tickets/{ticket_id}")
+    paper.raise_for_status()
+    qids = [q["id"] for q in paper.json()["questions"]]
     csrf_submit = (await async_client.get("/api/auth/csrf")).json()["csrf_token"]
     submit = await async_client.post(
         f"/api/tests/{test_id}/exam/tickets/{ticket_id}",
@@ -636,20 +637,11 @@ async def test_exam_abandon_closes_open_session(async_client: AsyncClient, db_se
     reg.raise_for_status()
     user_id = reg.json()["id"]
 
+    from tests.helpers import add_questions_to_ticket
+
     test = Test(author_id=user_id, title="Abandon test", description=None, published=True)
     ticket = Ticket(position=1)
-    for pos in range(1, 4):
-        ticket.questions.append(
-            Question(
-                position=pos,
-                text=f"Q{pos}",
-                correct_index=0,
-                option_a="A",
-                option_b="B",
-                option_c="C",
-                option_d="D",
-            )
-        )
+    add_questions_to_ticket(ticket)
     test.tickets.append(ticket)
     db_session.add(test)
     db_session.commit()
@@ -691,20 +683,11 @@ async def test_exam_abandon_not_passed_with_partial_correct_answers(
     reg.raise_for_status()
     user_id = reg.json()["id"]
 
+    from tests.helpers import add_questions_to_ticket
+
     test = Test(author_id=user_id, title="Partial abandon", description=None, published=True)
     ticket = Ticket(position=1)
-    for pos in range(1, 5):
-        ticket.questions.append(
-            Question(
-                position=pos,
-                text=f"Q{pos}",
-                correct_index=0,
-                option_a="A",
-                option_b="B",
-                option_c="C",
-                option_d="D",
-            )
-        )
+    add_questions_to_ticket(ticket)
     test.tickets.append(ticket)
     db_session.add(test)
     db_session.commit()
@@ -719,10 +702,13 @@ async def test_exam_abandon_not_passed_with_partial_correct_answers(
     next_ticket_id = start.json()["next_ticket_id"]
     await async_client.get(f"/api/tests/{test.id}/exam/tickets/{next_ticket_id}")
 
+    paper = await async_client.get(f"/api/tests/{test.id}/exam/tickets/{next_ticket_id}")
+    paper.raise_for_status()
+    exam_questions = paper.json()["questions"]
     attempt_id = start.json()["attempt_id"]
-    for q in ticket.questions[:3]:
+    for q in exam_questions[:8]:
         db_session.add(
-            UserAnswer(attempt_id=attempt_id, question_id=q.id, selected_index=0)
+            UserAnswer(attempt_id=attempt_id, question_id=q["id"], selected_index=0)
         )
     db_session.commit()
 
@@ -733,7 +719,7 @@ async def test_exam_abandon_not_passed_with_partial_correct_answers(
     )
     abandoned.raise_for_status()
     body = abandoned.json()
-    assert body["percent"] == 75.0
+    assert body["percent"] == 80.0
     assert body["passed_exam"] is False
 
 
@@ -748,20 +734,11 @@ async def test_training_result_can_be_fetched_by_attempt_id(async_client: AsyncC
     reg.raise_for_status()
     user_id = reg.json()["id"]
 
+    from tests.helpers import add_questions_to_ticket
+
     test = Test(author_id=user_id, title="Training test", description=None, published=True)
     ticket = Ticket(position=1)
-    for pos in range(1, 3):
-        ticket.questions.append(
-            Question(
-                position=pos,
-                text=f"Q{pos}",
-                correct_index=0,
-                option_a="A",
-                option_b="B",
-                option_c="C",
-                option_d="D",
-            )
-        )
+    add_questions_to_ticket(ticket)
     test.tickets.append(ticket)
     db_session.add(test)
     db_session.commit()

@@ -34,6 +34,29 @@ UI: http://127.0.0.1:5173 — запросы `/api/*` проксируются �
 
 Сессия: cookie `exam_session`, axios с `withCredentials: true`.
 
+### Маршруты UI (React)
+
+| Путь | Назначение | Доступ |
+|------|------------|--------|
+| `/` | Главная (лендинг) | все |
+| `/login`, `/register` | Вход и регистрация | гости |
+| `/cabinet` | **Мой профиль** — статистика, история, редактирование (Кот) | авторизованные |
+| `/training`, `/training/:testId` | Тренировка | Кот |
+| `/exam`, `/exam/:testId` | Экзамен | Кот |
+| `/results` | История попыток | авторизованные |
+| `/manuals` | Нормативные документы | авторизованные |
+| `/wiki` | Вики портала (аккордеон) | авторизованные |
+| `/constructor` | Конструктор билетов (каталог тестов) | admin, Еж |
+| `/constructor/:testId` | Редактор билетов теста | admin, Еж |
+| `/admin` | Панель управления (статистика) | admin |
+| `/admin/users` | Пользователи и роли | admin |
+| `/staff/safety-groups` | Группы ЭБ пользователей Кот | admin, Еж |
+| `/staff/exam-schedule` | График сдачи экзаменов (таблица + Excel) | admin, Еж |
+
+**Layout:** верхняя навигация (`TopNavLayout`) для обучения и экзамена; для ролей `admin` и `ezh` — единый тёмный сайдбар (`StaffSidebar`) с пунктами «Панель управления», «Пользователи», «Билеты», «Результаты», «Отчёты», «Мой профиль». Сайдбар сворачивается кнопкой в шапке на всех устройствах.
+
+Стили: `frontend/src/styles/mockup-theme.css`, `constructor-catalog.css`, `profile-page.css`, `test-flow.css`.
+
 ### CSRF
 
 1. При старте UI: `GET /api/auth/csrf` → токен в сессии и в памяти клиента.
@@ -63,7 +86,10 @@ Production-стек:
 export SECRET_KEY=$(openssl rand -hex 32)
 ./scripts/deploy.sh
 # или: docker compose -f docker-compose.prod.yml up -d
+# Podman: podman compose -f docker-compose.prod.yml up -d --build backend
 ```
+
+После обновления фронтенда пересобирайте образ (`--build`) и обновите страницу в браузере (**Cmd+Shift+R**).
 
 ## CI/CD
 
@@ -95,7 +121,7 @@ export DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/exam_t
 alembic revision --autogenerate -m "описание"   # новая ревизия
 ```
 
-Начальная ревизия: `alembic/versions/001_initial_schema.py`.
+Ревизии: `alembic/versions/001_initial_schema.py` … `014_random_option_order.py` (wiki, публикация тестов, группы ЭБ, индексы ответов и др.).
 
 ## PDF и шрифты
 
@@ -118,9 +144,9 @@ alembic revision --autogenerate -m "описание"   # новая ревиз�
 
 | Роль | Код | Возможности |
 |------|-----|-------------|
-| Администратор | `admin` | всё |
-| Еж | `ezh` | создание и редактирование тестов |
-| Кот | `kot` | обучение, экзамен, мануалы, профиль, PDF-протокол |
+| Администратор | `admin` | всё: пользователи, панель управления, конструктор, отчёты, группы ЭБ |
+| Еж | `ezh` | конструктор билетов, график экзаменов, группы ЭБ, протоколы |
+| Кот | `kot` | обучение, экзамен, мануалы, вики, профиль, PDF-протокол |
 
 Подробные бизнес-правила (порог сдачи **75%**, состав экзамена, доступ к протоколам): [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md).
 
@@ -155,8 +181,15 @@ alembic revision --autogenerate -m "описание"   # новая ревиз�
 | POST | `/api/profile/attempts/export` | Асинхронный экспорт результатов (CSV) |
 | GET | `/api/profile/exports/{task_id}` | Статус/скачивание результата фоновой задачи |
 | GET | `/api/manuals` | Список мануалов (кэш TTL) |
-| GET | `/api/admin/users` | Список пользователей (**только admin**) |
-| PUT | `/api/admin/users/{user_id}/role` | Смена роли (**только admin**) |
+| GET | `/api/admin/stats` | Статистика панели управления (**admin**) |
+| GET | `/api/admin/users` | Список пользователей (**admin**) |
+| PUT | `/api/admin/users/{user_id}/role` | Смена роли (**admin**) |
+| GET | `/api/admin/users/{id}/protocol-draft.pdf` | Черновик протокола пользователя (**admin**) |
+| GET | `/api/staff/kot-users` | Список Котов с группой ЭБ (**admin**, **ezh**) |
+| PUT | `/api/staff/kot-users/{id}/safety-group` | Назначить группу ЭБ (**admin**, **ezh**) |
+| GET | `/api/staff/exam-schedule` | График сдачи экзаменов (JSON) (**admin**, **ezh**) |
+| GET | `/api/staff/exam-schedule-export.xlsx` | Выгрузка графика в Excel (**admin**, **ezh**) |
+| GET/POST/PUT/DELETE | `/api/wiki/pages/...` | Вики-страницы и вложения |
 
 ### Смена роли через API
 
@@ -201,7 +234,7 @@ app/
 
 ## Ограничения async-экспортов
 
-Текущая реализация задач экспорта хранится in-memory в процессе API. Это подходит для dev/single-worker, но в production лучше вынести состояние в Redis/БД и использовать отдельную очередь задач.
+Состояние задач экспорта хранится в **Redis** при заданном `REDIS_URL`; без Redis — in-memory fallback (только dev/один воркер). Для высокой нагрузки рекомендуется отдельная очередь задач.
 
 ## Тесты
 
@@ -230,13 +263,15 @@ cd .. && uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```
 exam_tests/
-├── app/
-├── frontend/
+├── app/                    # FastAPI, CQRS, сервисы
+├── frontend/               # React + Vite (UI «Развивайся»)
+├── alembic/versions/       # миграции 001–014
 ├── tests/
-├── scripts/
+├── scripts/                # deploy.sh, migrate.sh, fetch-dejavu-fonts.sh
+├── docs/                   # DEPLOYMENT, BUSINESS_RULES, …
 ├── compose.yaml
 ├── docker-compose.prod.yml
 └── .github/workflows/ci.yml
 ```
 
-Старые Jinja-шаблоны (`app/templates/`) больше не используются — UI только в React.
+Старые Jinja-шаблоны и `DashboardLayout` (React) удалены — UI только в React (`TopNavLayout`, `ConstructorLayout`, `AdminLayout`).

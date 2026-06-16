@@ -20,7 +20,7 @@
                             │
 ┌───────────────────────────▼─────────────────────────────┐
 │  app/cqrs/          CommandBus / QueryBus + handlers    │
-│  app/services/      Фасады над шиной (TestService, …)  │
+│  app/services/      Доменные сервисы (auth, pdf, export) │
 │    users/           AuthService → CommandBus            │
 │    attempts/        Подсчёт баллов, тренировка          │
 │    exams/           Сессия экзамена, таймер билета      │
@@ -58,7 +58,6 @@
 
 | Компонент | Назначение |
 |-----------|------------|
-| `TestService` | Фасад над `CommandBus` / `QueryBus` (см. `docs/CQRS.md`) |
 | `ExportService` + `ExportTaskStore` | Фоновый PDF/CSV (Redis или in-memory) |
 | `LoginRateLimiter` | Защита логина (TTL cache) |
 | `AccessPolicy` | admin / ezh / kot |
@@ -83,9 +82,9 @@
 
 См. **[docs/ARCHITECTURE_QUALITY.md](docs/ARCHITECTURE_QUALITY.md)** — DI, порты, DTO, типизация.
 
-## Legacy
+## UI
 
-- `app/routes.py`, `app/web.py`, `app/templates/` — старый server-rendered UI, **не подключены** в `main.py`. Основной UI — React.
+Единственный пользовательский интерфейс — **React SPA** (`frontend/`), раздаётся из `frontend/dist` в production. Server-rendered Jinja-шаблоны удалены.
 
 ## CI/CD (см. `.github/workflows/ci.yml`)
 

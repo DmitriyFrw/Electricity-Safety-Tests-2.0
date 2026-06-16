@@ -2,11 +2,6 @@
 python_version = "3.12"
 strict = true
 files = ["app"]
-exclude = [
-    "app/legacy/",
-    "app/routes.py",
-    "app/services/tests/",
-]
 warn_unused_ignores = true
 show_error_codes = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]

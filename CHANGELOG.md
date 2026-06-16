@@ -7,6 +7,19 @@
 
 ### Added
 
+- **Вики** (`/wiki`, `GET/POST/PUT/DELETE /api/wiki/pages`, вложения): аккордеон-просмотр, rich-text редактор для редакторов (admin/ezh).
+- **Staff API** (`app/api/staff.py`): группы ЭБ Котов (`GET/PUT /api/staff/kot-users`), график сдачи экзаменов (`GET /api/staff/exam-schedule`, Excel `…/exam-schedule-export.xlsx`).
+- **Панель управления** (`/admin`): агрегированная статистика (`GET /api/admin/stats`), черновик протокола пользователя (`GET /api/admin/users/{id}/protocol-draft.pdf`).
+- **Конструктор билетов** (`/constructor`, `/constructor/:testId`): каталог тестов, редактор билетов, импорт/экспорт JSON; маршрут `/tests/:id/edit` редиректит в конструктор.
+- **Rich text**: санитизация HTML (`app/support/rich_text.py`), компоненты `RichTextEditor` / `RichHtml` на фронте.
+- **Единый сайдбар staff** (`StaffSidebar`, `useStaffSidebar`): тёмная тема, сворачивание на всех устройствах, пункты «Панель управления», «Пользователи», «Билеты», «Результаты», «Отчёты», «Мой профиль».
+- **Страница «Мой профиль»** (`/cabinet`): статистика, график попыток, история; стили `profile-page.css`.
+- **Поток теста**: `PaginatedTestFlow`, `TestQuestionPanel`, `TestResultTiles` — единый UI тренировки и экзамена (`test-flow.css`).
+- Поле **публикации теста** (`is_published`), случайный порядок билетов и вариантов ответов (миграции `008`, `005`, `014`).
+- Группы электробезопасности I–III для Котов (миграции `006`, `007`; страница `/staff/safety-groups`).
+- Миграции Alembic `002`–`014`: заголовки билетов, число вариантов, индексы ответов, wiki, уникальность открытой попытки экзамена и др.
+- Документация: `docs/DEPLOYMENT_UBUNTU_2604.md` (Ubuntu 26.04, Podman/Docker Compose).
+- Тесты: `test_wiki.py`, `test_wiki_api.py`, `test_exam_composition.py`, `test_exam_ticket_order.py`, `test_grading.py`, `test_option_count.py`, `test_rich_text.py`, `test_answer_labels.py`.
 - **CQRS**: `CommandBus` / `QueryBus`, сообщения (`app/cqrs/messages/`), обработчики (`app/cqrs/handlers/`), регистрация в `registry.py`; API вызывает `dispatch`. Документация: `docs/CQRS.md`.
 - Порты и адаптеры HTTP: `SessionStore`, `HttpContext` (отвязка `AuthService` от `fastapi.Request`).
 - Валидация внутренних DTO через Pydantic (`ValidatedDTO`).
@@ -33,6 +46,11 @@
 
 ### Changed
 
+- **UI «Развивайся»**: макет mockup-theme (фиолетовая палитра), верхняя навигация для Кота (`TopNavLayout`), layout конструктора и админки на базе `StaffSidebar`.
+- Кабинет переименован в **«Мой профиль»**; убраны блок «Ваши достижения» и ссылки «Подробнее» / «К календарю».
+- В карточке группы ЭБ отображается полное название («II группа»), без дублирования римской цифры.
+- **График экзаменов**: сортировка по колонке «Планируемая дата» (asc → desc → сброс); пользователи без экзамена — в конце списка.
+- Кнопка создания в конструкторе: «Создать тест» (вместо «Создать билет»).
 - Порог сдачи экзамена: **75%** (удовлетворительно и выше); документация приведена в соответствие с `MIN_PASS_PERCENT`.
 - Экзамен: один случайный билет из пула тестов группы ЭБ; состав вопросов фиксируется в попытке.
 - CI job `lint`: проверка типов `mypy` (режим `strict`) после `ruff`; конфиг в `pyproject.toml`, scope — `app/` (legacy `routes.py`, `services/tests/` исключены).
@@ -49,9 +67,15 @@
   - `SECRET_KEY` прокинут в CI на этапе build production image,
   - `scripts/deploy.sh` очищает стек при failed healthcheck.
 
+### Removed
+
+- Устаревший `DashboardLayout`, страница `TestEditPage` (редактирование только через конструктор).
+- Неиспользуемые хуки `useMobileNav`, `useSidebarOnScroll`, утилита `exam.ts`; мёртвые стили `admin-sidebar`, `staff-drawer`, achievements в `profile-page.css`.
+
 ### Fixed
 
 - **IDOR** на `GET …/protocol` и `GET …/protocol.pdf`: доступ только экзаменуемому, подписанту или staff (`admin`/`ezh`).
+- Выравнивание иконок в сайдбаре и на странице профиля; sticky-панель пользователя внизу сайдбара при скролле.
 
 ## [0.5.0] - 2026-05-27
 

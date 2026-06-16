@@ -48,10 +48,6 @@ app/cqrs/handlers/
 3. Зарегистрировать в `registry.py`
 4. Вызвать из `app/api/*` через `dispatch`
 
-## Фасады (опционально)
+## Точка входа HTTP
 
-`TestService`, `ProfileService`, … — тонкие обёртки над шиной для тестов и обратной совместимости. **Точка входа HTTP — только bus в роутерах.**
-
-## Legacy
-
-`app/services/tests/*.py` (старые `*Service`) оставлены как справочник; логика перенесена в `app/cqrs/handlers/`. Не импортировать их из нового кода.
+Роутеры вызывают только `dispatch_command` / `dispatch_query`. Общие проверки доступа к тесту — `app/support/test_access.py`.
